@@ -63,6 +63,7 @@ COMIC_RSS_HIDDEN = {
 src_dir = Path(__file__).parent
 project_root = src_dir.parent  # One level up from src/
 sys.path.insert(0, str(src_dir))
+sys.path.insert(0, str(project_root))  # For collectors module
 
 # Import database manager
 from database import db
@@ -579,6 +580,11 @@ async def list_comic_feeds():
 assets_dir = project_root / "assets"
 if assets_dir.exists():
     app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+
+# Mount data directory for comics archive
+data_dir = project_root / "data"
+if data_dir.exists():
+    app.mount("/data", StaticFiles(directory=str(data_dir)), name="data")
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(code: str = None, state: str = None, error: str = None):
@@ -1289,6 +1295,363 @@ async def update_ai_settings(settings: Dict[str, Any]):
         
     except Exception as e:
         logger.error(f"Error updating AI settings: {e}")
+        return {"success": False, "error": str(e)}
+
+
+# ============== Comics Settings ==============
+
+# Default comics configuration
+DEFAULT_COMICS = {
+    "garfield": {
+        "name": "Garfield",
+        "source": "archive",
+        "enabled": True,
+        "archive_enabled": True,
+        "gocomics_slug": None
+    },
+    "bloomcounty": {
+        "name": "Bloom County",
+        "source": "gocomics",
+        "gocomics_slug": "bloomcounty",
+        "enabled": True,
+        "archive_enabled": True
+    },
+    "calvin": {
+        "name": "Calvin & Hobbes",
+        "source": "gocomics",
+        "gocomics_slug": "calvinandhobbes",
+        "enabled": True,
+        "archive_enabled": True
+    },
+    "peanuts": {
+        "name": "Peanuts",
+        "source": "gocomics",
+        "gocomics_slug": "peanuts",
+        "enabled": True,
+        "archive_enabled": True
+    }
+}
+
+
+@app.get("/api/settings/comics")
+async def get_comics_settings():
+    """Get comics configuration settings with archive counts."""
+    try:
+        from database import DatabaseManager
+        db_manager = DatabaseManager()
+        
+        # Get saved comics config or use defaults
+        saved_config = db_manager.get_setting('comics_config')
+        if saved_config:
+            try:
+                comics = json.loads(saved_config)
+            except:
+                comics = DEFAULT_COMICS.copy()
+        else:
+            comics = DEFAULT_COMICS.copy()
+        
+        # Ensure all default comics exist in config
+        for comic_id, comic_data in DEFAULT_COMICS.items():
+            if comic_id not in comics:
+                comics[comic_id] = comic_data.copy()
+        
+        # Add archive counts for each comic
+        data_dir = project_root / "data"
+        for comic_id in comics:
+            archive_count = 0
+            
+            # Check for Garfield's special archive format
+            if comic_id == "garfield":
+                garfield_archive = data_dir / "garfield_archive_images.json"
+                if garfield_archive.exists():
+                    try:
+                        with open(garfield_archive) as f:
+                            archive_data = json.load(f)
+                            archive_count = len(archive_data) if isinstance(archive_data, list) else len(archive_data.get('comics', []))
+                    except:
+                        pass
+            else:
+                # Check standard archive JSON
+                archive_file = data_dir / f"{comic_id}_archive.json"
+                if archive_file.exists():
+                    try:
+                        with open(archive_file) as f:
+                            archive_data = json.load(f)
+                            archive_count = len(archive_data.get('comics', []))
+                    except:
+                        pass
+                
+                # Also check comic image files
+                comic_dir = data_dir / "comics" / comic_id
+                if comic_dir.exists():
+                    try:
+                        file_count = len(list(comic_dir.glob("*")))
+                        archive_count = max(archive_count, file_count)
+                    except:
+                        pass
+            
+            comics[comic_id]['archive_count'] = archive_count
+        
+        return {
+            "success": True,
+            "comics": comics
+        }
+    except Exception as e:
+        logger.error(f"Error getting comics settings: {e}")
+        return {"success": False, "error": str(e), "comics": DEFAULT_COMICS}
+
+
+@app.post("/api/settings/comics")
+async def update_comics_settings(request: Dict[str, Any]):
+    """Update comics configuration settings."""
+    try:
+        from database import DatabaseManager
+        db_manager = DatabaseManager()
+        
+        # Get current config
+        saved_config = db_manager.get_setting('comics_config')
+        if saved_config:
+            try:
+                comics = json.loads(saved_config)
+            except:
+                comics = DEFAULT_COMICS.copy()
+        else:
+            comics = DEFAULT_COMICS.copy()
+        
+        # Update with new values
+        if 'comics' in request:
+            for comic_id, comic_data in request['comics'].items():
+                if comic_id in comics:
+                    comics[comic_id].update(comic_data)
+                else:
+                    comics[comic_id] = comic_data
+        
+        # Save back to database
+        db_manager.save_setting('comics_config', json.dumps(comics))
+        
+        return {
+            "success": True,
+            "message": "Comics settings updated",
+            "comics": comics
+        }
+    except Exception as e:
+        logger.error(f"Error updating comics settings: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/settings/comics/add")
+async def add_comic_from_url(request: Dict[str, Any]):
+    """Add a new comic from a GoComics URL."""
+    try:
+        from database import DatabaseManager
+        db_manager = DatabaseManager()
+        
+        url = request.get('url', '').strip()
+        if not url:
+            return {"success": False, "error": "URL is required"}
+        
+        # Parse GoComics URL to extract slug
+        # Expected format: https://www.gocomics.com/garfield or similar
+        import re
+        match = re.search(r'gocomics\.com/([a-z0-9-]+)', url.lower())
+        if not match:
+            return {"success": False, "error": "Invalid GoComics URL. Expected format: https://www.gocomics.com/comic-name"}
+        
+        slug = match.group(1)
+        
+        # Fetch the GoComics page to get the comic name
+        try:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+                "Accept": "text/html,application/xhtml+xml",
+                "Accept-Language": "en-US,en;q=0.9",
+            }
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+                resp = await client.get(f"https://www.gocomics.com/{slug}", headers=headers)
+                if resp.status_code != 200:
+                    return {"success": False, "error": f"Could not access comic page (status {resp.status_code})"}
+                
+                # Parse page to get comic title
+                from bs4 import BeautifulSoup
+                soup = BeautifulSoup(resp.text, 'html.parser')
+                
+                # Try to find the comic title
+                title_tag = soup.find('h1') or soup.find('title')
+                if title_tag:
+                    title = title_tag.get_text().strip()
+                    # Clean up title
+                    title = re.sub(r'\s*[\|\-].*$', '', title).strip()
+                    title = re.sub(r'GoComics.*$', '', title).strip()
+                    if not title:
+                        title = slug.replace('-', ' ').title()
+                else:
+                    title = slug.replace('-', ' ').title()
+                
+        except Exception as e:
+            logger.warning(f"Could not fetch comic page for {slug}: {e}")
+            title = slug.replace('-', ' ').title()
+        
+        # Generate unique ID from slug
+        comic_id = slug.replace('-', '')
+        
+        # Get current comics config
+        saved_config = db_manager.get_setting('comics_config')
+        if saved_config:
+            try:
+                comics = json.loads(saved_config)
+            except:
+                comics = DEFAULT_COMICS.copy()
+        else:
+            comics = DEFAULT_COMICS.copy()
+        
+        # Check if already exists
+        if comic_id in comics:
+            return {"success": False, "error": f"Comic '{title}' already exists"}
+        
+        # Add new comic
+        comics[comic_id] = {
+            "name": title,
+            "source": "gocomics",
+            "gocomics_slug": slug,
+            "enabled": True,
+            "archive_enabled": True,
+            "custom": True
+        }
+        
+        # Save config
+        db_manager.save_setting('comics_config', json.dumps(comics))
+        
+        return {
+            "success": True,
+            "message": f"Added '{title}' to comics",
+            "comic_id": comic_id,
+            "comic": comics[comic_id]
+        }
+    except Exception as e:
+        logger.error(f"Error adding comic from URL: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.delete("/api/settings/comics/{comic_id}")
+async def remove_comic(comic_id: str):
+    """Remove a custom comic (built-in comics cannot be removed)."""
+    try:
+        from database import DatabaseManager
+        db_manager = DatabaseManager()
+        
+        # Get current config
+        saved_config = db_manager.get_setting('comics_config')
+        if saved_config:
+            try:
+                comics = json.loads(saved_config)
+            except:
+                comics = DEFAULT_COMICS.copy()
+        else:
+            comics = DEFAULT_COMICS.copy()
+        
+        if comic_id not in comics:
+            return {"success": False, "error": "Comic not found"}
+        
+        # Check if it's a built-in comic
+        if comic_id in DEFAULT_COMICS and not comics[comic_id].get('custom', False):
+            return {"success": False, "error": "Cannot remove built-in comics. You can disable them instead."}
+        
+        # Remove the comic
+        del comics[comic_id]
+        
+        # Save config
+        db_manager.save_setting('comics_config', json.dumps(comics))
+        
+        return {
+            "success": True,
+            "message": f"Removed comic '{comic_id}'"
+        }
+    except Exception as e:
+        logger.error(f"Error removing comic: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/comics/gocomics/{slug}")
+async def get_gocomics_daily(slug: str):
+    """Fetch a comic from GoComics by its slug, with local archive fallback."""
+    try:
+        from datetime import datetime
+        import random
+        
+        # First, check if we have local files for this comic
+        local_dir = project_root / "data" / "comics" / slug
+        local_files = list(local_dir.glob("*.gif")) if local_dir.exists() else []
+        
+        # Try to fetch today's comic from GoComics
+        today = datetime.now().strftime("%Y/%m/%d")
+        url = f"https://www.gocomics.com/{slug}/{today}"
+        
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+            "Accept": "text/html,application/xhtml+xml",
+            "Accept-Language": "en-US,en;q=0.9",
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+                resp = await client.get(url, headers=headers)
+                if resp.status_code == 200:
+                    # Find the comic image URL
+                    import re
+                    pattern = r'https://assets\.amuniversal\.com/[a-f0-9]+'
+                    match = re.search(pattern, resp.text)
+                    
+                    if not match:
+                        # Try featureassets
+                        pattern2 = r'https://featureassets\.gocomics\.com/assets/[a-f0-9]+'
+                        match = re.search(pattern2, resp.text)
+                    
+                    if match:
+                        image_url = match.group(0)
+                        comic_date = datetime.now().strftime("%Y-%m-%d")
+                        
+                        # Check if we have this date locally
+                        local_file = local_dir / f"{comic_date}.gif"
+                        if local_file.exists():
+                            image_url = f"/data/comics/{slug}/{comic_date}.gif"
+                        
+                        return {
+                            "success": True,
+                            "comic": {
+                                "id": comic_date,
+                                "series": slug,
+                                "title": f"{slug.title()} - {comic_date}",
+                                "date": comic_date,
+                                "image_url": image_url,
+                                "link": url,
+                                "attribution": f"© GoComics"
+                            }
+                        }
+        except Exception as fetch_error:
+            logger.warning(f"GoComics fetch failed for {slug}: {fetch_error}")
+        
+        # Fallback to local archive if remote fetch failed
+        if local_files:
+            # Get most recent local file
+            filepath = sorted(local_files, reverse=True)[0]
+            comic_id = filepath.stem
+            return {
+                "success": True,
+                "comic": {
+                    "id": comic_id,
+                    "series": slug,
+                    "title": f"{slug.title()} - {comic_id}",
+                    "date": comic_id,
+                    "image_url": f"/data/comics/{slug}/{filepath.name}",
+                    "link": f"https://www.gocomics.com/{slug}/{comic_id.replace('-', '/')}",
+                    "attribution": f"© GoComics (from local archive)"
+                }
+            }
+        
+        return {"success": False, "error": "Could not fetch comic and no local archive available"}
+                
+    except Exception as e:
+        logger.error(f"Error fetching GoComics {slug}: {e}")
         return {"success": False, "error": str(e)}
 
 
@@ -3868,17 +4231,60 @@ async def roger_home():
             logger.warning(f"RogerHome: joke fetch failed: {e}")
             content["jokes"] = []
 
-        # Static suggestions and facts
-        content.setdefault("parts_search_terms", [
-            "ThinkPad T480 battery", "Framework 13 screws", "MacBook Pro 2012 RAM"
-        ])
-        content.setdefault("parts_tips", [
+        # History Fact - try Wikipedia On This Day API
+        import random as rand_mod
+        from datetime import datetime as dt_now
+        today = dt_now.now()
+        content["history_fact"] = f"On {today.strftime('%B %d')}, make some history yourself!"
+        
+        try:
+            wiki_url = f"https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/{today.month}/{today.day}"
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(wiki_url, headers={"User-Agent": "FounderDashboard/1.0"})
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if data.get("selected") and len(data["selected"]) > 0:
+                        event = rand_mod.choice(data["selected"][:10])
+                        year = event.get("year", "")
+                        text = event.get("text", "")
+                        if year and text:
+                            content["history_fact"] = f"{year}: {text}"
+        except Exception as wiki_e:
+            logger.debug(f"Wikipedia On This Day fetch failed: {wiki_e}")
+
+        # Star Wars Facts - rotating collection
+        starwars_facts = [
+            "The Millennium Falcon's design was inspired by a hamburger with an olive next to it.",
+            "Yoda was almost played by a monkey wearing a mask.",
+            "R2-D2 speaks in 'Droidspeak' - all beeps were created by sound designer Ben Burtt.",
+            "Darth Vader's breathing sound was made with a scuba regulator.",
+            "The word 'Ewok' is never spoken in Return of the Jedi.",
+            "Han Solo was supposed to die in Return of the Jedi, but George Lucas said no.",
+            "The lightsaber sound combines a TV set hum and a projector motor.",
+            "Chewbacca's voice is a mix of bears, walruses, lions, and badgers.",
+            "E.T. species appear as senators in The Phantom Menace.",
+            "Luke's original last name was 'Starkiller' before being changed to Skywalker.",
+            "Tupac Shakur auditioned for the role of Mace Windu.",
+            "The Battle Droids' 'Roger Roger' was inspired by military radio protocol.",
+            "James Earl Jones was paid only $7,000 to voice Darth Vader.",
+            "The famous 'I am your father' line was kept secret - even from Mark Hamill.",
+            "Boba Fett has only 4 lines of dialogue in the original trilogy.",
+        ]
+        content["starwars_fact"] = rand_mod.choice(starwars_facts)
+        
+        # Parts search - dynamic suggestions
+        parts_searches = [
+            ["ThinkPad T480 battery", "Framework 13 keyboard", "MacBook Pro 2012 RAM"],
+            ["Dell XPS 13 screen", "HP EliteBook charger", "Lenovo X1 Carbon fan"],
+            ["Surface Pro battery", "Razer Blade SSD", "ASUS ROG screen"],
+            ["ThinkPad X230 keyboard", "MacBook Air trackpad", "Dell Latitude hinges"],
+        ]
+        content["parts_search_terms"] = rand_mod.choice(parts_searches)
+        content["parts_tips"] = [
             "Include model number and part code for accurate results.",
             "Check seller feedback and return policy.",
             "Search both eBay and local repair shops."
-        ])
-        content.setdefault("history_fact", "On this day, Apollo 17 returned to Earth in 1972.")
-        content.setdefault("starwars_fact", "The Millennium Falcon’s design was inspired by a hamburger.")
+        ]
         # Roger quotes - inspirational and droid-style
         roger_quotes = [
             "Roger roger. You're doing better than you think.",
@@ -6235,88 +6641,39 @@ async def initialize_ai_providers():
         return
     
     try:
-        # Check if we have any providers
-        existing_providers = db.get_ai_providers()
+        # Always reset the ai_manager to pick up any model changes
+        ai_manager.clear_providers()
+        logger.info("Cleared AI providers for fresh initialization")
         
-        if not existing_providers:
-            # Get Ollama configuration from settings
-            ollama_host = db.get_setting('ollama_host', 'localhost')
-            ollama_port = db.get_setting('ollama_port', 11434)
-            ollama_model = db.get_setting('ollama_model', 'llama3.2:latest')
+        # Get Ollama configuration from settings
+        ollama_host = db.get_setting('ollama_host', 'localhost')
+        ollama_port = db.get_setting('ollama_port', 11434)
+        ollama_model = db.get_setting('ollama_model', 'roger')
+        
+        logger.info(f"Initializing Ollama with model: {ollama_model}")
+        
+        # Build the URL from configured host and port
+        configured_url = f'http://{ollama_host}:{ollama_port}'
+        
+        ollama_config = {
+            'base_url': configured_url,
+            'model_name': ollama_model,
+            'is_active': True,
+            'is_default': True
+        }
+        
+        try:
+            ollama_provider = create_provider('ollama', f'Ollama ({ollama_host})', ollama_config)
+            health_ok = await ollama_provider.health_check()
             
-            # Build the URL from configured host and port
-            configured_url = f'http://{ollama_host}:{ollama_port}'
-            
-            # Try to create Ollama provider using configured settings
-            ollama_hosts = [
-                {'name': f'Ollama ({ollama_host})', 'url': configured_url, 'model': ollama_model},
-                {'name': 'Local Ollama (fallback)', 'url': 'http://localhost:11434', 'model': 'llama3.2:latest'},
-            ]
-            
-            default_set = False
-            
-            for host_config in ollama_hosts:
-                # First try to get available models
-                try:
-                    async with aiohttp.ClientSession() as session:
-                        async with session.get(f"{host_config['url']}/api/tags") as response:
-                            if response.status == 200:
-                                data = await response.json()
-                                models = data.get('models', [])
-                                if models:
-                                    # Use the configured model if specified, otherwise use first available
-                                    if host_config.get('model'):
-                                        model_name = host_config['model']
-                                    else:
-                                        model_name = models[0]['name']
-                                    logger.info(f"Found model {model_name} at {host_config['url']}")
-                                else:
-                                    model_name = host_config.get('model', 'llama2')  # use configured or fallback
-                            else:
-                                continue
-                except:
-                    continue
+            if health_ok:
+                ai_manager.register_provider(ollama_provider, True)
+                logger.info(f"Ollama provider initialized: {configured_url} with model {ollama_model}")
+            else:
+                logger.warning(f"Ollama server not available at {configured_url}")
                 
-                ollama_config = {
-                    'base_url': host_config['url'],
-                    'model_name': model_name,
-                    'is_active': True,
-                    'is_default': not default_set  # First working one becomes default
-                }
-                
-                try:
-                    ollama_provider = create_provider('ollama', host_config['name'], ollama_config)
-                    health_ok = await ollama_provider.health_check()
-                    
-                    if health_ok:
-                        db.save_ai_provider(host_config['name'], 'ollama', ollama_config)
-                        ai_manager.register_provider(ollama_provider, not default_set)
-                        logger.info(f"Ollama provider initialized: {host_config['name']} at {host_config['url']} with model {model_name}")
-                        if not default_set:
-                            default_set = True
-                    else:
-                        logger.debug(f"Ollama server not available at {host_config['url']}")
-                        
-                except Exception as e:
-                    logger.debug(f"Could not initialize Ollama provider at {host_config['url']}: {e}")
-            
-            if not default_set:
-                logger.warning("No Ollama servers found - you can add providers manually in the AI Assistant admin panel")
-        else:
-            # Load existing providers into manager
-            for provider_data in existing_providers:
-                if provider_data['is_active']:
-                    try:
-                        provider = create_provider(
-                            provider_data['provider_type'],
-                            provider_data['name'],
-                            provider_data['config_data']
-                        )
-                        ai_manager.register_provider(provider, provider_data['is_default'])
-                        logger.info(f"Loaded AI provider: {provider_data['name']}")
-                        
-                    except Exception as e:
-                        logger.error(f"Error loading provider {provider_data['name']}: {e}")
+        except Exception as e:
+            logger.error(f"Could not initialize Ollama provider: {e}")
                         
     except Exception as e:
         logger.error(f"Error initializing AI providers: {e}")
@@ -7768,14 +8125,36 @@ async def leads_page():
 
 @app.post("/api/voice/test")
 async def test_voice(request: Request):
-    """Test the voice system - makes Rogr speak."""
+    """Test the voice system - makes Rogr speak with current settings."""
     try:
         data = await request.json()
         message = data.get('message', 'Roger roger. Voice system operational.')
         style = data.get('style', 'droid')
         add_signature = data.get('signature', True)
+        settings = data.get('settings', {})
         
         import voice as voice_module
+        
+        # Get or create voice instance
+        voice = voice_module.get_voice()
+        
+        # Apply settings if provided
+        if settings:
+            if 'pitch' in settings:
+                voice.pitch = float(settings['pitch'])
+            if 'speed' in settings:
+                voice.speed = float(settings['speed'])
+            if 'volume' in settings:
+                voice.volume = float(settings.get('volume', 1.0))
+            if 'bitDepth' in settings:
+                voice.bit_depth = int(settings['bitDepth'])
+            if 'tremoloFreq' in settings:
+                voice.tremolo_freq = int(settings['tremoloFreq'])
+            if 'echoGain' in settings:
+                voice.echo_gain = float(settings['echoGain'])
+            
+            # Clear cache so new settings take effect
+            voice.clear_cache()
         
         if add_signature:
             success = voice_module.announce(message, style=style, blocking=False)
@@ -7786,7 +8165,8 @@ async def test_voice(request: Request):
             "success": success,
             "message": message,
             "style": style,
-            "signature": add_signature
+            "signature": add_signature,
+            "settings_applied": bool(settings)
         }
     except Exception as e:
         logger.error(f"Voice test error: {e}")
@@ -8257,60 +8637,229 @@ async def serve_garfield_image(filename: str):
 
 @app.get("/api/comics/calvin/daily")
 async def get_calvin_daily():
-    """Get today's Calvin and Hobbes comic via comicsrss feed."""
+    """Get today's Calvin and Hobbes comic from GoComics."""
     try:
-        rss_url = 'https://www.comicsrss.com/rss/calvinandhobbes.rss'
-        resp = requests.get(rss_url, timeout=15, headers={"User-Agent": "Mozilla/5.0 (compatible; DashboardBot/1.0)"})
-        if resp.status_code != 200:
-            return {"success": False, "error": f"RSS status {resp.status_code}"}
-        soup = BeautifulSoup(resp.text, 'xml')
-        item = soup.find('item')
-        if not item:
-            return {"success": False, "error": "No items"}
-        pub_raw = item.pubDate.text if item.pubDate else ''
-        # Derive YYYY-MM-DD if possible
-        comic_id = datetime.utcnow().strftime('%Y-%m-%d')
-        try:
-            comic_id = datetime.strptime(pub_raw[:16], "%a, %d %b %Y").strftime('%Y-%m-%d')
-        except Exception:
-            pass
-        description = item.description.text if item.description else ''
-        img_match = re.search(r'<img[^>]+src="([^"]+)"', description)
-        image_url = img_match.group(1) if img_match else ''
-        link = item.link.text if item.link else rss_url
-        title = item.title.text if item.title else 'Calvin and Hobbes'
-        comic = {
-            "series": "calvin",
-            "id": comic_id,
-            "title": title,
-            "date": comic_id,
-            "image_url": image_url,
-            "link": link,
-            "attribution": "© Andrews McMeel / comicsrss.com"
-        }
-        return {"success": True, "comic": comic}
+        from collectors.calvin_collector import CalvinCollector
+        collector = CalvinCollector()
+        return collector.get_daily()
     except Exception as e:
         logger.error(f"Calvin daily error: {e}")
         return {"success": False, "error": str(e)}
 
 
-@app.get("/api/comics/peanuts")
-async def get_peanuts(date: Optional[str] = None, save: bool = False):
-    """Get today's Peanuts comic from GoComics. Optionally save to data/peanuts."""
+@app.get("/api/comics/calvin/random")
+async def get_calvin_random():
+    """Get a random Calvin and Hobbes comic."""
     try:
-        from collectors.peanuts_collector import PeanutsCollector
-        dt = None
-        if date:
-            try:
-                dt = datetime.strptime(date, "%Y-%m-%d")
-            except Exception:
-                dt = None
-        collector = PeanutsCollector()
-        res = await collector.get_comic(date=dt, save=save)
-        return res
+        from collectors.calvin_collector import CalvinCollector
+        collector = CalvinCollector()
+        return collector.get_random()
+    except Exception as e:
+        logger.error(f"Calvin random error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/comics/peanuts")
+async def get_peanuts():
+    """Get today's Peanuts comic from GoComics and cache it."""
+    try:
+        from collectors.peanuts_collector_v2 import PeanutsCollectorV2
+        collector = PeanutsCollectorV2()
+        return collector.get_daily()
     except Exception as e:
         logger.error(f"Peanuts error: {e}")
         return {"success": False, "error": str(e)}
+
+
+@app.get("/api/comics/peanuts/random")
+async def get_peanuts_random():
+    """Get a random Peanuts comic from the archive."""
+    try:
+        from collectors.peanuts_collector_v2 import PeanutsCollectorV2
+        collector = PeanutsCollectorV2()
+        return collector.get_random()
+    except Exception as e:
+        logger.error(f"Peanuts random error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/comics/peanuts/archive")
+async def get_peanuts_archive(limit: int = 100):
+    """Get list of archived Peanuts comics."""
+    try:
+        from collectors.peanuts_collector_v2 import PeanutsCollectorV2
+        collector = PeanutsCollectorV2()
+        comics = collector.get_archive_list(limit=limit)
+        return {"success": True, "comics": comics, "count": len(comics)}
+    except Exception as e:
+        logger.error(f"Peanuts archive error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/comics/calvin/archive")
+async def get_calvin_archive(limit: int = 100):
+    """Get list of archived Calvin and Hobbes comics."""
+    try:
+        from collectors.calvin_collector import CalvinCollector
+        collector = CalvinCollector()
+        comics = collector.get_archive_list(limit=limit)
+        return {"success": True, "comics": comics, "count": len(comics)}
+    except Exception as e:
+        logger.error(f"Calvin archive error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/comics/bloomcounty/daily")
+async def get_bloomcounty_daily():
+    """Get today's Bloom County comic, preferring local archive."""
+    try:
+        from collectors.bloomcounty_collector import BloomCountyCollector
+        collector = BloomCountyCollector()
+        result = collector.get_daily()
+        
+        # Check if we have a local file for this comic
+        if result.get('success') and result.get('comic'):
+            comic = result['comic']
+            comic_id = comic.get('id') or comic.get('date')
+            if comic_id:
+                local_file = project_root / "data" / "comics" / "bloomcounty" / f"{comic_id}.gif"
+                if local_file.exists():
+                    comic['image_url'] = f"/data/comics/bloomcounty/{comic_id}.gif"
+        
+        return result
+    except Exception as e:
+        logger.error(f"Bloom County daily error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/comics/bloomcounty/random")
+async def get_bloomcounty_random():
+    """Get a random Bloom County comic from the local archive."""
+    try:
+        import random
+        bc_dir = project_root / "data" / "comics" / "bloomcounty"
+        if bc_dir.exists():
+            local_files = list(bc_dir.glob("*.gif"))
+            if local_files:
+                filepath = random.choice(local_files)
+                comic_id = filepath.stem
+                comic = {
+                    "id": comic_id,
+                    "series": "bloomcounty",
+                    "title": f"Bloom County - {comic_id}",
+                    "date": comic_id,
+                    "image_url": f"/data/comics/bloomcounty/{filepath.name}",
+                    "link": f"https://www.gocomics.com/bloomcounty/{comic_id.replace('-', '/')}",
+                    "attribution": "© Berkeley Breathed / GoComics"
+                }
+                return {"success": True, "comic": comic}
+        
+        # Fallback to collector if no local files
+        from collectors.bloomcounty_collector import BloomCountyCollector
+        collector = BloomCountyCollector()
+        return collector.get_random()
+    except Exception as e:
+        logger.error(f"Bloom County random error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/comics/bloomcounty/archive")
+async def get_bloomcounty_archive(limit: int = 100):
+    """Get list of archived Bloom County comics from local files."""
+    try:
+        bc_dir = project_root / "data" / "comics" / "bloomcounty"
+        comics = []
+        if bc_dir.exists():
+            local_files = sorted(bc_dir.glob("*.gif"), reverse=True)[:limit]
+            for filepath in local_files:
+                comic_id = filepath.stem
+                comics.append({
+                    "id": comic_id,
+                    "series": "bloomcounty",
+                    "title": f"Bloom County - {comic_id}",
+                    "date": comic_id,
+                    "image_url": f"/data/comics/bloomcounty/{filepath.name}",
+                    "link": f"https://www.gocomics.com/bloomcounty/{comic_id.replace('-', '/')}",
+                    "attribution": "© Berkeley Breathed / GoComics"
+                })
+        return {"success": True, "comics": comics, "count": len(comics)}
+    except Exception as e:
+        logger.error(f"Bloom County archive error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/comics/{series}/archive")
+async def get_comic_archive(series: str, limit: int = 100):
+    """Get archive for any comic series."""
+    try:
+        comics = []
+        
+        if series == "garfield":
+            # Garfield archive - only return comics with local files
+            garfield_dir = project_root / "data" / "comics" / "garfield"
+            if garfield_dir.exists():
+                # Scan local directory for actual files
+                local_files = sorted(garfield_dir.glob("*.gif"), reverse=True)[:limit]
+                for filepath in local_files:
+                    comic_id = filepath.stem
+                    comics.append({
+                        "id": comic_id,
+                        "series": "garfield",
+                        "title": f"Garfield - {comic_id}",
+                        "date": comic_id,
+                        "image_url": f"/data/comics/garfield/{filepath.name}",
+                        "link": f"https://www.gocomics.com/garfield/{comic_id.replace('-', '/')}",
+                        "attribution": "© Jim Davis / Paws Inc."
+                    })
+            return {"success": True, "comics": comics, "count": len(comics)}
+        elif series == "bloomcounty":
+            from collectors.bloomcounty_collector import BloomCountyCollector
+            collector = BloomCountyCollector()
+            comics = collector.get_archive_list(limit=limit)
+            # Update image_url to use local path if file exists
+            bc_dir = project_root / "data" / "comics" / "bloomcounty"
+            for comic in comics:
+                comic_id = comic.get('id') or comic.get('date')
+                if comic_id:
+                    local_file = bc_dir / f"{comic_id}.gif"
+                    if local_file.exists():
+                        comic['image_url'] = f"/data/comics/bloomcounty/{comic_id}.gif"
+        elif series == "calvin":
+            from collectors.calvin_collector import CalvinCollector
+            collector = CalvinCollector()
+            comics = collector.get_archive_list(limit=limit)
+        elif series == "peanuts":
+            from collectors.peanuts_collector_v2 import PeanutsCollectorV2
+            collector = PeanutsCollectorV2()
+            comics = collector.get_archive_list(limit=limit)
+        elif series == "foxtrot":
+            from collectors.foxtrot_collector import FoxTrotCollector
+            collector = FoxTrotCollector()
+            comics = collector.get_archive_list(limit=limit)
+        else:
+            # For custom comics added via settings, scan local directory
+            custom_dir = project_root / "data" / "comics" / series
+            if custom_dir.exists():
+                comics = []
+                for filepath in sorted(custom_dir.glob("*.gif"), reverse=True)[:limit]:
+                    comic_id = filepath.stem
+                    comics.append({
+                        "id": comic_id,
+                        "series": series,
+                        "title": f"{series.title()} - {comic_id}",
+                        "date": comic_id,
+                        "image_url": f"/data/comics/{series}/{filepath.name}",
+                        "link": "",
+                        "attribution": f"© {series.title()}"
+                    })
+                return {"success": True, "comics": comics, "count": len(comics)}
+            return {"success": False, "error": f"Unknown series: {series}"}
+        
+        return {"success": True, "comics": comics, "count": len(comics)}
+    except Exception as e:
+        logger.error(f"Comic archive error for {series}: {e}")
+        return {"success": False, "error": str(e)}
+
 
 @app.get("/api/comics/favorites")
 async def get_comic_favorites():

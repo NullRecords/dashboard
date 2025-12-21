@@ -1,0 +1,83 @@
+{
+  "comics": [
+    {
+      "date": "2025-12-21",
+      "image_url": "/data/comics/foxtrot/2025-12-21.gif",
+      "original_url": "https://featureassets.gocomics.com/assets/d88439d0a167013eb842005056a9545d",
+      "page_url": "https://www.gocomics.com/foxtrot/2025/12/21"
+    },
+    {
+      "date": "2025-12-14",
+      "image_url": "/data/comics/foxtrot/2025-12-14.gif",
+      "original_url": "https://featureassets.gocomics.com/assets/2d2729209d71013eb842005056a9545d",
+      "page_url": "https://www.gocomics.com/foxtrot/2025/12/14"
+    },
+    {
+      "date": "2025-12-07",
+      "image_url": "/data/comics/foxtrot/2025-12-07.gif",
+      "original_url": "https://featureassets.gocomics.com/assets/41858a00b294013eb960005056a9545d",
+      "page_url": "https://www.gocomics.com/foxtrot/2025/12/07"
+    },
+    {
+      "date": "2025-11-30",
+      "image_url": "/data/comics/foxtrot/2025-11-30.gif",
+      "original_url": "https://featureassets.gocomics.com/assets/2f0717e09266013eb772005056a9545d",
+      "page_url": "https://www.gocomics.com/foxtrot/2025/11/30"
+    },
+    {
+      "date": "2025-11-23",
+      "image_url": "/data/comics/foxtrot/2025-11-23.gif",
+      "original_url": "https://featureassets.gocomics.com/assets/be5417c08cf2013eb71e005056a9545d",
+      "page_url": "https://www.gocomics.com/foxtrot/2025/11/23"
+    },
+    {
+      "date": "2025-11-16",
+      "image_url": "/data/comics/foxtrot/2025-11-16.gif",
+      "original_url": "https://featureassets.gocomics.com/assets/48a59b408772013eb6e7005056a9545d",
+      "page_url": "https://www.gocomics.com/foxtrot/2025/11/16"
+    },
+    {
+      "date": "2025-11-09",
+      "image_url": "/data/comics/foxtrot/2025-11-09.gif",
+      "original_url": "https://featureassets.gocomics.com/assets/073df29085d0013eb69d005056a9545d",
+      "page_url": "https://www.gocomics.com/foxtrot/2025/11/09"
+    },
+    {
+      "date": "2025-11-02",
+      "image_url": "/data/comics/foxtrot/2025-11-02.gif",
+      "original_url": "https://featureassets.gocomics.com/assets/c8bbc3c07c61013eb500005056a9545d",
+      "page_url": "https://www.gocomics.com/foxtrot/2025/11/02"
+    },
+    {
+      "date": "2025-10-26",
+      "image_url": "/data/comics/foxtrot/2025-10-26.gif",
+      "original_url": "https://featureassets.gocomics.com/assets/4cd4c2e07703013eb3f3005056a9545d",
+      "page_url": "https://www.gocomics.com/foxtrot/2025/10/26"
+    },
+    {
+      "date": "2025-10-19",
+      "image_url": "/data/comics/foxtrot/2025-10-19.gif",
+      "original_url": "https://featureassets.gocomics.com/assets/3514ce80718b013eb2dc005056a9545d",
+      "page_url": "https://www.gocomics.com/foxtrot/2025/10/19"
+    },
+    {
+      "date": "2025-10-12",
+      "image_url": "/data/comics/foxtrot/2025-10-12.gif",
+      "original_url": "https://featureassets.gocomics.com/assets/ed8f9bd06ca1013eb1ee005056a9545d",
+      "page_url": "https://www.gocomics.com/foxtrot/2025/10/12"
+    },
+    {
+      "date": "2025-10-05",
+      "image_url": "/data/comics/foxtrot/2025-10-05.gif",
+      "original_url": "https://featureassets.gocomics.com/assets/557c39106599013eb0dc005056a9545d",
+      "page_url": "https://www.gocomics.com/foxtrot/2025/10/05"
+    },
+    {
+      "date": "2025-09-28",
+      "image_url": "/data/comics/foxtrot/2025-09-28.gif",
+      "original_url": "https://featureassets.gocomics.com/assets/248ec68060d8013eaff6005056a9545d",
+      "page_url": "https://www.gocomics.com/foxtrot/2025/09/28"
+    }
+  ],
+  "last_updated": "2025-12-21T10:43:16.424477"
+}

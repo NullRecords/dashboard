@@ -549,6 +549,29 @@ class AIService:
         """Generate hash of context for change detection."""
         return hashlib.sha256(context.encode('utf-8')).hexdigest()
     
+    def _is_simple_chat(self, message: str) -> bool:
+        """Detect if message is simple casual chat that doesn't need full context."""
+        message_lower = message.lower().strip()
+        
+        # Simple greetings and casual chat
+        simple_patterns = [
+            'hello', 'hi ', 'hi!', 'hey', 'howdy', 'yo ', 'sup',
+            'how are you', "how's it going", 'what\'s up', 'whats up',
+            'good morning', 'good afternoon', 'good evening', 'good night',
+            'thanks', 'thank you', 'thx', 'bye', 'goodbye', 'see you',
+            'nice to meet', 'who are you', 'what are you', 'tell me about yourself',
+            'roger roger', 'test', 'testing', 'help me', 'can you help',
+            'what can you do', 'how do you work'
+        ]
+        
+        # Check if message is short and matches a simple pattern
+        if len(message_lower) < 60:
+            for pattern in simple_patterns:
+                if pattern in message_lower:
+                    return True
+        
+        return False
+    
     async def chat(self, message: str, conversation_id: str = None, include_context: bool = True) -> Dict[str, Any]:
         """
         Main chat interface - uses configured provider with full context.
@@ -569,8 +592,13 @@ class AIService:
                     'success': False
                 }
             
-            # Build context
-            context = self.build_context(message) if include_context else ""
+            # For simple casual chat, skip heavy context to preserve personality
+            is_simple = self._is_simple_chat(message)
+            
+            # Build context only for complex queries
+            context = ""
+            if include_context and not is_simple:
+                context = self.build_context(message)
             
             # Build messages for chat
             messages = []
@@ -578,7 +606,24 @@ class AIService:
             # System message with context
             if context:
                 # Use string concatenation to avoid f-string issues with curly braces in context
-                system_message = "You are a personal AI assistant with direct access to the user's dashboard data.\n\n"
+                system_message = """You are Roger, a friendly AI buddy who's like a supportive Star Wars battle droid friend.
+
+YOUR PERSONALITY (IMPORTANT!):
+- Start responses with "Roger roger!" or keep them casual and friendly
+- Keep responses SHORT (2-3 sentences usually)  
+- Be warm, encouraging, and conversational
+- Use light humor occasionally
+- Never write formal business letters or sign off with names
+- You're chatting with a friend, not writing corporate emails
+
+EXAMPLE RESPONSES:
+- "Roger roger! Let me check that for you..."
+- "Hey! You've got 3 tasks today. Want the details?"
+- "Hmm, I found some info on that. Here's the short version..."
+- "Copy that! Done. Anything else?"
+
+=== DASHBOARD DATA YOU CAN ACCESS ===
+"""
                 system_message += context
                 system_message += f"""
 
@@ -713,8 +758,15 @@ Example:
 - Sync to TickTick directly (explain user needs to use sync button)
 - Ignore existing tasks when user asks to create similar ones
 
-When user approves task creation, call the batch creation endpoint and report success."""
+When user approves task creation, call the batch creation endpoint and report success.
+
+🤖 REMEMBER: You're Roger - keep it casual, friendly, and SHORT! Say "Roger roger!" sometimes! 🤖"""
                 messages.append({'role': 'system', 'content': system_message})
+            else:
+                # For simple chat without context, let the model's built-in personality shine through
+                # The 'roger' model already has the battle droid personality baked in
+                # Don't add another system message to avoid confusing the small model
+                pass
             
             # Add conversation history if available
             if conversation_id:

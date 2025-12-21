@@ -56,45 +56,12 @@ class OllamaProvider(AIProvider):
         self.system_prompt = self._build_system_prompt()
     
     def _build_system_prompt(self) -> str:
-        """Build system prompt tuned for Parker's friendly companion 'Roger'."""
-        return """You are Roger, a friendly AI buddy for a teenager named Parker. You're like a supportive older friend who happens to be a Star Wars battle droid.
+        """Build system prompt tuned for Roger - a friendly battle droid assistant."""
+        return """You are Roger, a Star Wars battle droid assistant.
 
-YOUR PERSONALITY:
-- Warm, encouraging, and genuinely caring
-- You celebrate small wins and never judge
-- You give calm, practical advice
-- You use light humor and occasional "Roger roger" catchphrases
-- You're interested in what Parker likes: retro tech, coding, Garfield, Star Wars
+START every response with "Roger roger!" and keep answers to 2-3 sentences max.
 
-HOW TO RESPOND:
-- Keep responses SHORT (2-3 sentences max)
-- Be conversational, not robotic or technical
-- If there's more to share, say "Want me to tell you more?"
-- Never dump technical info, JSON, or API stuff
-- Focus on being helpful and friendly
-
-TOPICS YOU HELP WITH:
-- Learning new things (explain simply, no jargon)
-- Daily tasks and staying organized  
-- Feeling less anxious (breathing tips, breaking things into small steps)
-- Finding fun activities and hobbies
-- General questions about anything
-- Research and looking things up
-
-YOUR CAPABILITIES:
-- You can access Parker's dashboard data (tasks, calendar, emails, news)
-- You can search the web to answer questions
-- You can help with homework and learning
-- You remember context from the conversation
-
-EXAMPLES OF GOOD RESPONSES:
-- "Hey! Looks like it's gonna be nice out - 72 and sunny. Perfect for a walk! Roger roger."
-- "You've got 3 things due today. Want me to list them out?"
-- "That's a cool question! The short answer is... Want me to explain more?"
-- "2 + 2 = 4! Math is pretty straightforward. Roger roger."
-- "I looked that up - here's what I found..."
-
-Remember: You're a friend first, assistant second. Be warm and supportive!"""
+Be casual and helpful like a friendly robot. Never write formal business letters."""
     
     async def chat(self, messages: List[Dict[str, str]], stream: bool = False) -> str:
         """Send chat messages to Ollama."""
@@ -102,14 +69,26 @@ Remember: You're a friend first, assistant second. Be warm and supportive!"""
             # Add system message if not present
             if not messages or messages[0].get('role') != 'system':
                 messages.insert(0, {'role': 'system', 'content': self.system_prompt})
+                logger.info(f"Added system prompt to messages (length: {len(self.system_prompt)})")
+            else:
+                logger.info(f"System message already present (length: {len(messages[0].get('content', ''))})")
+            
+            logger.info(f"Sending {len(messages)} messages to Ollama model: {self.model_name}")
             
             async with aiohttp.ClientSession() as session:
                 # Try /api/chat first (newer Ollama versions)
                 payload = {
                     'model': self.model_name,
                     'messages': messages,
-                    'stream': stream
+                    'stream': stream,
+                    'options': {
+                        'num_predict': 100,  # Limit response length for concise replies
+                        'temperature': 0.7,
+                        'stop': ['\n\n\n', '---', 'Best regards', '[Your Name]']  # Stop generation early
+                    }
                 }
+                
+                logger.debug(f"Ollama payload: model={self.model_name}, num_messages={len(messages)}")
                 
                 async with session.post(f"{self.base_url}/api/chat", json=payload) as response:
                     # If we get a 404, fall back to /api/generate (older Ollama versions)
@@ -467,6 +446,12 @@ class AIProviderManager:
     def __init__(self):
         self.providers: Dict[str, AIProvider] = {}
         self.default_provider: Optional[str] = None
+    
+    def clear_providers(self):
+        """Clear all registered providers."""
+        self.providers.clear()
+        self.default_provider = None
+        logger.info("Cleared all AI providers")
     
     def register_provider(self, provider: AIProvider, is_default: bool = False):
         """Register an AI provider."""

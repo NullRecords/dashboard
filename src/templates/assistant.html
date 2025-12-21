@@ -182,6 +182,30 @@
                     <div class="space-y-3">
                         <div>
                             <label class="flex justify-between text-xs text-gray-400 mb-1">
+                                <span>Pitch (Lower = Deeper)</span>
+                                <span id="pitch-val">0.80</span>
+                            </label>
+                            <input type="range" id="pitch" min="40" max="150" value="80" class="w-full accent-purple-500">
+                        </div>
+                        
+                        <div>
+                            <label class="flex justify-between text-xs text-gray-400 mb-1">
+                                <span>Speech Speed</span>
+                                <span id="speed-val">0.85</span>
+                            </label>
+                            <input type="range" id="speed" min="50" max="150" value="85" class="w-full accent-purple-500">
+                        </div>
+                        
+                        <div>
+                            <label class="flex justify-between text-xs text-gray-400 mb-1">
+                                <span>Volume</span>
+                                <span id="volume-val">1.0</span>
+                            </label>
+                            <input type="range" id="volume" min="20" max="200" value="100" class="w-full accent-purple-500">
+                        </div>
+                        
+                        <div>
+                            <label class="flex justify-between text-xs text-gray-400 mb-1">
                                 <span>Bit Crush (Robotic)</span>
                                 <span id="bitDepth-val">8</span>
                             </label>
@@ -202,14 +226,6 @@
                                 <span id="echoGain-val">0.4</span>
                             </label>
                             <input type="range" id="echoGain" min="0" max="100" value="40" class="w-full accent-purple-500">
-                        </div>
-                        
-                        <div>
-                            <label class="flex justify-between text-xs text-gray-400 mb-1">
-                                <span>Speech Speed</span>
-                                <span id="speed-val">0.85</span>
-                            </label>
-                            <input type="range" id="speed" min="50" max="150" value="85" class="w-full accent-purple-500">
                         </div>
                     </div>
                 </div>
@@ -472,15 +488,16 @@
 
         // Initialize slider value displays
         function initSliderListeners() {
-            const sliders = ['bitDepth', 'tremoloFreq', 'echoGain', 'speed'];
+            const sliders = ['bitDepth', 'tremoloFreq', 'echoGain', 'speed', 'pitch', 'volume'];
             sliders.forEach(id => {
                 const slider = document.getElementById(id);
                 const valSpan = document.getElementById(id + '-val');
                 if (slider && valSpan) {
                     slider.addEventListener('input', () => {
                         let val = slider.value;
-                        if (id === 'echoGain') val = (val / 100).toFixed(2);
-                        else if (id === 'speed') val = (val / 100).toFixed(2);
+                        if (id === 'echoGain' || id === 'speed' || id === 'pitch' || id === 'volume') {
+                            val = (val / 100).toFixed(2);
+                        }
                         valSpan.textContent = val;
                     });
                 }
@@ -493,6 +510,18 @@
             if (saved) {
                 const settings = JSON.parse(saved);
                 if (settings.style) document.getElementById('voice-style').value = settings.style;
+                if (settings.pitch) {
+                    document.getElementById('pitch').value = settings.pitch * 100;
+                    document.getElementById('pitch-val').textContent = settings.pitch.toFixed(2);
+                }
+                if (settings.speed) {
+                    document.getElementById('speed').value = settings.speed * 100;
+                    document.getElementById('speed-val').textContent = settings.speed.toFixed(2);
+                }
+                if (settings.volume) {
+                    document.getElementById('volume').value = settings.volume * 100;
+                    document.getElementById('volume-val').textContent = settings.volume.toFixed(2);
+                }
                 if (settings.bitDepth) {
                     document.getElementById('bitDepth').value = settings.bitDepth;
                     document.getElementById('bitDepth-val').textContent = settings.bitDepth;
@@ -504,10 +533,6 @@
                 if (settings.echoGain !== undefined) {
                     document.getElementById('echoGain').value = settings.echoGain * 100;
                     document.getElementById('echoGain-val').textContent = settings.echoGain.toFixed(2);
-                }
-                if (settings.speed) {
-                    document.getElementById('speed').value = settings.speed * 100;
-                    document.getElementById('speed-val').textContent = settings.speed.toFixed(2);
                 }
                 if (settings.autoSpeak !== undefined) {
                     document.getElementById('auto-speak').checked = settings.autoSpeak;
@@ -542,10 +567,12 @@
         async function saveVoiceSettings() {
             const settings = {
                 style: document.getElementById('voice-style').value,
+                pitch: parseInt(document.getElementById('pitch').value) / 100,
+                speed: parseInt(document.getElementById('speed').value) / 100,
+                volume: parseInt(document.getElementById('volume').value) / 100,
                 bitDepth: parseInt(document.getElementById('bitDepth').value),
                 tremoloFreq: parseInt(document.getElementById('tremoloFreq').value),
                 echoGain: parseInt(document.getElementById('echoGain').value) / 100,
-                speed: parseInt(document.getElementById('speed').value) / 100,
                 autoSpeak: document.getElementById('auto-speak').checked
             };
             localStorage.setItem('roger_voice_settings', JSON.stringify(settings));
@@ -588,11 +615,26 @@
         async function testVoice() {
             try {
                 const style = document.getElementById('voice-style').value;
-                // Play roger-roger sample first
-                await fetch('/api/voice/play-sample', {
+                const settings = {
+                    style: style,
+                    pitch: parseInt(document.getElementById('pitch').value) / 100,
+                    speed: parseInt(document.getElementById('speed').value) / 100,
+                    volume: parseInt(document.getElementById('volume').value) / 100,
+                    bitDepth: parseInt(document.getElementById('bitDepth').value),
+                    tremoloFreq: parseInt(document.getElementById('tremoloFreq').value),
+                    echoGain: parseInt(document.getElementById('echoGain').value) / 100
+                };
+                
+                // Test actual TTS voice with current settings
+                await fetch('/api/voice/test', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sample: 'roger-roger' })
+                    body: JSON.stringify({ 
+                        message: 'Roger roger. Testing voice configuration. All systems operational.',
+                        style: style,
+                        signature: false,
+                        settings: settings
+                    })
                 });
             } catch (e) {
                 alert('Voice test failed: ' + e.message);
