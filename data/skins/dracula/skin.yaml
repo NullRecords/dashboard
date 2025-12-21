@@ -52,25 +52,25 @@ colors:
   tasks_border: "#3b0764"     # Purple-950
   calendar_border: "#4c1d95"  # Violet-900
 
-# Voice configuration - British, dark, dramatic
+# Voice configuration - Dark, ethereal, haunting
 voice:
-  model: "en_GB-alba-medium"
-  style: "pa_system"
-  speed: 0.75
-  pitch: 0.70
+  model: "en_US-ryan-high"
+  style: "demon"
+  speed: 0.80
+  pitch: 0.75
   effects:
     bit_depth: 12
-    bit_mix: 0.3
+    bit_mix: 0.25
     tremolo_freq: 4
-    tremolo_depth: 0.12
+    tremolo_depth: 0.10
     compression_ratio: 4
-    highpass_freq: 100
-    lowpass_freq: 4000
+    highpass_freq: 80
+    lowpass_freq: 4500
     echo_gain: 0.55
     vibrato_freq: 3
-    vibrato_depth: 0.15
+    vibrato_depth: 0.12
   use_authentic_samples: true
-  samples_dir: "data/voice_models/dracula"
+  samples_dir: "data/voice_models/demon"
 
 # Dashboard configuration - Art/Music/Horror focus
 dashboard:

@@ -80,9 +80,12 @@
                 <button onclick="showSection('settings')" class="nav-link w-full text-left px-4 py-3 rounded-lg text-gray-300 transition-colors hover:bg-gray-700">
                     <i class="fas fa-cog mr-2"></i>Settings
                 </button>
-                <a href="/assistant" class="nav-link w-full text-left px-4 py-3 rounded-lg text-gray-300 transition-colors hover:bg-gray-700 block">
-                    <i class="fas fa-robot mr-2"></i>Roger Assistant
+                <a href="/assistant" id="assistant-nav-link" class="nav-link w-full text-left px-4 py-3 rounded-lg text-gray-300 transition-colors hover:bg-gray-700 block">
+                    <i id="assistant-nav-icon" class="fas fa-robot mr-2"></i><span id="assistant-nav-name">Assistant</span>
                 </a>
+                <button onclick="openVoiceSettings()" class="nav-link w-full text-left px-4 py-3 rounded-lg text-gray-300 transition-colors hover:bg-gray-700">
+                    <i class="fas fa-microphone mr-2"></i>Voice Settings
+                </button>
             </nav>
         </aside>
 
@@ -153,7 +156,6 @@
                             <h3 class="text-2xl font-bold" style="color: var(--skin-accent);">📚 Comics</h3>
                             <select id="comic-select" class="px-3 py-2 rounded text-sm" style="background-color: var(--skin-bg-primary); border: 1px solid var(--skin-border-primary); color: var(--skin-text-secondary);">
                                 <option value="garfield">Garfield</option>
-                                <option value="bloomcounty">Bloom County</option>
                                 <option value="calvin">Calvin & Hobbes</option>
                                 <option value="peanuts">Peanuts</option>
                                 <option value="favorites">Favorites</option>
@@ -311,17 +313,7 @@
                 </div>
 
                 <!-- Calm Radar / Anxiety Feed -->
-                <div class="bg-gray-800 rounded-lg border border-emerald-700 p-6 mb-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-emerald-300"><i class="fas fa-leaf mr-2"></i>Calm Radar</h3>
-                        <button onclick="loadAnxietyFeed()" class="text-emerald-400 hover:text-emerald-300 text-sm">
-                            <i class="fas fa-sync-alt"></i>
-                        </button>
-                    </div>
-                    <div id="anxiety-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div class="text-gray-400 text-center py-4 col-span-full">Loading calming content...</div>
-                    </div>
-                </div>
+                    
 
                 <!-- Roger Home Content - Modular Widgets Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -509,27 +501,11 @@
         </div>
     </div>
 
-    <!-- Comic Lightbox Modal -->
-    <div id="comic-lightbox" class="hidden fixed inset-0 bg-black/90 z-[60] flex items-center justify-center cursor-pointer" onclick="closeComicLightbox(event)">
-        <button onclick="closeComicLightbox(event)" class="absolute top-4 right-4 text-white hover:text-orange-400 text-4xl z-[70]" title="Close">&times;</button>
-        <button onclick="prevComic(event)" class="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:text-orange-400 text-4xl z-[70] p-2" title="Previous">&#10094;</button>
-        <button onclick="nextComic(event)" class="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:text-orange-400 text-4xl z-[70] p-2" title="Next">&#10095;</button>
-        <div class="max-w-[95vw] max-h-[90vh] flex flex-col items-center" onclick="event.stopPropagation()">
-            <img id="comic-lightbox-img" src="" alt="Comic" class="max-w-full max-h-[80vh] rounded-lg border-2 border-orange-500 shadow-2xl object-contain">
-            <div class="flex items-center gap-4 mt-4">
-                <button id="comic-favorite-btn" onclick="toggleComicFavorite(event)" class="text-2xl hover:scale-110 transition-transform" title="Add to Favorites">
-                    <span id="comic-favorite-icon">🤍</span>
-                </button>
-                <div id="comic-lightbox-caption" class="text-orange-300 text-lg text-center"></div>
-            </div>
-        </div>
-    </div>
-
     <!-- Scripts -->
-    <script src="/static/dashboard.js?v=7"></script>
-    <script src="/static/leads_modern.js?v=7"></script>
-    <script src="/static/trust_layer_ui.js?v=3"></script>
-    <script src="/static/provider_manager.js?v=3"></script>
+    <script src="/static/dashboard.js?v=6"></script>
+    <script src="/static/leads_modern.js?v=6"></script>
+    <script src="/static/trust_layer_ui.js?v=2"></script>
+    <script src="/static/provider_manager.js?v=2"></script>
 
     <script>
         // Backgrounds
@@ -604,12 +580,12 @@
             if (prev) prev.addEventListener('click', () => cycleBackground(-1));
             if (next) next.addEventListener('click', () => cycleBackground(1));
             if (urlBtn) urlBtn.addEventListener('click', () => setBackgroundUrl(urlInput.value.trim()));
-            // Initialize
+            // Initialize background - will be updated when skin loads
             const stored = localStorage.getItem('dashboard_bg_key');
             if (stored === 'custom-url') {
                 const cu = localStorage.getItem('dashboard_bg_custom');
                 if (cu) setBackgroundUrl(cu); else setBackgroundByKey('bg1');
-            } else if (stored) {
+            } else if (stored && BACKGROUNDS.some(b => b.key === stored)) {
                 setBackgroundByKey(stored);
             } else {
                 setBackgroundByKey('bg1');
@@ -693,6 +669,19 @@
             const nameEl = document.getElementById('assistant-name');
             if (nameEl) {
                 nameEl.textContent = skin.display_name;
+            }
+            
+            // Update assistant nav link in sidebar
+            const navName = document.getElementById('assistant-nav-name');
+            if (navName) {
+                navName.textContent = `${skin.display_name} Assistant`;
+            }
+            // Update nav icon based on skin
+            const navIcon = document.getElementById('assistant-nav-icon');
+            if (navIcon) {
+                // Use skin-specific icon if available
+                const iconClass = skin.name === 'demon' || skin.name === 'dracula' ? 'fas fa-ghost' : 'fas fa-robot';
+                navIcon.className = iconClass + ' mr-2';
             }
             
             // Update header title with tagline
@@ -960,6 +949,9 @@
             const bgSelect = document.getElementById('bg-select');
             if (!bgSelect) return;
             
+            // Remember current selection
+            const currentKey = localStorage.getItem('dashboard_bg_key') || 'bg1';
+            
             // Clear existing options
             bgSelect.innerHTML = '';
             
@@ -968,14 +960,15 @@
             
             // Add new options from skin
             backgrounds.forEach((bg, index) => {
+                const key = `bg${index + 1}`;
                 const option = document.createElement('option');
-                option.value = `bg${index + 1}`;
+                option.value = key;
                 option.textContent = bg.name || `Background ${index + 1}`;
                 bgSelect.appendChild(option);
                 
                 // Add to BACKGROUNDS array
                 BACKGROUNDS.push({
-                    key: `bg${index + 1}`,
+                    key: key,
                     type: 'image',
                     value: `/static/backgrounds/${bg.file}`
                 });
@@ -989,8 +982,31 @@
             
             console.log('🖼️ Updated backgrounds:', BACKGROUNDS);
             
-            // Apply first background
-            if (BACKGROUNDS.length > 0) {
+            // Re-bind change handler (in case it was lost)
+            bgSelect.onchange = function() {
+                const v = bgSelect.value;
+                console.log('🖼️ Background selected:', v);
+                if (v === 'custom-url') {
+                    const saved = localStorage.getItem('dashboard_bg_custom');
+                    if (saved) setBackgroundUrl(saved);
+                } else {
+                    setBackgroundByKey(v);
+                }
+            };
+            
+            // Restore previous selection if valid, otherwise use first
+            if (currentKey === 'custom-url') {
+                const customUrl = localStorage.getItem('dashboard_bg_custom');
+                if (customUrl) {
+                    bgSelect.value = 'custom-url';
+                    setBackgroundUrl(customUrl);
+                } else if (BACKGROUNDS.length > 0) {
+                    setBackgroundByKey('bg1');
+                }
+            } else if (BACKGROUNDS.some(b => b.key === currentKey)) {
+                bgSelect.value = currentKey;
+                setBackgroundByKey(currentKey);
+            } else if (BACKGROUNDS.length > 0) {
                 setBackgroundByKey('bg1');
             }
         }
@@ -1094,13 +1110,16 @@
         }
 
         async function promptSpeak() {
-            const text = prompt('Ask Roger:');
+            const assistantName = currentSkin?.display_name || 'Assistant';
+            const text = prompt(`Ask ${assistantName}:`);
             if (!text) return;
+            // Use current skin's voice style
+            const style = currentSkin?.voice?.style || 'droid';
             try {
                 const r = await fetch('/api/voice/test', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: text, style: 'droid', signature: false })
+                    body: JSON.stringify({ message: text, style: style, signature: false })
                 });
                 const data = await r.json();
                 if (!data.success) console.warn('Voice speak failed', data);
@@ -1126,21 +1145,59 @@
                 const data = await resp.json();
                 if (data && data.voice) {
                     const s = data.voice;
+                    const availableStyles = data.available_styles || [];
+                    const currentSkinInfo = data.current_skin || {};
+                    
+                    // Build style options dynamically from API
+                    let styleOptions = '';
+                    if (availableStyles.length > 0) {
+                        styleOptions = availableStyles.map(style => {
+                            const icons = {
+                                'clean': '🔊',
+                                'droid': '🤖',
+                                'radio': '📻',
+                                'pa_system': '📢',
+                                'demon': '😈',
+                                'gothic': '🦇'
+                            };
+                            const icon = icons[style.id] || '🎤';
+                            const isSelected = s.default_style === style.id ? 'selected' : '';
+                            const isSkinDefault = currentSkinInfo.default_style === style.id ? ' (Skin Default)' : '';
+                            return `<option value="${style.id}" ${isSelected}>${icon} ${style.name}${isSkinDefault}</option>`;
+                        }).join('');
+                    } else {
+                        // Fallback if API doesn't return styles
+                        styleOptions = `
+                            <option value="droid" ${s.default_style === 'droid' ? 'selected' : ''}>🤖 Droid (Battle Droid)</option>
+                            <option value="demon" ${s.default_style === 'demon' ? 'selected' : ''}>😈 Demon (Dark & Ethereal)</option>
+                            <option value="gothic" ${s.default_style === 'gothic' ? 'selected' : ''}>🦇 Gothic (Theatrical)</option>
+                            <option value="radio" ${s.default_style === 'radio' ? 'selected' : ''}>📻 Radio</option>
+                            <option value="pa_system" ${s.default_style === 'pa_system' ? 'selected' : ''}>📢 PA System</option>
+                            <option value="clean" ${s.default_style === 'clean' ? 'selected' : ''}>🔊 Clean (No Effects)</option>
+                        `;
+                    }
+                    
+                    // Show current skin info
+                    const skinInfo = currentSkinInfo.display_name ? 
+                        `<div class="mb-4 p-3 bg-gray-700/50 rounded-lg border border-gray-600">
+                            <p class="text-sm text-gray-300">Current Assistant: <span class="text-purple-300 font-semibold">${currentSkinInfo.display_name}</span></p>
+                            <p class="text-xs text-gray-400 mt-1">Signature: "${currentSkinInfo.signature_phrase}"</p>
+                        </div>` : '';
+                    
                     content.innerHTML = `
                         <div class="space-y-4">
+                            ${skinInfo}
                             <div>
                                 <label class="block text-sm font-semibold mb-2">Voice Style</label>
                                 <select id="voice-style" onchange="updateVoiceSetting('style')" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
-                                    <option value="droid" ${s.default_style === 'droid' ? 'selected' : ''}>🤖 Droid (Battle Droid)</option>
-                                    <option value="radio" ${s.default_style === 'radio' ? 'selected' : ''}>📻 Radio</option>
-                                    <option value="pa_system" ${s.default_style === 'pa_system' ? 'selected' : ''}>📢 PA System</option>
-                                    <option value="clean" ${s.default_style === 'clean' ? 'selected' : ''}>🔊 Clean (No Effects)</option>
+                                    ${styleOptions}
                                 </select>
+                                <p class="text-xs text-gray-400 mt-1">Each style applies different audio effects to the voice</p>
                             </div>
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <label class="block text-sm font-semibold mb-1">🎬 Authentic Battle Droid Samples</label>
-                                    <p class="text-xs text-gray-400">Use real Star Wars audio for signature phrases</p>
+                                    <label class="block text-sm font-semibold mb-1">🎬 Authentic Voice Samples</label>
+                                    <p class="text-xs text-gray-400">Use pre-recorded audio for signature phrases</p>
                                 </div>
                                 <label class="relative inline-flex items-center cursor-pointer">
                                     <input type="checkbox" id="use-authentic" ${s.use_authentic_samples !== false ? 'checked' : ''} onchange="updateVoiceSetting('authentic')" class="sr-only peer">
@@ -1225,10 +1282,17 @@
             const testBtn = document.getElementById('test-voice-btn');
             if (testBtn) testBtn.disabled = true;
             try {
+                // Get the selected style from the dropdown (or use skin default)
+                const selectedStyle = document.getElementById('voice-style')?.value;
+                
+                // Send empty body to use skin's default message and style
                 const r = await fetch('/api/voice/test', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: 'Roger roger. Voice test complete.', style: 'droid', signature: true })
+                    body: JSON.stringify({ 
+                        style: selectedStyle || undefined,
+                        signature: true 
+                    })
                 });
                 const data = await r.json();
                 if (!data.success) alert('Voice test failed: ' + (data.error || 'Unknown error'));
@@ -1244,11 +1308,13 @@
             const jokesEl = document.getElementById('jokes');
             if (!jokesEl) return;
             const text = jokesEl.innerText || 'No jokes loaded';
+            // Get current skin style
+            const style = currentSkin?.voice?.style || 'droid';
             try {
                 await fetch('/api/voice/test', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: text, style: 'droid', signature: true })
+                    body: JSON.stringify({ message: text, style: style, signature: false })
                 });
             } catch (e) {
                 console.error('Read jokes error:', e);
@@ -1259,11 +1325,13 @@
             const quoteEl = document.getElementById('quote');
             if (!quoteEl) return;
             const text = quoteEl.innerText || 'No quote loaded';
+            // Use current skin's voice style
+            const style = currentSkin?.voice?.style || 'droid';
             try {
                 await fetch('/api/voice/test', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: text, style: 'droid', signature: false })
+                    body: JSON.stringify({ message: text, style: style, signature: false })
                 });
             } catch (e) {
                 console.error('Read quote error:', e);
@@ -1271,17 +1339,20 @@
         }
 
         async function readRogerQuote() {
-            const el = document.getElementById('roger-quotes');
+            // This function reads the assistant's quote widget (works for any skin)
+            const el = document.getElementById('roger-quotes') || document.getElementById('dracula-quotes');
             if (!el) return;
             const text = el.innerText || 'No quote loaded';
+            // Use current skin's voice style
+            const style = currentSkin?.voice?.style || 'droid';
             try {
                 await fetch('/api/voice/test', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: text, style: 'droid', signature: true })
+                    body: JSON.stringify({ message: text, style: style, signature: true })
                 });
             } catch (e) {
-                console.error('Read roger quote error:', e);
+                console.error('Read quote error:', e);
             }
         }
 
@@ -1320,16 +1391,15 @@
                     googleStatus = await gResp.json();
                 } catch (e) { console.log('Google auth check skipped'); }
                 
-                // Microsoft and Proton auth not yet implemented
-                // try {
-                //     const mResp = await fetch('/api/auth/microsoft/status');
-                //     microsoftStatus = await mResp.json();
-                // } catch (e) { console.log('Microsoft auth check skipped'); }
+                try {
+                    const mResp = await fetch('/api/auth/microsoft/status');
+                    microsoftStatus = await mResp.json();
+                } catch (e) { console.log('Microsoft auth check skipped'); }
                 
-                // try {
-                //     const pResp = await fetch('/api/auth/proton/status');
-                //     protonStatus = await pResp.json();
-                // } catch (e) { console.log('Proton auth check skipped'); }
+                try {
+                    const pResp = await fetch('/api/auth/proton/status');
+                    protonStatus = await pResp.json();
+                } catch (e) { console.log('Proton auth check skipped'); }
                 
                 // Get saved preferences from localStorage
                 const bgKey = localStorage.getItem('dashboard_bg_key') || 'bg1';
@@ -1449,14 +1519,6 @@
                         </div>
                     </div>
                     
-                    <!-- Comics Settings -->
-                    <div class="mb-8" id="comics-settings-section">
-                        <h3 class="text-lg font-semibold text-orange-300 mb-4"><i class="fas fa-book-open mr-2"></i>Comics</h3>
-                        <div id="comics-settings-content" class="bg-gray-900 rounded-lg border border-gray-700 p-4">
-                            <div class="text-gray-400">Loading comics settings...</div>
-                        </div>
-                    </div>
-                    
                     <!-- Data & Privacy -->
                     <div class="mb-8">
                         <h3 class="text-lg font-semibold text-purple-300 mb-4"><i class="fas fa-database mr-2"></i>Data & Privacy</h3>
@@ -1481,236 +1543,9 @@
                         </div>
                     </div>
                 `;
-                // Load comics settings after main template renders
-                loadComicsSettings();
             } catch (e) {
                 console.error('Settings load error:', e);
                 container.innerHTML = '<div class="text-red-400">Error loading settings</div>';
-            }
-        }
-
-        // Comics Settings Functions
-        async function loadComicsSettings() {
-            const content = document.getElementById('comics-settings-content');
-            if (!content) return;
-            
-            try {
-                const resp = await fetch('/api/settings/comics');
-                const data = await resp.json();
-                
-                if (!data.success) {
-                    content.innerHTML = '<div class="text-red-400">Error loading comics settings</div>';
-                    return;
-                }
-                
-                const comics = data.comics || {};
-                
-                let comicsHtml = '';
-                Object.entries(comics).forEach(([id, comic]) => {
-                    const borderClass = comic.archive_count > 0 ? 'border-gray-700' : 'border-yellow-700/50';
-                    const sourceIcon = comic.source === 'archive' ? '📂' : '🌐';
-                    const sourceText = comic.source === 'gocomics' ? 'GoComics' : 'Local Archive';
-                    const customText = comic.custom ? ' • Custom' : '';
-                    const archiveCountClass = comic.archive_count > 0 ? 'text-green-400' : 'text-yellow-400';
-                    const archiveCount = comic.archive_count || 0;
-                    const noArchiveBadge = comic.archive_count === 0 ? '<span class="text-xs text-yellow-400 bg-yellow-900/30 px-2 py-1 rounded">No archive</span>' : '';
-                    const archiveChecked = comic.archive_enabled !== false ? 'checked' : '';
-                    const enabledChecked = comic.enabled !== false ? 'checked' : '';
-                    const removeBtn = comic.custom ? '<button data-comic-id="'+id+'" onclick="removeComic(this.dataset.comicId)" class="px-2 py-1 bg-red-700 hover:bg-red-600 rounded text-xs" title="Remove comic"><i class="fas fa-trash"></i></button>' : '';
-                    
-                    comicsHtml += '<div class="flex items-center justify-between p-3 bg-gray-800 rounded-lg border '+borderClass+' hover:border-gray-600">' +
-                        '<div class="flex items-center gap-3">' +
-                            '<span class="text-lg">'+sourceIcon+'</span>' +
-                            '<div>' +
-                                '<div class="font-semibold text-gray-200">'+comic.name+'</div>' +
-                                '<div class="text-xs text-gray-500">'+sourceText+customText+' • <span class="'+archiveCountClass+'">'+archiveCount+' archived</span></div>' +
-                            '</div>' +
-                        '</div>' +
-                        '<div class="flex items-center gap-4">' +
-                            noArchiveBadge +
-                            '<div class="flex items-center gap-2">' +
-                                '<span class="text-xs text-gray-400">Archive</span>' +
-                                '<label class="relative inline-flex items-center cursor-pointer">' +
-                                    '<input type="checkbox" id="archive-'+id+'" '+archiveChecked+' onchange="updateComicSetting(this.id.replace(\'archive-\',\'\'), \'archive_enabled\', this.checked)" class="sr-only peer">' +
-                                    '<div class="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-600"></div>' +
-                                '</label>' +
-                            '</div>' +
-                            '<div class="flex items-center gap-2">' +
-                                '<span class="text-xs text-gray-400">Show</span>' +
-                                '<label class="relative inline-flex items-center cursor-pointer">' +
-                                    '<input type="checkbox" id="enabled-'+id+'" '+enabledChecked+' onchange="updateComicSetting(this.id.replace(\'enabled-\',\'\'), \'enabled\', this.checked)" class="sr-only peer">' +
-                                    '<div class="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-600"></div>' +
-                                '</label>' +
-                            '</div>' +
-                            removeBtn +
-                        '</div>' +
-                    '</div>';
-                });
-                
-                content.innerHTML = 
-                    '<div class="mb-6 p-4 bg-gray-800 rounded-lg border border-orange-600">' +
-                        '<h4 class="text-sm font-semibold text-orange-300 mb-3"><i class="fas fa-plus-circle mr-2"></i>Add Comic from GoComics</h4>' +
-                        '<div class="flex gap-2">' +
-                            '<input type="url" id="new-comic-url" placeholder="https://www.gocomics.com/comic-name" class="flex-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded text-sm text-gray-200 placeholder-gray-500">' +
-                            '<button onclick="addComicFromUrl()" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded text-sm whitespace-nowrap"><i class="fas fa-plus mr-1"></i>Add</button>' +
-                        '</div>' +
-                        '<div class="text-xs text-gray-500 mt-2">Paste a GoComics URL to add a new comic strip</div>' +
-                        '<div id="add-comic-status" class="text-xs mt-2 hidden"></div>' +
-                    '</div>' +
-                    '<div class="space-y-3">' +
-                        '<div class="text-sm font-semibold text-gray-300 mb-2">Manage Comics</div>' +
-                        comicsHtml +
-                    '</div>' +
-                    '<div class="mt-4 text-xs text-gray-500">' +
-                        '<i class="fas fa-info-circle mr-1"></i>' +
-                        '<strong>Show:</strong> Display comic in the dropdown. ' +
-                        '<strong>Archive:</strong> Save comics to your local archive as they are viewed.' +
-                    '</div>';
-            } catch (e) {
-                console.error('Error loading comics settings:', e);
-                content.innerHTML = '<div class="text-red-400">Error loading comics settings</div>';
-            }
-        }
-
-        async function updateComicSetting(comicId, field, value) {
-            try {
-                const resp = await fetch('/api/settings/comics', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        comics: {
-                            [comicId]: { [field]: value }
-                        }
-                    })
-                });
-                const data = await resp.json();
-                if (!data.success) {
-                    console.error('Failed to update comic setting:', data.error);
-                }
-                // Refresh the comic dropdown
-                updateComicDropdown();
-            } catch (e) {
-                console.error('Error updating comic setting:', e);
-            }
-        }
-
-        async function addComicFromUrl() {
-            const input = document.getElementById('new-comic-url');
-            const status = document.getElementById('add-comic-status');
-            const url = input?.value?.trim();
-            
-            if (!url) {
-                status.textContent = 'Please enter a URL';
-                status.className = 'text-xs mt-2 text-yellow-400';
-                status.classList.remove('hidden');
-                return;
-            }
-            
-            status.textContent = 'Adding comic...';
-            status.className = 'text-xs mt-2 text-gray-400';
-            status.classList.remove('hidden');
-            
-            try {
-                const resp = await fetch('/api/settings/comics/add', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url })
-                });
-                const data = await resp.json();
-                
-                if (data.success) {
-                    status.textContent = '✓ Added "' + (data.comic?.name || 'Comic') + '"';
-                    status.className = 'text-xs mt-2 text-green-400';
-                    input.value = '';
-                    // Refresh the comics list and dropdown
-                    loadComicsSettings();
-                    updateComicDropdown();
-                } else {
-                    status.textContent = '✗ ' + (data.error || 'Failed to add comic');
-                    status.className = 'text-xs mt-2 text-red-400';
-                }
-            } catch (e) {
-                console.error('Error adding comic:', e);
-                status.textContent = '✗ Error adding comic';
-                status.className = 'text-xs mt-2 text-red-400';
-            }
-        }
-
-        async function removeComic(comicId) {
-            if (!confirm('Remove this comic from your list?')) return;
-            
-            try {
-                const resp = await fetch('/api/settings/comics/' + comicId, {
-                    method: 'DELETE'
-                });
-                const data = await resp.json();
-                
-                if (data.success) {
-                    loadComicsSettings();
-                    updateComicDropdown();
-                } else {
-                    alert(data.error || 'Failed to remove comic');
-                }
-            } catch (e) {
-                console.error('Error removing comic:', e);
-                alert('Error removing comic');
-            }
-        }
-
-        async function updateComicDropdown() {
-            const select = document.getElementById('comic-select');
-            if (!select) return;
-            
-            try {
-                const resp = await fetch('/api/settings/comics');
-                const data = await resp.json();
-                
-                if (!data.success) return;
-                
-                const comics = data.comics || {};
-                const currentValue = select.value;
-                
-                // Rebuild the dropdown with only enabled comics that have content available
-                // GoComics sources always work (live fetch), archive sources need archives
-                select.innerHTML = '';
-                
-                Object.entries(comics)
-                    .filter(([id, comic]) => {
-                        if (comic.enabled === false) return false;
-                        // GoComics can always fetch live
-                        if (comic.source === 'gocomics' || comic.gocomics_slug) return true;
-                        // Archive-only sources need actual archives
-                        return comic.archive_count > 0;
-                    })
-                    .forEach(([id, comic]) => {
-                        const option = document.createElement('option');
-                        option.value = id;
-                        // Show archive count for comics with large archives
-                        if (comic.archive_count >= 10) {
-                            option.textContent = `${comic.name} (${comic.archive_count})`;
-                        } else {
-                            option.textContent = comic.name;
-                        }
-                        select.appendChild(option);
-                    });
-                
-                // Add favorites option if there are any comics with archives
-                const hasArchives = Object.values(comics).some(c => c.archive_count > 0);
-                if (hasArchives) {
-                    const favOption = document.createElement('option');
-                    favOption.value = 'favorites';
-                    favOption.textContent = 'Favorites';
-                    select.appendChild(favOption);
-                }
-                
-                // Restore selection if still available, otherwise select first
-                if ([...select.options].some(o => o.value === currentValue)) {
-                    select.value = currentValue;
-                } else if (select.options.length > 0) {
-                    select.value = select.options[0].value;
-                }
-            } catch (e) {
-                console.error('Error updating comic dropdown:', e);
             }
         }
 
@@ -1743,159 +1578,6 @@
         }
 
         // Comics
-        let currentComicList = [];
-        let currentComicIndex = 0;
-        let currentComicSeries = 'garfield';
-
-        async function loadComicArchive(series) {
-            try {
-                const resp = await fetch(`/api/comics/${series}/archive?limit=500`);
-                const data = await resp.json();
-                if (data.success && data.comics && data.comics.length > 0) {
-                    currentComicList = data.comics;
-                    currentComicSeries = series;
-                    return true;
-                }
-            } catch (e) {
-                console.error('Failed to load archive:', e);
-            }
-            return false;
-        }
-
-        // Track favorites for current session
-        let comicFavorites = new Set();
-        
-        async function loadComicFavorites() {
-            try {
-                const resp = await fetch('/api/comics/favorites');
-                const data = await resp.json();
-                if (data.success && data.favorites) {
-                    comicFavorites = new Set(data.favorites.map(f => `${f.series}:${f.id}`));
-                }
-            } catch (e) {
-                console.error('Failed to load favorites:', e);
-            }
-        }
-        
-        function updateFavoriteIcon() {
-            const icon = document.getElementById('comic-favorite-icon');
-            if (!icon || currentComicList.length === 0) return;
-            
-            const comic = currentComicList[currentComicIndex];
-            if (!comic) return;
-            
-            const key = `${comic.series || currentComicSeries}:${comic.id || comic.date}`;
-            icon.textContent = comicFavorites.has(key) ? '❤️' : '🤍';
-        }
-        
-        async function toggleComicFavorite(event) {
-            if (event) event.stopPropagation();
-            if (currentComicList.length === 0) return;
-            
-            const comic = currentComicList[currentComicIndex];
-            if (!comic) return;
-            
-            const series = comic.series || currentComicSeries;
-            const comicId = comic.id || comic.date;
-            const key = `${series}:${comicId}`;
-            
-            try {
-                const resp = await fetch('/api/comics/favorite', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        series: series,
-                        id: comicId,
-                        title: comic.title || `${series} - ${comicId}`,
-                        date: comic.date || comicId,
-                        image_url: comic.image_url
-                    })
-                });
-                const data = await resp.json();
-                if (data.success) {
-                    if (data.is_favorite) {
-                        comicFavorites.add(key);
-                        showNotification('Added to favorites! ❤️', 'success');
-                    } else {
-                        comicFavorites.delete(key);
-                        showNotification('Removed from favorites', 'info');
-                    }
-                    updateFavoriteIcon();
-                }
-            } catch (e) {
-                console.error('Failed to toggle favorite:', e);
-                showNotification('Failed to update favorite', 'error');
-            }
-        }
-        
-        // Load favorites on page load
-        loadComicFavorites();
-
-        async function openComicLightbox(imageUrl, caption, series) {
-            const lightbox = document.getElementById('comic-lightbox');
-            const img = document.getElementById('comic-lightbox-img');
-            const captionEl = document.getElementById('comic-lightbox-caption');
-            
-            img.src = imageUrl;
-            captionEl.textContent = caption || '';
-            lightbox.classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-            
-            // Load archive for navigation if not already loaded for this series
-            if (series && series !== currentComicSeries) {
-                await loadComicArchive(series);
-            }
-            
-            // Find current comic in list
-            if (currentComicList.length > 0) {
-                const idx = currentComicList.findIndex(c => c.image_url === imageUrl);
-                if (idx >= 0) {
-                    currentComicIndex = idx;
-                }
-            }
-            
-            // Update favorite icon
-            updateFavoriteIcon();
-        }
-
-        function closeComicLightbox(event) {
-            if (event) event.stopPropagation();
-            document.getElementById('comic-lightbox').classList.add('hidden');
-            document.body.style.overflow = '';
-        }
-
-        function prevComic(event) {
-            if (event) event.stopPropagation();
-            if (currentComicList.length > 0) {
-                currentComicIndex = (currentComicIndex - 1 + currentComicList.length) % currentComicList.length;
-                const comic = currentComicList[currentComicIndex];
-                document.getElementById('comic-lightbox-img').src = comic.image_url;
-                document.getElementById('comic-lightbox-caption').textContent = comic.date || '';
-                updateFavoriteIcon();
-            }
-        }
-
-        function nextComic(event) {
-            if (event) event.stopPropagation();
-            if (currentComicList.length > 0) {
-                currentComicIndex = (currentComicIndex + 1) % currentComicList.length;
-                const comic = currentComicList[currentComicIndex];
-                document.getElementById('comic-lightbox-img').src = comic.image_url;
-                document.getElementById('comic-lightbox-caption').textContent = comic.date || '';
-                updateFavoriteIcon();
-            }
-        }
-
-        // Keyboard navigation for lightbox
-        document.addEventListener('keydown', (e) => {
-            const lightbox = document.getElementById('comic-lightbox');
-            if (lightbox && !lightbox.classList.contains('hidden')) {
-                if (e.key === 'Escape') closeComicLightbox();
-                else if (e.key === 'ArrowLeft') prevComic();
-                else if (e.key === 'ArrowRight') nextComic();
-            }
-        });
-
         async function reloadComic() {
             const display = document.getElementById('garfield');
             const sel = document.getElementById('comic-select');
@@ -1904,57 +1586,26 @@
             display.innerHTML = '<div class="animate-pulse text-gray-400">Loading comic...</div>';
             try {
                 let url = '';
-                let comicConfig = null;
-                
-                // Get comic config to determine how to fetch
-                try {
-                    const configResp = await fetch('/api/settings/comics');
-                    const configData = await configResp.json();
-                    if (configData.success && configData.comics) {
-                        comicConfig = configData.comics[choice];
-                    }
-                } catch (e) {
-                    console.log('Could not fetch comic config, using defaults');
-                }
-                
-                // Handle special cases first
-                if (choice === 'favorites') {
-                    display.innerHTML = '<div class="text-sm text-gray-300">Use the Archive button to browse favorites.</div>';
-                    return;
-                }
-                
-                // Determine the right endpoint based on comic source
                 if (choice === 'garfield') {
                     url = '/api/comics/garfield/random';
-                } else if (comicConfig && comicConfig.gocomics_slug) {
-                    // Use the generic GoComics endpoint for custom comics
-                    url = `/api/comics/gocomics/${comicConfig.gocomics_slug}`;
-                } else if (choice === 'bloomcounty') {
-                    url = '/api/comics/bloomcounty/random';
                 } else if (choice === 'calvin') {
                     url = '/api/comics/calvin/daily';
                 } else if (choice === 'peanuts') {
                     url = '/api/comics/peanuts';
-                } else {
-                    display.innerHTML = '<div class="text-gray-400">Unknown comic type.</div>';
+                } else if (choice === 'favorites') {
+                    display.innerHTML = '<div class="text-sm text-gray-300">Use the Archive button to browse favorites.</div>';
                     return;
                 }
-                
                 const resp = await fetch(url);
                 const data = await resp.json();
                 const comic = data.comic || data;
                 const image = comic.image_url || data.image_url;
                 const link = (comic.link || data.page_url || '#');
-                const date = comic.date || data.date || '';
                 if (image) {
-                    // Pre-load archive for this series for navigation
-                    currentComicSeries = choice;
-                    loadComicArchive(choice);
                     display.innerHTML = `
-                        <div class="cursor-pointer" onclick="openComicLightbox('${image}', '${date}', '${choice}')">
-                            <img src="${image}" alt="Comic" class="w-full rounded-lg border border-orange-600 max-h-64 object-contain bg-gray-900 hover:border-orange-400 hover:shadow-lg transition-all">
-                            <div class="text-xs text-gray-400 mt-1 text-center">Click to enlarge • Use ← → to browse archive</div>
-                        </div>`;
+                        <a href="${link}" target="_blank" class="block">
+                            <img src="${image}" alt="Comic" class="w-full rounded-lg border border-orange-600 max-h-64 object-contain bg-gray-900">
+                        </a>`;
                 } else {
                     display.innerHTML = '<div class="text-gray-400">No comic available.</div>';
                 }
@@ -1967,40 +1618,26 @@
         async function showComicsArchive() {
             const modal = document.getElementById('garfield-archive-modal');
             const content = document.getElementById('garfield-archive-content');
-            const sel = document.getElementById('comic-select');
-            const series = sel ? sel.value : 'garfield';
-            
             modal.classList.remove('hidden');
-            content.innerHTML = '<div class="col-span-full text-gray-400 text-center py-8">Loading archive...</div>';
-            
+            content.innerHTML = '<div class="col-span-full text-gray-400 text-center py-8">Loading...</div>';
             try {
-                // Load archive for the selected series
-                const resp = await fetch(`/api/comics/${series}/archive?limit=200`);
+                const resp = await fetch('/api/comics/favorites');
                 const data = await resp.json();
-                if (data.success && data.comics && data.comics.length > 0) {
-                    // Store for lightbox navigation
-                    currentComicList = data.comics;
-                    currentComicSeries = series;
-                    content.innerHTML = data.comics.map((comic, index) => `
-                        <div class="bg-gray-900 rounded-lg border border-orange-600 overflow-hidden cursor-pointer hover:border-orange-400 hover:shadow-lg transition-all" onclick="openComicFromArchive(${index})">
-                            <img src="${comic.image_url}" alt="Comic" class="w-full h-40 object-cover" loading="lazy">
+                if (data.success && data.favorites && data.favorites.length > 0) {
+                    content.innerHTML = data.favorites.map(comic => `
+                        <div class="bg-gray-900 rounded-lg border border-orange-600 overflow-hidden">
+                            <a href="${comic.link || '#'}" target="_blank" class="block">
+                                <img src="${comic.image_url}" alt="Comic" class="w-full h-40 object-cover">
+                            </a>
                             <div class="p-2 text-xs text-orange-300">${comic.date || ''}</div>
                         </div>
                     `).join('');
                 } else {
-                    content.innerHTML = '<div class="col-span-full text-gray-400 text-center py-8">No comics in archive yet. Comics are saved as you view them daily.</div>';
+                    content.innerHTML = '<div class="col-span-full text-gray-400 text-center py-8">No favorites yet</div>';
                 }
             } catch (e) {
                 console.error('Archive error:', e);
-                content.innerHTML = '<div class="col-span-full text-red-400 text-center py-8">Error loading archive</div>';
             }
-        }
-
-        function openComicFromArchive(index) {
-            currentComicIndex = index;
-            const comic = currentComicList[index];
-            closeGarfieldArchive();
-            openComicLightbox(comic.image_url, comic.date || '', currentComicSeries);
         }
 
         function closeGarfieldArchive() {
@@ -2511,15 +2148,7 @@
         function initializeDataLoaders() {
             console.log('🚀 INITIALIZING DATA LOADERS');
             
-            // Initialize comic dropdown with settings
-            updateComicDropdown();
-            
-            // Just call all the loaders
-            loadJokes();
-            loadQuote();
-            loadRogerHome();
-            reloadComic();
-            loadEbayAuctions();
+            // Always load weather
             loadWeather();
             
             // Check which widgets are enabled for current skin

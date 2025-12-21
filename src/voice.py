@@ -16,7 +16,7 @@ import sys
 logger = logging.getLogger(__name__)
 
 # Voice styles available
-VoiceStyle = Literal["clean", "droid", "radio", "pa_system"]
+VoiceStyle = Literal["clean", "droid", "radio", "pa_system", "demon", "gothic"]
 
 class VoiceSystem:
     """
@@ -208,6 +208,10 @@ class VoiceSystem:
         self.wake_words = identity.get('wake_words', self.wake_words)
         self.signature = identity.get('signature_phrase', self.signature)
         
+        # Clear the cache since voice parameters changed
+        # This ensures new style/effects are applied
+        self._clear_cache()
+        
         # Update samples directory
         samples_dir = voice_config.get('samples_dir')
         if samples_dir:
@@ -218,7 +222,16 @@ class VoiceSystem:
         if 'sarcastic_intros' in quotes:
             self.sarcastic_intros = quotes['sarcastic_intros']
         
-        logger.info(f"Voice system updated from skin: {skin.name if hasattr(skin, 'name') else 'unknown'}")
+        logger.info(f"Voice system updated from skin: {skin.name if hasattr(skin, 'name') else 'unknown'}, signature='{self.signature}', style='{self.default_style}'")
+    
+    def _clear_cache(self) -> None:
+        """Clear the voice cache directory"""
+        try:
+            for f in self.cache_dir.glob("*.wav"):
+                f.unlink()
+            logger.debug("Voice cache cleared")
+        except Exception as e:
+            logger.warning(f"Could not clear voice cache: {e}")
 
     def _play_battle_droid_sample(self, phrase: str) -> bool:
         """
@@ -400,6 +413,46 @@ class VoiceSystem:
                 "acompressor=threshold=-12dB:ratio=2.5:attack=10:release=100,"
                 "aecho=0.9:0.8:40:0.3,"
                 f"volume={self.volume}"
+            ),
+            
+            "demon": (
+                # Demon/gothic style: dark, ethereal, slightly echoing
+                f"atempo={self.speed},"
+                f"asetrate=44100*{self.pitch},aresample=44100,"
+                # Deeper bass presence for dark tone
+                f"highpass=f={self.highpass_freq},lowpass=f={self.lowpass_freq},"
+                # Moderate compression for smooth dark tone
+                f"acompressor=threshold=-16dB:ratio={self.compression_ratio}:attack=8:release=60,"
+                # Subtle bit crushing for slight otherworldly texture
+                f"acrusher=bits={self.bit_depth}:mix={self.bit_mix},"
+                # Slow tremolo for haunting effect
+                f"tremolo=f={self.tremolo_freq}:d={self.tremolo_depth},"
+                # Deep reverb-like echo for cavernous feel
+                f"aecho=0.9:0.7:60:{self.echo_gain},"
+                # Slow vibrato for eerie wavering
+                f"vibrato=f={self.vibrato_freq}:d={self.vibrato_depth},"
+                # Keep low frequencies for dark presence
+                "highpass=f=80,"
+                "alimiter=limit=0.85"
+            ),
+            
+            "gothic": (
+                # Gothic style: dramatic, theatrical, ethereal female
+                f"atempo={self.speed},"
+                f"asetrate=44100*{self.pitch},aresample=44100,"
+                # Wider frequency range for clarity
+                "highpass=f=120,lowpass=f=5000,"
+                # Light compression for natural dynamics
+                "acompressor=threshold=-18dB:ratio=3:attack=12:release=80,"
+                # Very subtle distortion
+                "acrusher=bits=14:mix=0.15,"
+                # Slow, subtle tremolo
+                "tremolo=f=3:d=0.08,"
+                # Long reverb tail for dramatic effect
+                "aecho=0.85:0.6:80:0.5,"
+                # Gentle vibrato
+                "vibrato=f=4:d=0.1,"
+                "alimiter=limit=0.9"
             ),
         }
         
