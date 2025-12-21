@@ -57,6 +57,9 @@
                 </div>
             </div>
             <div class="flex items-center gap-2">
+                <button onclick="stopVoice()" id="stop-voice-btn" class="px-3 py-2 bg-red-700 hover:bg-red-600 rounded-lg text-sm hidden">
+                    <i class="fas fa-stop mr-1"></i> Stop
+                </button>
                 <button onclick="openVoiceSettings()" class="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm">
                     <i class="fas fa-sliders-h mr-1"></i> Voice
                 </button>
@@ -140,15 +143,28 @@
     </footer>
 
     <!-- Voice Settings Modal -->
-    <div id="voice-modal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-        <div class="bg-gray-800 rounded-xl border border-purple-500/50 max-w-md w-full p-6">
+    <div id="voice-modal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-gray-800 rounded-xl border border-purple-500/50 max-w-md w-full p-6 my-4">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-purple-300">Voice Settings</h3>
+                <h3 class="text-xl font-bold text-purple-300">Roger Settings</h3>
                 <button onclick="closeVoiceSettings()" class="text-gray-400 hover:text-white">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="space-y-4">
+            <div class="space-y-4 max-h-[70vh] overflow-y-auto">
+                
+                <!-- AI Model Selection -->
+                <div class="border-b border-gray-700 pb-4">
+                    <h4 class="text-sm font-medium text-purple-300 mb-3">🧠 AI Model</h4>
+                    <select id="ai-model" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2">
+                        <option value="llama3.2:1b">Llama 3.2 1B (Fast, Recommended)</option>
+                        <option value="tinyllama:latest">TinyLlama (Very Fast)</option>
+                        <option value="llama3.2:latest">Llama 3.2 (Smarter)</option>
+                        <option value="codellama:latest">CodeLlama (For Coding)</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Changes take effect on next message</p>
+                </div>
+                
                 <div>
                     <label class="block text-sm text-gray-300 mb-2">Voice Style</label>
                     <select id="voice-style" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2">
@@ -158,6 +174,46 @@
                         <option value="clean">🔊 Clean</option>
                     </select>
                 </div>
+                
+                <!-- Droid Effect Sliders -->
+                <div class="border-t border-gray-700 pt-4">
+                    <h4 class="text-sm font-medium text-purple-300 mb-3">🔧 Droid Voice Effects</h4>
+                    
+                    <div class="space-y-3">
+                        <div>
+                            <label class="flex justify-between text-xs text-gray-400 mb-1">
+                                <span>Bit Crush (Robotic)</span>
+                                <span id="bitDepth-val">8</span>
+                            </label>
+                            <input type="range" id="bitDepth" min="4" max="16" value="8" class="w-full accent-purple-500">
+                        </div>
+                        
+                        <div>
+                            <label class="flex justify-between text-xs text-gray-400 mb-1">
+                                <span>Tremolo Speed</span>
+                                <span id="tremoloFreq-val">120</span>
+                            </label>
+                            <input type="range" id="tremoloFreq" min="50" max="200" value="120" class="w-full accent-purple-500">
+                        </div>
+                        
+                        <div>
+                            <label class="flex justify-between text-xs text-gray-400 mb-1">
+                                <span>Echo/Reverb</span>
+                                <span id="echoGain-val">0.4</span>
+                            </label>
+                            <input type="range" id="echoGain" min="0" max="100" value="40" class="w-full accent-purple-500">
+                        </div>
+                        
+                        <div>
+                            <label class="flex justify-between text-xs text-gray-400 mb-1">
+                                <span>Speech Speed</span>
+                                <span id="speed-val">0.85</span>
+                            </label>
+                            <input type="range" id="speed" min="50" max="150" value="85" class="w-full accent-purple-500">
+                        </div>
+                    </div>
+                </div>
+                
                 <div>
                     <label class="block text-sm text-gray-300 mb-2">Read responses aloud</label>
                     <label class="flex items-center gap-2">
@@ -165,9 +221,15 @@
                         <span class="text-sm text-gray-400">Auto-speak Roger's responses</span>
                     </label>
                 </div>
-                <button onclick="testVoice()" class="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg">
-                    <i class="fas fa-volume-up mr-2"></i>Test Voice
-                </button>
+                
+                <div class="flex gap-2">
+                    <button onclick="testVoice()" class="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg">
+                        <i class="fas fa-volume-up mr-2"></i>Test Voice
+                    </button>
+                    <button onclick="saveVoiceSettings()" class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg">
+                        <i class="fas fa-save mr-2"></i>Save
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -321,13 +383,31 @@
         async function speakResponse(text) {
             try {
                 const style = document.getElementById('voice-style').value || 'droid';
+                // Show stop button
+                document.getElementById('stop-voice-btn').classList.remove('hidden');
+                
+                // Play roger-roger sample first
+                await fetch('/api/voice/play-sample', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sample: 'roger-roger' })
+                });
+                
+                // Small pause then speak the response
+                await new Promise(r => setTimeout(r, 300));
+                
                 await fetch('/api/voice/test', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: text, style: style, signature: false })
                 });
+                // Hide stop button after speech completes
+                setTimeout(() => {
+                    document.getElementById('stop-voice-btn').classList.add('hidden');
+                }, 500);
             } catch (e) {
                 console.error('Voice error:', e);
+                document.getElementById('stop-voice-btn').classList.add('hidden');
             }
         }
 
@@ -382,19 +462,137 @@
         // Voice settings modal
         function openVoiceSettings() {
             document.getElementById('voice-modal').classList.remove('hidden');
+            loadVoiceSettings();
+            initSliderListeners();
         }
 
         function closeVoiceSettings() {
             document.getElementById('voice-modal').classList.add('hidden');
         }
 
+        // Initialize slider value displays
+        function initSliderListeners() {
+            const sliders = ['bitDepth', 'tremoloFreq', 'echoGain', 'speed'];
+            sliders.forEach(id => {
+                const slider = document.getElementById(id);
+                const valSpan = document.getElementById(id + '-val');
+                if (slider && valSpan) {
+                    slider.addEventListener('input', () => {
+                        let val = slider.value;
+                        if (id === 'echoGain') val = (val / 100).toFixed(2);
+                        else if (id === 'speed') val = (val / 100).toFixed(2);
+                        valSpan.textContent = val;
+                    });
+                }
+            });
+        }
+
+        // Load voice settings from localStorage
+        function loadVoiceSettings() {
+            const saved = localStorage.getItem('roger_voice_settings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                if (settings.style) document.getElementById('voice-style').value = settings.style;
+                if (settings.bitDepth) {
+                    document.getElementById('bitDepth').value = settings.bitDepth;
+                    document.getElementById('bitDepth-val').textContent = settings.bitDepth;
+                }
+                if (settings.tremoloFreq) {
+                    document.getElementById('tremoloFreq').value = settings.tremoloFreq;
+                    document.getElementById('tremoloFreq-val').textContent = settings.tremoloFreq;
+                }
+                if (settings.echoGain !== undefined) {
+                    document.getElementById('echoGain').value = settings.echoGain * 100;
+                    document.getElementById('echoGain-val').textContent = settings.echoGain.toFixed(2);
+                }
+                if (settings.speed) {
+                    document.getElementById('speed').value = settings.speed * 100;
+                    document.getElementById('speed-val').textContent = settings.speed.toFixed(2);
+                }
+                if (settings.autoSpeak !== undefined) {
+                    document.getElementById('auto-speak').checked = settings.autoSpeak;
+                }
+            }
+            
+            // Load AI model from server
+            fetch('/api/roger/models')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.current_model) {
+                        document.getElementById('ai-model').value = data.current_model;
+                    }
+                    // Update dropdown with available models
+                    if (data.models && data.models.length > 0) {
+                        const select = document.getElementById('ai-model');
+                        const currentVal = select.value;
+                        select.innerHTML = '';
+                        data.models.forEach(m => {
+                            const opt = document.createElement('option');
+                            opt.value = m.name;
+                            opt.textContent = `${m.name} (${m.size_gb}GB)`;
+                            select.appendChild(opt);
+                        });
+                        select.value = data.current_model || currentVal;
+                    }
+                })
+                .catch(e => console.warn('Could not load AI models:', e));
+        }
+
+        // Save voice settings
+        async function saveVoiceSettings() {
+            const settings = {
+                style: document.getElementById('voice-style').value,
+                bitDepth: parseInt(document.getElementById('bitDepth').value),
+                tremoloFreq: parseInt(document.getElementById('tremoloFreq').value),
+                echoGain: parseInt(document.getElementById('echoGain').value) / 100,
+                speed: parseInt(document.getElementById('speed').value) / 100,
+                autoSpeak: document.getElementById('auto-speak').checked
+            };
+            localStorage.setItem('roger_voice_settings', JSON.stringify(settings));
+            
+            // Save AI model
+            const aiModel = document.getElementById('ai-model').value;
+            try {
+                await fetch('/api/roger/models', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model: aiModel })
+                });
+            } catch (e) {
+                console.warn('Could not save AI model:', e);
+            }
+            
+            // Also save voice settings to server
+            try {
+                await fetch('/api/voice/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+            } catch (e) {
+                console.warn('Could not save to server:', e);
+            }
+            
+            closeVoiceSettings();
+        }
+
+        async function stopVoice() {
+            try {
+                await fetch('/api/voice/stop', { method: 'POST' });
+                document.getElementById('stop-voice-btn').classList.add('hidden');
+            } catch (e) {
+                console.error('Failed to stop voice:', e);
+            }
+        }
+
         async function testVoice() {
             try {
                 const style = document.getElementById('voice-style').value;
-                await fetch('/api/voice/test', {
+                // Play roger-roger sample first
+                await fetch('/api/voice/play-sample', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: 'Roger roger. Voice systems operational.', style: style, signature: true })
+                    body: JSON.stringify({ sample: 'roger-roger' })
                 });
             } catch (e) {
                 alert('Voice test failed: ' + e.message);
@@ -412,6 +610,7 @@
 
         // Initialize
         loadConversation();
+        loadVoiceSettings();
     </script>
 </body>
 </html>

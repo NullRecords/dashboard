@@ -29,8 +29,8 @@ class VoiceSystem:
         model_path: Optional[str] = None,
         cache_dir: str = "data/voice_cache",
         default_style: VoiceStyle = "droid",
-        speed: float = 0.65,
-        pitch: float = 0.65,
+        speed: float = 0.85,
+        pitch: float = 0.80,
         use_authentic_samples: bool = True,
         # Audio effect parameters
         bit_depth: int = 8,

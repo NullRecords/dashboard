@@ -325,6 +325,22 @@ check_ollama() {
     echo -e "${BLUE}🧠 Checking for local Ollama...${NC}"
     if command -v ollama &> /dev/null; then
         echo -e "${GREEN}   ✅ Ollama CLI found${NC}"
+        
+        # Check if Roger's default model is installed
+        local roger_model="llama3.2:1b"
+        echo -e "${BLUE}   Checking for Roger's AI model ($roger_model)...${NC}"
+        
+        if ollama list 2>/dev/null | grep -q "$roger_model"; then
+            echo -e "${GREEN}   ✅ Roger's model ($roger_model) ready${NC}"
+        else
+            echo -e "${YELLOW}   ⚠️  Roger's model not found, downloading...${NC}"
+            echo -e "${BLUE}   This is a one-time download (~1.3GB)...${NC}"
+            if ollama pull "$roger_model"; then
+                echo -e "${GREEN}   ✅ Roger's model downloaded successfully${NC}"
+            else
+                echo -e "${YELLOW}   ⚠️  Model download failed - Roger will use fallback${NC}"
+            fi
+        fi
         return 0
     fi
 

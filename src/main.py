@@ -4534,6 +4534,211 @@ async def google_disconnect():
         logger.error(f"Error disconnecting Google: {e}")
         return {"success": False, "error": str(e)}
 
+
+# ===================================================================
+# ROGER RESEARCH ENDPOINTS
+# ===================================================================
+
+@app.post("/api/roger/search")
+async def roger_web_search(request: Request):
+    """Web search for Roger AI assistant."""
+    try:
+        from utils.web_search import search_web, quick_answer
+        
+        data = await request.json()
+        query = data.get('query', '')
+        max_results = data.get('max_results', 5)
+        
+        if not query:
+            return {"success": False, "error": "Query is required"}
+        
+        # Try quick answer first
+        quick = quick_answer(query)
+        
+        # Then do web search
+        results = search_web(query, max_results)
+        
+        return {
+            "success": True,
+            "query": query,
+            "quick_answer": quick,
+            "results": results,
+            "count": len(results)
+        }
+    except Exception as e:
+        logger.error(f"Roger search error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/roger/research")
+async def roger_research(request: Request):
+    """Combined research endpoint - searches web and database."""
+    try:
+        from utils.web_search import research, quick_answer
+        
+        data = await request.json()
+        query = data.get('query', '')
+        include_web = data.get('include_web', True)
+        include_db = data.get('include_db', True)
+        
+        if not query:
+            return {"success": False, "error": "Query is required"}
+        
+        results = {
+            "query": query,
+            "web_results": None,
+            "database_results": None,
+            "quick_answer": None
+        }
+        
+        # Web search
+        if include_web:
+            results["quick_answer"] = quick_answer(query)
+            results["web_results"] = research(query)
+        
+        # Database search
+        if include_db:
+            db_results = []
+            
+            # Search tasks
+            try:
+                with db.get_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        SELECT id, title, description, priority, due_date
+                        FROM todos
+                        WHERE title LIKE ? OR description LIKE ?
+                        ORDER BY created_at DESC
+                        LIMIT 5
+                    """, (f'%{query}%', f'%{query}%'))
+                    tasks = cursor.fetchall()
+                    if tasks:
+                        db_results.append({
+                            "type": "tasks",
+                            "items": [dict(t) for t in tasks]
+                        })
+            except:
+                pass
+            
+            # Search news
+            try:
+                with db.get_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        SELECT title, source, link, published_at
+                        FROM news_items
+                        WHERE title LIKE ? OR content LIKE ?
+                        ORDER BY published_at DESC
+                        LIMIT 5
+                    """, (f'%{query}%', f'%{query}%'))
+                    news = cursor.fetchall()
+                    if news:
+                        db_results.append({
+                            "type": "news",
+                            "items": [dict(n) for n in news]
+                        })
+            except:
+                pass
+            
+            # Search emails
+            try:
+                with db.get_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        SELECT subject, sender, snippet, date
+                        FROM emails
+                        WHERE subject LIKE ? OR snippet LIKE ?
+                        ORDER BY date DESC
+                        LIMIT 5
+                    """, (f'%{query}%', f'%{query}%'))
+                    emails = cursor.fetchall()
+                    if emails:
+                        db_results.append({
+                            "type": "emails",
+                            "items": [dict(e) for e in emails]
+                        })
+            except:
+                pass
+            
+            results["database_results"] = db_results
+        
+        return {"success": True, **results}
+        
+    except Exception as e:
+        logger.error(f"Roger research error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/roger/models")
+async def get_roger_models():
+    """Get available Ollama models for Roger."""
+    try:
+        import requests
+        
+        # Get models from Ollama
+        response = requests.get("http://localhost:11434/api/tags", timeout=5)
+        models = []
+        
+        if response.status_code == 200:
+            data = response.json()
+            for model in data.get('models', []):
+                name = model.get('name', '')
+                size = model.get('size', 0)
+                size_gb = round(size / (1024**3), 1) if size else 0
+                
+                # Categorize models
+                category = "general"
+                if "code" in name.lower() or "coder" in name.lower():
+                    category = "coding"
+                elif "llama" in name.lower():
+                    category = "chat"
+                elif "tiny" in name.lower():
+                    category = "lightweight"
+                
+                models.append({
+                    "name": name,
+                    "size_gb": size_gb,
+                    "category": category,
+                    "modified": model.get('modified_at', '')
+                })
+        
+        # Get current model
+        current_model = db.get_setting('ollama_model', 'llama3.2:1b')
+        
+        return {
+            "success": True,
+            "models": models,
+            "current_model": current_model,
+            "recommended": "llama3.2:1b"
+        }
+    except Exception as e:
+        logger.error(f"Error getting Roger models: {e}")
+        return {"success": False, "error": str(e), "models": []}
+
+
+@app.post("/api/roger/models")
+async def set_roger_model(request: Request):
+    """Set Roger's AI model."""
+    try:
+        data = await request.json()
+        model_name = data.get('model')
+        
+        if not model_name:
+            return {"success": False, "error": "Model name is required"}
+        
+        # Save to database
+        db.save_setting('ollama_model', model_name)
+        
+        return {
+            "success": True,
+            "message": f"Roger will now use {model_name}",
+            "model": model_name
+        }
+    except Exception as e:
+        logger.error(f"Error setting Roger model: {e}")
+        return {"success": False, "error": str(e)}
+
+
 # AI Assistant API Endpoints
 @app.get("/api/ai/providers")
 async def get_ai_providers():
@@ -7365,6 +7570,48 @@ async def stop_voice():
         return {"success": False, "error": str(e)}
 
 
+@app.post("/api/voice/play-sample")
+async def play_voice_sample(request: Request):
+    """Play a specific battle droid audio sample."""
+    try:
+        import subprocess
+        from pathlib import Path
+        
+        data = await request.json()
+        sample_name = data.get('sample', 'roger-roger')
+        
+        # Map sample names to files
+        sample_files = {
+            'roger-roger': 'roger-roger__1_.wav',
+            'oh-no': 'oh-no.wav',
+            'hold-it': 'hold-it.wav',
+            'you-re-welcome': 'you-re-welcome.wav',
+            'surrender': 'surrender-jedi.wav',
+            'dont-even-think': 'don-t-even-think.wav',
+            'my-programming': 'my-programming.wav',
+            'stupid-astro-droid': 'stupid-astro-droid.wav',
+        }
+        
+        filename = sample_files.get(sample_name, 'roger-roger__1_.wav')
+        sample_path = Path(__file__).parent.parent / "data" / "voice_models" / "battle_droid" / filename
+        
+        if not sample_path.exists():
+            logger.error(f"Sample not found: {sample_path}")
+            return {"success": False, "error": f"Sample not found: {filename}"}
+        
+        # Play the sample
+        subprocess.Popen(
+            ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", str(sample_path)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        
+        return {"success": True, "sample": sample_name}
+    except Exception as e:
+        logger.error(f"Voice sample error: {e}")
+        return {"success": False, "error": str(e)}
+
+
 def _fetch_garfield_from_rss(comic_id: Optional[str] = None):
     """Fetch Garfield comic via comicsrss.com feed (fallback when GoComics blocks)."""
     rss_url = 'https://www.comicsrss.com/rss/garfield.rss'
@@ -7951,9 +8198,9 @@ async def startup_event():
             # Fallback to default config
             voice_config = {
                 'enabled': True,
-                'model': 'en_US-ryan-high',
+                'model': 'en_US-ryan-medium',
                 'default_style': 'droid',
-                'speed': 0.75,
+                'speed': 0.85,
                 'pitch': 0.85
             }
         
@@ -7961,7 +8208,7 @@ async def startup_event():
             logger.info("Voice system disabled in configuration")
         else:
             # Get configuration values
-            model_name = voice_config.get('model', 'en_US-ryan-high')
+            model_name = voice_config.get('model', 'en_US-ryan-medium')
             default_style = voice_config.get('default_style', 'droid')
             speed = voice_config.get('speed', 0.75)
             pitch = voice_config.get('pitch', 0.85)

@@ -63,7 +63,7 @@ class AIService:
             if ai_provider_type == 'ollama':
                 ollama_host = self.db.get_setting('ollama_host', 'localhost')
                 ollama_port = self.db.get_setting('ollama_port', 11434)
-                ollama_model = self.db.get_setting('ollama_model', 'llama3.2:latest')
+                ollama_model = self.db.get_setting('ollama_model', 'llama3.2:1b')
                 
                 config = {
                     'base_url': f'http://{ollama_host}:{ollama_port}',
