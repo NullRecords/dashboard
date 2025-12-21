@@ -31,6 +31,7 @@ class VoiceSystem:
         default_style: VoiceStyle = "droid",
         speed: float = 0.85,
         pitch: float = 0.80,
+        volume: float = 1.0,
         use_authentic_samples: bool = True,
         # Audio effect parameters
         bit_depth: int = 8,
@@ -52,6 +53,7 @@ class VoiceSystem:
         self.default_style = default_style
         self.speed = speed  # Speech speed multiplier
         self.pitch = pitch  # Pitch shift multiplier
+        self.volume = volume  # Volume multiplier (1.0 = normal)
         self.playback_lock = threading.Lock()
         
         # Battle droid authentic sample audio directory
@@ -190,10 +192,19 @@ class VoiceSystem:
         
         return piper_ok and ffmpeg_ok
     
+    def clear_cache(self) -> None:
+        """Clear the voice cache to force regeneration with new settings"""
+        try:
+            for f in self.cache_dir.glob("*.wav"):
+                f.unlink()
+            logger.info("Voice cache cleared")
+        except Exception as e:
+            logger.warning(f"Failed to clear voice cache: {e}")
+    
     def _get_cache_path(self, text: str, style: str) -> Path:
         """Generate cache filename from text + style + all effect parameters"""
         # Include all parameters in cache key so changes invalidate cache
-        cache_key = f"{text}:{style}:{self.speed:.2f}:{self.pitch:.2f}:{self.bit_depth}:{self.bit_mix:.2f}:{self.tremolo_freq}:{self.tremolo_depth:.2f}:{self.compression_ratio}:{self.highpass_freq}:{self.lowpass_freq}:{self.echo_gain:.2f}:{self.vibrato_freq}:{self.vibrato_depth:.2f}"
+        cache_key = f"{text}:{style}:{self.speed:.2f}:{self.pitch:.2f}:{self.volume:.2f}:{self.bit_depth}:{self.bit_mix:.2f}:{self.tremolo_freq}:{self.tremolo_depth:.2f}:{self.compression_ratio}:{self.highpass_freq}:{self.lowpass_freq}:{self.echo_gain:.2f}:{self.vibrato_freq}:{self.vibrato_depth:.2f}"
         h = hashlib.md5(cache_key.encode()).hexdigest()[:16]
         return self.cache_dir / f"{style}_{h}.wav"
     
@@ -244,8 +255,11 @@ class VoiceSystem:
         Apply audio effects based on style
         Returns True if successful
         """
+        # Volume filter (applied to all styles)
+        volume_filter = f"volume={self.volume}" if self.volume != 1.0 else ""
+        
         fx_chains = {
-            "clean": "",  # No effects
+            "clean": volume_filter if volume_filter else "",  # Just volume if needed
             
             "droid": (
                 # Battle-droid style: aggressive robotic processing like Star Wars droids
@@ -265,6 +279,8 @@ class VoiceSystem:
                 f"vibrato=f={self.vibrato_freq}:d={self.vibrato_depth},"
                 # Final highpass to remove rumble
                 "highpass=f=180,"
+                # Volume adjustment
+                f"volume={self.volume},"
                 # Gentle limiting to prevent clipping
                 "alimiter=limit=0.9"
             ),
@@ -277,7 +293,8 @@ class VoiceSystem:
                 "lowpass=f=3000,"
                 "acompressor=threshold=-14dB:ratio=3:attack=5:release=80,"
                 "acrusher=bits=12:mix=0.2,"
-                "aecho=0.7:0.5:15:0.15"
+                "aecho=0.7:0.5:15:0.15,"
+                f"volume={self.volume}"
             ),
             
             "pa_system": (
@@ -287,7 +304,8 @@ class VoiceSystem:
                 "highpass=f=250,"
                 "lowpass=f=4000,"
                 "acompressor=threshold=-12dB:ratio=2.5:attack=10:release=100,"
-                "aecho=0.9:0.8:40:0.3"
+                "aecho=0.9:0.8:40:0.3,"
+                f"volume={self.volume}"
             ),
         }
         
@@ -306,7 +324,6 @@ class VoiceSystem:
                 "-af", fx,
                 str(out_wav),
             ]
-            
             subprocess.run(
                 cmd,
                 capture_output=True,

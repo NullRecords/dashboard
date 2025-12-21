@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def search_web(query: str, max_results: int = 5) -> List[Dict[str, str]]:
     """
-    Search the web using DuckDuckGo HTML interface.
+    Search the web using DuckDuckGo Lite.
     No API key required.
     
     Args:
@@ -26,8 +26,8 @@ def search_web(query: str, max_results: int = 5) -> List[Dict[str, str]]:
         List of search results with title, url, and snippet
     """
     try:
-        # Use DuckDuckGo HTML interface
-        url = f"https://html.duckduckgo.com/html/?q={quote_plus(query)}"
+        # Use DuckDuckGo Lite which is simpler to parse
+        url = f"https://lite.duckduckgo.com/lite/?q={quote_plus(query)}"
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
@@ -38,15 +38,23 @@ def search_web(query: str, max_results: int = 5) -> List[Dict[str, str]]:
         results = []
         html = response.text
         
-        # Parse results from HTML (simple regex parsing)
-        # DuckDuckGo HTML results are in <a class="result__a"> tags
-        result_pattern = r'<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([^<]+)</a>'
-        snippet_pattern = r'<a[^>]*class="result__snippet"[^>]*>([^<]+)</a>'
+        # Parse results - DuckDuckGo Lite has simpler HTML
+        # Results are in table rows with class="result-link"
+        link_pattern = r'<a[^>]*rel="nofollow"[^>]*href="([^"]+)"[^>]*>([^<]+)</a>'
+        snippet_pattern = r'<td[^>]*class="result-snippet"[^>]*>([^<]+)</td>'
         
-        links = re.findall(result_pattern, html)
+        links = re.findall(link_pattern, html)
         snippets = re.findall(snippet_pattern, html)
         
+        # If that didn't work, try alternate patterns
+        if not links:
+            # Try to find any external links
+            link_pattern2 = r'href="(https?://(?!duckduckgo)[^"]+)"[^>]*>([^<]+)</a>'
+            links = re.findall(link_pattern2, html)
+        
         for i, (link, title) in enumerate(links[:max_results]):
+            if 'duckduckgo.com' in link:
+                continue
             result = {
                 'title': title.strip(),
                 'url': link,

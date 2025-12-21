@@ -6000,88 +6000,39 @@ async def initialize_ai_providers():
         return
     
     try:
-        # Check if we have any providers
-        existing_providers = db.get_ai_providers()
+        # Always reset the ai_manager to pick up any model changes
+        ai_manager.clear_providers()
+        logger.info("Cleared AI providers for fresh initialization")
         
-        if not existing_providers:
-            # Get Ollama configuration from settings
-            ollama_host = db.get_setting('ollama_host', 'localhost')
-            ollama_port = db.get_setting('ollama_port', 11434)
-            ollama_model = db.get_setting('ollama_model', 'llama3.2:latest')
+        # Get Ollama configuration from settings
+        ollama_host = db.get_setting('ollama_host', 'localhost')
+        ollama_port = db.get_setting('ollama_port', 11434)
+        ollama_model = db.get_setting('ollama_model', 'roger')
+        
+        logger.info(f"Initializing Ollama with model: {ollama_model}")
+        
+        # Build the URL from configured host and port
+        configured_url = f'http://{ollama_host}:{ollama_port}'
+        
+        ollama_config = {
+            'base_url': configured_url,
+            'model_name': ollama_model,
+            'is_active': True,
+            'is_default': True
+        }
+        
+        try:
+            ollama_provider = create_provider('ollama', f'Ollama ({ollama_host})', ollama_config)
+            health_ok = await ollama_provider.health_check()
             
-            # Build the URL from configured host and port
-            configured_url = f'http://{ollama_host}:{ollama_port}'
-            
-            # Try to create Ollama provider using configured settings
-            ollama_hosts = [
-                {'name': f'Ollama ({ollama_host})', 'url': configured_url, 'model': ollama_model},
-                {'name': 'Local Ollama (fallback)', 'url': 'http://localhost:11434', 'model': 'llama3.2:latest'},
-            ]
-            
-            default_set = False
-            
-            for host_config in ollama_hosts:
-                # First try to get available models
-                try:
-                    async with aiohttp.ClientSession() as session:
-                        async with session.get(f"{host_config['url']}/api/tags") as response:
-                            if response.status == 200:
-                                data = await response.json()
-                                models = data.get('models', [])
-                                if models:
-                                    # Use the configured model if specified, otherwise use first available
-                                    if host_config.get('model'):
-                                        model_name = host_config['model']
-                                    else:
-                                        model_name = models[0]['name']
-                                    logger.info(f"Found model {model_name} at {host_config['url']}")
-                                else:
-                                    model_name = host_config.get('model', 'llama2')  # use configured or fallback
-                            else:
-                                continue
-                except:
-                    continue
+            if health_ok:
+                ai_manager.register_provider(ollama_provider, True)
+                logger.info(f"Ollama provider initialized: {configured_url} with model {ollama_model}")
+            else:
+                logger.warning(f"Ollama server not available at {configured_url}")
                 
-                ollama_config = {
-                    'base_url': host_config['url'],
-                    'model_name': model_name,
-                    'is_active': True,
-                    'is_default': not default_set  # First working one becomes default
-                }
-                
-                try:
-                    ollama_provider = create_provider('ollama', host_config['name'], ollama_config)
-                    health_ok = await ollama_provider.health_check()
-                    
-                    if health_ok:
-                        db.save_ai_provider(host_config['name'], 'ollama', ollama_config)
-                        ai_manager.register_provider(ollama_provider, not default_set)
-                        logger.info(f"Ollama provider initialized: {host_config['name']} at {host_config['url']} with model {model_name}")
-                        if not default_set:
-                            default_set = True
-                    else:
-                        logger.debug(f"Ollama server not available at {host_config['url']}")
-                        
-                except Exception as e:
-                    logger.debug(f"Could not initialize Ollama provider at {host_config['url']}: {e}")
-            
-            if not default_set:
-                logger.warning("No Ollama servers found - you can add providers manually in the AI Assistant admin panel")
-        else:
-            # Load existing providers into manager
-            for provider_data in existing_providers:
-                if provider_data['is_active']:
-                    try:
-                        provider = create_provider(
-                            provider_data['provider_type'],
-                            provider_data['name'],
-                            provider_data['config_data']
-                        )
-                        ai_manager.register_provider(provider, provider_data['is_default'])
-                        logger.info(f"Loaded AI provider: {provider_data['name']}")
-                        
-                    except Exception as e:
-                        logger.error(f"Error loading provider {provider_data['name']}: {e}")
+        except Exception as e:
+            logger.error(f"Could not initialize Ollama provider: {e}")
                         
     except Exception as e:
         logger.error(f"Error initializing AI providers: {e}")
@@ -7533,14 +7484,36 @@ async def leads_page():
 
 @app.post("/api/voice/test")
 async def test_voice(request: Request):
-    """Test the voice system - makes Rogr speak."""
+    """Test the voice system - makes Rogr speak with current settings."""
     try:
         data = await request.json()
         message = data.get('message', 'Roger roger. Voice system operational.')
         style = data.get('style', 'droid')
         add_signature = data.get('signature', True)
+        settings = data.get('settings', {})
         
         import voice as voice_module
+        
+        # Get or create voice instance
+        voice = voice_module.get_voice()
+        
+        # Apply settings if provided
+        if settings:
+            if 'pitch' in settings:
+                voice.pitch = float(settings['pitch'])
+            if 'speed' in settings:
+                voice.speed = float(settings['speed'])
+            if 'volume' in settings:
+                voice.volume = float(settings.get('volume', 1.0))
+            if 'bitDepth' in settings:
+                voice.bit_depth = int(settings['bitDepth'])
+            if 'tremoloFreq' in settings:
+                voice.tremolo_freq = int(settings['tremoloFreq'])
+            if 'echoGain' in settings:
+                voice.echo_gain = float(settings['echoGain'])
+            
+            # Clear cache so new settings take effect
+            voice.clear_cache()
         
         if add_signature:
             success = voice_module.announce(message, style=style, blocking=False)
@@ -7551,7 +7524,8 @@ async def test_voice(request: Request):
             "success": success,
             "message": message,
             "style": style,
-            "signature": add_signature
+            "signature": add_signature,
+            "settings_applied": bool(settings)
         }
     except Exception as e:
         logger.error(f"Voice test error: {e}")

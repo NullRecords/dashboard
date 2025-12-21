@@ -1,0 +1,15 @@
+{
+  "wake_word_enabled": false,
+  "wake_word": "roger",
+  "tts_voice": "piper-en_US-amy-medium",
+  "tts_style": "droid",
+  "speaking_rate": 1.0,
+  "auto_read_jokes": false,
+  "default_style": "droid",
+  "speed": 0.79,
+  "pitch": 0.85,
+  "use_authentic_samples": true,
+  "sarcasm_enabled": false,
+  "sarcasm_chance": 0.4,
+  "signature_chance": 0.3
+}
