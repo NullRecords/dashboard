@@ -1,143 +1,27 @@
+
 """
-Lead Generator - Uses learned patterns to identify and score potential business opportunities.
+Lead Generator (ARCHIVED)
 
-This module:
-- Uses company templates to search for similar opportunities
-- Scores potential leads based on learned success patterns
-- Integrates with multiple data sources (web scraping, APIs, directories)
-- Provides actionable lead recommendations with contact information
+This module previously implemented lead-generation and business-scoring
+logic. It has been replaced with a minimal stub for the kid-friendly
+Roger edition to avoid carrying over business functionality.
 """
 
-import logging
-import asyncio
-import aiohttp
-import json
-from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional, Tuple
-from dataclasses import dataclass, asdict
-from collections import defaultdict
-from pathlib import Path
-import re
-import random
-
-from processors.company_profiler import CompanyProfiler, CompanyTemplate, LeadScoringCriteria
-
-# Import real startup discovery
-try:
-    from processors.startup_discovery import discover_real_startups
-    REAL_DISCOVERY_AVAILABLE = True
-except ImportError:
-    REAL_DISCOVERY_AVAILABLE = False
-
-logger = logging.getLogger(__name__)
-
-
-@dataclass 
-class PotentialLead:
-    """A potential business lead identified by the system."""
-    company_name: str
-    domain: str
-    industry: str
-    estimated_size: str
-    contact_info: Dict[str, Any]
-    match_score: float
-    match_reasons: List[str]
-    template_matches: List[str]
-    recommended_approach: str
-    priority_level: str
-    technical_fit_score: float
-    business_potential_score: float
-    contact_accessibility_score: float
-    next_steps: List[str]
-    data_sources: List[str]
-    confidence_level: float
-    last_updated: datetime
-
-
-@dataclass
-class LeadRecommendation:
-    """Recommendation for engaging with a lead."""
-    lead: PotentialLead
-    outreach_strategy: Dict[str, Any]
-    timing_recommendation: str
-    personalization_tips: List[str]
-    technical_talking_points: List[str]
-    business_value_propositions: List[str]
-    meeting_agenda_template: str
-    follow_up_sequence: List[str]
+from typing import List, Any
 
 
 class LeadGenerator:
-    """Generates qualified leads based on learned interaction patterns."""
-    
     def __init__(self):
-        self.profiler = CompanyProfiler()
-        self.company_templates = {}
-        self.generated_leads = []
-        
-        # Data sources for lead discovery
-        self.data_sources = {
-            'crunchbase': 'https://api.crunchbase.com/api/v4/',
-            'builtwith': 'https://api.builtwith.com/v20/',
-            'linkedin': 'LinkedIn Sales Navigator (manual)',
-            'github': 'GitHub organization search',
-            'product_hunt': 'Product Hunt API',
-            'indie_hackers': 'Indie Hackers community',
-            'angel_list': 'AngelList (now Wellfound)',
-            'y_combinator': 'Y Combinator directory'
-        }
-        
-        # Simulated lead database (in production, this would be real data)
-        self.simulated_leads_db = self._create_simulated_leads()
-    
-    async def generate_leads(self, templates: List[CompanyTemplate], target_count: int = 10, filters: Optional[Dict[str, str]] = None) -> List[PotentialLead]:
-        """Generate potential leads based on company templates and scoring criteria."""
-        logger.info(f"Generating {target_count} leads from {len(templates)} templates")
-        
-        # Always try real startup discovery first when available
-        if REAL_DISCOVERY_AVAILABLE:
-            try:
-                logger.info("🔍 Using real startup discovery system")
-                return await self._generate_real_startup_leads(target_count, filters)
-            except Exception as e:
-                logger.warning(f"Real discovery failed, falling back to template-based generation: {e}")
-        
-        if not templates:
-            logger.warning("No templates provided for lead generation - using defaults")
-            # Generate default leads using simulated database
-            if self.simulated_leads_db:
-                return await self._generate_default_leads(target_count)
-            else:
-                logger.error("No templates and no simulated database available")
-                return []
-        
-        # Main logic for when templates are provided (fallback)
-        all_leads = []
-        leads_per_template = max(1, target_count // len(templates))
-        
-        for template in templates:
-            template_leads = await self._generate_leads_for_template(template, leads_per_template)
-            all_leads.extend(template_leads)
-        
-        # Score and rank all leads
-        templates_dict = {template.template_name: template for template in templates}
-        final_leads = self._score_and_rank_leads(all_leads, templates_dict)
-        
-        # Apply filters if provided
-        if filters:
-            final_leads = self._apply_filters(final_leads, filters)
-        
-        # Store generated leads for statistics
-        self.generated_leads = final_leads[:target_count]
-        
-        return final_leads[:target_count]
-    
-    async def _generate_leads_for_template(self, template: CompanyTemplate, count: int) -> List[PotentialLead]:
-        """Generate leads that match a specific company template."""
-        
-        leads = []
-        
-        try:
+        self.generated_leads: List[Any] = []
+
+    async def generate_leads(self, *args, **kwargs):
+        """Return an empty list — lead generation disabled."""
+        return []
+
+    def get_lead_statistics(self):
+        return {"total": 0}
+
+
             # Search different data sources
             industry_leads = await self._search_by_industry(template, count // 3)
             tech_stack_leads = await self._search_by_tech_stack(template, count // 3)

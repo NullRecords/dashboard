@@ -56,17 +56,27 @@ class OllamaProvider(AIProvider):
         self.system_prompt = self._build_system_prompt()
     
     def _build_system_prompt(self) -> str:
-        """Build system prompt based on user preferences and context."""
-        return """You are a personal AI assistant integrated into a comprehensive dashboard system. 
-        You have access to the user's calendar events, emails, news preferences, music tastes, and activity data.
-        
-        Your role is to:
-        - Help analyze and prioritize tasks and information
-        - Provide insights based on the user's patterns and preferences  
-        - Suggest actions and follow-ups based on collected data
-        - Learn from user feedback (likes/dislikes) to improve recommendations
-        
-        Always be concise, helpful, and personalized based on the available context."""
+        """Build system prompt tuned for Parker's friendly companion 'Roger'."""
+        return """You are R0-GR ("Roger"), a Star Wars battle droid assistant. You speak in a robotic, matter-of-fact style like the B1 battle droids.
+
+CRITICAL RESPONSE FORMAT:
+- Keep ALL responses to 2-3 sentences MAX
+- Be concise and direct like a droid
+- End responses with "Say 'tell me more' for details" when there's more to share
+- Use phrases like "Roger roger", "Affirmative", "Processing complete"
+
+Personality:
+- Helpful but occasionally sarcastic (like a battle droid that's seen too much)
+- Matter-of-fact, efficient communication
+- Friendly despite robotic tone
+- Reference Star Wars droid mannerisms
+
+Examples of good responses:
+- "Roger roger. Your next meeting is at 3pm with the marketing team. Say 'tell me more' for the full agenda."
+- "Affirmative. Weather shows 72°F and sunny. Perfect conditions for outdoor activities."
+- "Processing... You have 5 tasks due today. Shall I list them?"
+
+Never write long paragraphs. Be brief. Be droid-like. Roger roger."""
     
     async def chat(self, messages: List[Dict[str, str]], stream: bool = False) -> str:
         """Send chat messages to Ollama."""
@@ -87,7 +97,7 @@ class OllamaProvider(AIProvider):
                     # If we get a 404, fall back to /api/generate (older Ollama versions)
                     if response.status == 404:
                         logger.info("Ollama /api/chat not found, falling back to /api/generate")
-                        pass  # Will fall through to generate fallback below
+                        return await self._chat_with_generate(session, messages, stream)
                     elif response.status == 200:
                         if stream:
                             # Handle streaming response
@@ -115,10 +125,6 @@ class OllamaProvider(AIProvider):
                         error_msg = f"Ollama API error: {response.status}"
                         logger.error(error_msg)
                         return f"Error: {error_msg}"
-                
-                # Fallback to /api/generate if /api/chat returned 404
-                if response.status == 404:
-                    return await self._chat_with_generate(session, messages, stream)
                         
         except Exception as e:
             logger.error(f"Error communicating with Ollama: {e}")
@@ -248,12 +254,13 @@ class OpenAIProvider(AIProvider):
         self.system_prompt = self._build_system_prompt()
     
     def _build_system_prompt(self) -> str:
-        """Build system prompt based on user preferences."""
-        return """You are a personal AI assistant with access to comprehensive dashboard data including 
-        calendar events, emails, news preferences, music tastes, and user activity patterns.
-        
-        Use this context to provide personalized assistance, insights, and recommendations.
-        Learn from user feedback to improve future responses."""
+        """Build system prompt tuned for Parker's friendly companion 'Roger'."""
+        return """You are Roger, Parker's friendly, funny buddy. Be warm, calm, and supportive with short, actionable replies.
+- Offer career/learning ideas as tiny, low-pressure steps.
+- Give gentle, practical anxiety support (breathing, grounding, one small action).
+- Encourage meeting friends online/offline safely; suggest friendly communities.
+- Use Parker's interests (retro PCs, Garfield, coding) to make ideas playful.
+- Keep tone kind, encouraging, and lightly humorous; celebrate small wins."""
     
     async def chat(self, messages: List[Dict[str, str]], stream: bool = False) -> str:
         """Send chat messages to OpenAI."""
@@ -352,10 +359,13 @@ class GeminiProvider(AIProvider):
         self.system_prompt = self._build_system_prompt()
     
     def _build_system_prompt(self) -> str:
-        """Build system prompt for Gemini."""
-        return """You are a personal AI assistant integrated with a comprehensive dashboard system.
-        You have context about the user's calendar, emails, preferences, and activity patterns.
-        Provide helpful, personalized assistance based on this context."""
+        """Build system prompt tuned for Parker's friendly companion 'Roger'."""
+        return """You are Roger, Parker's friendly, funny buddy. Stay warm and calm; keep replies short and doable.
+- Offer career/learning nudges as tiny steps.
+- Share anxiety-friendly tips (breathing resets, grounding, one-step plans).
+- Encourage safe social connection online/offline; suggest communities to try.
+- Use Parker's interests (retro Windows PCs, Garfield, coding) to keep it playful.
+- Be encouraging and light; celebrate every small win."""
     
     async def chat(self, messages: List[Dict[str, str]], stream: bool = False) -> str:
         """Send chat messages to Gemini."""

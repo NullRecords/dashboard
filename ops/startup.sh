@@ -287,8 +287,8 @@ check_voice_system() {
     if [ ! -f "$model_file" ]; then
         echo -e "${YELLOW}   ⚠️  Voice model not found - downloading...${NC}"
         
-        local model_url="https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/ryan/high/en_US-ryan-high.onnx"
-        local config_url="https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/ryan/high/en_US-ryan-high.onnx.json"
+        local model_url="https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/ryan/high/en_US-ryan-high.onnx"
+        local config_url="https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/ryan/high/en_US-ryan-high.onnx.json"
         
         echo -e "${BLUE}   Downloading voice model: $model_name...${NC}"
         curl -L "$model_url" -o "$model_file" || {
@@ -317,6 +317,31 @@ check_voice_system() {
         else
             echo -e "${YELLOW}   ⚠️  Voice test failed - synthesis may not work${NC}"
         fi
+    fi
+}
+
+# Function to check/install Ollama local server
+check_ollama() {
+    echo -e "${BLUE}🧠 Checking for local Ollama...${NC}"
+    if command -v ollama &> /dev/null; then
+        echo -e "${GREEN}   ✅ Ollama CLI found${NC}"
+        return 0
+    fi
+
+    echo -e "${YELLOW}   ⚠️  Ollama not found locally${NC}"
+    # Attempt simple install on Linux via official installer if available
+    local os_type=$(uname -s)
+    if [[ "$os_type" == "Linux" ]]; then
+        echo -e "${BLUE}   Attempting to install Ollama (Linux)...${NC}"
+        if curl -fsSL https://ollama.ai/install.sh | bash; then
+            echo -e "${GREEN}   ✅ Ollama installer finished (check output above)${NC}"
+            return 0
+        else
+            echo -e "${YELLOW}   ⚠️  Ollama automatic install failed. Visit https://ollama.ai for manual install${NC}"
+            return 0
+        fi
+    else
+        echo -e "${YELLOW}   Please install Ollama manually from https://ollama.ai${NC}"
     fi
 }
 
@@ -513,6 +538,7 @@ case "${1:-start}" in
         setup_venv
         install_requirements
         check_voice_system
+        check_ollama
         check_config
         check_database
         start_server
@@ -528,6 +554,7 @@ case "${1:-start}" in
         setup_venv
         install_requirements
         check_voice_system
+        check_ollama
         check_config
         check_database
         start_server

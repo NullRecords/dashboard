@@ -1,42 +1,54 @@
-# Example configuration file
-# Copy this to config.yaml and customize as needed
-
-# Application settings
-environment: "development"
-debug: true
-log_level: "INFO"
-data_retention_days: 90
-collection_interval_hours: 6
-
-# Ollama configuration
-ollama:
-  host: "alderaan.local"
-  port: 11434
-  model: "qwen2.5:7b"
-
-# Google APIs
-google:
-  credentials_file: "tokens/google_credentials.json"
-  scopes:
-    - "https://www.googleapis.com/auth/gmail.readonly"
-    - "https://www.googleapis.com/auth/calendar.readonly"
-
-# Apple settings
 apple:
-  reminders_export_path: "data/apple_reminders.csv"
-
-# Dashboard settings
+  reminders_export_path: data/apple_reminders.csv
+collection_interval_hours: 6
 dashboard:
-  output_dir: "output"
-  template_dir: "templates"
-  static_dir: "static"
-  weekly_goals:
-    emails_processed: 100
-    meetings_attended: 10
-    tasks_completed: 20
-    github_commits: 15
   monthly_goals:
     emails_processed: 400
+    github_commits: 60
     meetings_attended: 40
     tasks_completed: 80
-    github_commits: 60
+  output_dir: output
+  static_dir: static
+  template_dir: templates
+  weekly_goals:
+    emails_processed: 100
+    github_commits: 15
+    meetings_attended: 10
+    tasks_completed: 20
+data_retention_days: 90
+debug: true
+environment: development
+google:
+  credentials_file: tokens/google_credentials.json
+  scopes:
+  - https://www.googleapis.com/auth/gmail.readonly
+  - https://www.googleapis.com/auth/calendar.readonly
+icloud_calendar_url: webcal://p123-caldav.icloud.com/published/2/MTI5Njg2NTgyMTI5Njg2NZs7ES2pe0EgOaqif9pRbSGtjB4kFVv0yefCFugCkSC6eztd8dpe_hEIyfK98qGcmoaOmyUgOseHVrP8cful45g
+log_level: INFO
+ollama:
+  host: ${OLLAMA_HOST:-localhost}
+  model: tinyllama
+  port: 11434
+voice:
+  always_use_signature: true
+  announce_on_startup: false
+  bit_depth: 6
+  bit_mix: 0.6
+  compression_ratio: 8
+  default_style: droid
+  echo_gain: 0.4
+  enabled: true
+  highpass_freq: 200
+  lowpass_freq: 2500
+  model: en_US-ryan-high
+  pitch: 0.7
+  sarcasm_enabled: true
+  signature_phrase: roger, roger
+  speed: 0.7
+  tremolo_depth: 0.22
+  tremolo_freq: 150
+  vibrato_depth: 0.2
+  vibrato_freq: 5
+  wake_words:
+  - roger
+  - rogr

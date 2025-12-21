@@ -44,6 +44,7 @@ class TaskGenerator:
         for event in events:
             # Extract from event description/summary
             description = event.get('description', '') or event.get('summary', '')
+            summary = event.get('summary', '') or ''
             
             if description:
                 event_tasks = self._extract_todos_from_text(
@@ -59,6 +60,34 @@ class TaskGenerator:
             # Extract tasks based on meeting patterns
             meeting_tasks = self._extract_meeting_follow_ups(event)
             tasks.extend(meeting_tasks)
+
+            # Smart tasks for Parker-related events
+            try:
+                text_all = f"{summary} {description}".lower()
+                if 'parker' in text_all:
+                    task_id = str(uuid.uuid4())
+                    meeting_time = event.get('start', {}).get('dateTime')
+                    due_date = None
+                    if meeting_time:
+                        try:
+                            mt = datetime.fromisoformat(meeting_time.replace('Z', '+00:00'))
+                            due_date = (mt + timedelta(days=1)).isoformat()
+                        except Exception:
+                            pass
+                    tasks.append({
+                        'id': task_id,
+                        'title': f"Prepare/support for Parker: {event.get('summary', 'Event')}",
+                        'description': f"Event mentions Parker. Consider prep or follow-up.\n\nEvent: {event.get('summary', 'Untitled')}\nTime: {meeting_time}",
+                        'source': 'calendar',
+                        'source_id': event.get('id'),
+                        'source_url': event.get('htmlLink'),
+                        'priority': 'high',
+                        'status': 'pending',
+                        'category': 'parker_support',
+                        'due_date': due_date
+                    })
+            except Exception:
+                pass
         
         return tasks
     
@@ -69,6 +98,7 @@ class TaskGenerator:
         for email in emails:
             # Extract from email body
             body = email.get('body', '') or email.get('snippet', '')
+            subject = email.get('subject', '') or ''
             
             if body:
                 email_tasks = self._extract_todos_from_text(
@@ -79,6 +109,24 @@ class TaskGenerator:
                     source_id=email.get('id')
                 )
                 tasks.extend(email_tasks)
+
+            # Smart tasks for emails mentioning Parker
+            try:
+                text_all = f"{subject} {body}".lower()
+                if 'parker' in text_all:
+                    tasks.append({
+                        'id': str(uuid.uuid4()),
+                        'title': f"Follow up on Parker email: {subject[:60]}",
+                        'description': f"Email mentions Parker. Consider a quick, supportive reply.\n\nSubject: {subject}",
+                        'source': 'email',
+                        'source_id': email.get('id'),
+                        'source_url': f"https://mail.google.com/mail/u/0/#inbox/{email.get('id')}",
+                        'priority': 'medium',
+                        'status': 'pending',
+                        'category': 'parker_support'
+                    })
+            except Exception:
+                pass
         
         return tasks
     

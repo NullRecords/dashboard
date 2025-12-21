@@ -57,10 +57,10 @@
       },
       "meeting_types": {
         "general": 8
+      {
+        "_archived": true,
+        "note": "Lead pattern analysis removed for kid-friendly edition."
       }
-    }
-  },
-  "email_analysis": {
     "total_companies": 54,
     "total_meetings": 11,
     "business_patterns": {

@@ -1,8 +1,7 @@
 """
 News Collector for Personal Dashboard
 
-Collects news articles about Oregon State University, Portland Timbers, 
-Star Wars, and Star Trek from multiple sources.
+Collects news articles from multiple sources.
 """
 
 import asyncio

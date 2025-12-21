@@ -1,222 +1,19 @@
-#!/usr/bin/env python3
 """
-Real Startup Discovery Engine
-=============================
+startup_discovery (ARCHIVED)
 
-Integrates with ../marketing tool capabilities to find real startups and idea-stage companies
-from various sources including startup directories, GitHub, social platforms, and incubators.
-
-Key Features:
-- Web scraping of startup directories (Product Hunt, AngelList, Y Combinator, etc.)
-- GitHub repository analysis for new projects and teams
-- Social media monitoring for startup announcements
-- API integration with startup platforms
-- Intelligent lead scoring based on learned preferences
-- Real-time company validation and enrichment
+The original startup discovery engine has been archived for the kid-friendly
+Roger edition. Provide a minimal async interface so callers don't fail.
 """
 
-import asyncio
-import aiohttp
-import logging
-import json
-import re
-from datetime import datetime, timedelta
-from pathlib import Path
-from typing import Dict, List, Optional, Set, Any, Tuple
-from dataclasses import dataclass, asdict
-from urllib.parse import urljoin, urlparse
-import sys
-import os
+from typing import List, Any
 
-# Add marketing directory to path to access existing capabilities
-marketing_path = Path(__file__).parent.parent.parent / "marketing"
-if marketing_path.exists():
-    sys.path.insert(0, str(marketing_path))
 
-try:
-    from automation.influencer_discovery import PlatformSearcher, SocialMediaProfile
-    from automation.ai.ollama_integration import AIContentGenerator
-    MARKETING_TOOLS_AVAILABLE = True
-    logging.info("Successfully imported marketing automation tools")
-except ImportError as e:
-    logging.warning(f"Marketing tools not available: {e}")
-    MARKETING_TOOLS_AVAILABLE = False
+async def discover_startups(search_terms: List[str], max_results: int = 100) -> List[Any]:
+    return []
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
-@dataclass
-class StartupLead:
-    """Real startup lead discovered from various sources"""
-    name: str
-    description: str
-    website: str
-    source_platform: str
-    founded_date: Optional[str] = None
-    team_size: Optional[str] = None
-    funding_stage: Optional[str] = None
-    industry: str = "Technology"
-    location: Optional[str] = None
-    contact_info: Optional[Dict[str, str]] = None
-    social_links: Optional[Dict[str, str]] = None
-    tech_stack: Optional[List[str]] = None
-    recent_activity: Optional[str] = None
-    discovery_score: float = 0.0
-    match_reasons: List[str] = None
-    last_updated: datetime = None
-    
-    def __post_init__(self):
-        if self.contact_info is None:
-            self.contact_info = {}
-        if self.social_links is None:
-            self.social_links = {}
-        if self.tech_stack is None:
-            self.tech_stack = []
-        if self.match_reasons is None:
-            self.match_reasons = []
-        if self.last_updated is None:
-            self.last_updated = datetime.now()
-
-@dataclass 
-class StartupDirectory:
-    """Configuration for startup directory sources"""
-    name: str
-    base_url: str
-    search_endpoint: str
-    pagination_param: str = "page"
-    has_api: bool = False
-    api_key_required: bool = False
-    rate_limit: int = 60  # requests per minute
-    parser_class: str = "generic"
-
-class StartupDiscoveryEngine:
-    """Main engine for discovering real startups and idea-stage companies"""
-    
-    def __init__(self):
-        self.session = None
-        self.discovered_leads = []
-        self.startup_directories = self._initialize_directories()
-        self.github_api_base = "https://api.github.com"
-        self.quality_filters = {
-            'min_description_length': 20,
-            'required_website_or_repo': True,
-            'exclude_defunct': True,
-            'min_activity_days': 180  # Active within 6 months
-        }
-        
-    def _initialize_directories(self) -> Dict[str, StartupDirectory]:
-        """Initialize configuration for various startup directories"""
-        return {
-            'product_hunt': StartupDirectory(
-                name="Product Hunt",
-                base_url="https://www.producthunt.com",
-                search_endpoint="/search",
-                has_api=True,
-                api_key_required=False
-            ),
-            'github_trending': StartupDirectory(
-                name="GitHub Trending",
-                base_url="https://github.com",
-                search_endpoint="/trending",
-                has_api=True,
-                parser_class="github"
-            ),
-            'ycombinator': StartupDirectory(
-                name="Y Combinator Directory",
-                base_url="https://www.ycombinator.com",
-                search_endpoint="/companies",
-                parser_class="ycombinator"
-            ),
-            'crunchbase': StartupDirectory(
-                name="Crunchbase",
-                base_url="https://www.crunchbase.com",
-                search_endpoint="/discover/organization.companies",
-                has_api=True,
-                api_key_required=True
-            ),
-            'angellist': StartupDirectory(
-                name="AngelList",
-                base_url="https://angel.co",
-                search_endpoint="/companies",
-                has_api=True
-            ),
-            'betalist': StartupDirectory(
-                name="BetaList",
-                base_url="https://betalist.com",
-                search_endpoint="/startups",
-                parser_class="betalist"
-            ),
-            'hackernews_show': StartupDirectory(
-                name="Hacker News Show HN",
-                base_url="https://hn.algolia.com",
-                search_endpoint="/api/v1/search",
-                has_api=True,
-                parser_class="hackernews"
-            ),
-            'indie_hackers': StartupDirectory(
-                name="Indie Hackers",
-                base_url="https://www.indiehackers.com",
-                search_endpoint="/products",
-                parser_class="indiehackers"
-            )
-        }
-    
-    async def __aenter__(self):
-        """Async context manager entry"""
-        import ssl
-        ssl_context = ssl.create_default_context()
-        ssl_context.check_hostname = False
-        ssl_context.verify_mode = ssl.CERT_NONE
-        
-        connector = aiohttp.TCPConnector(ssl=ssl_context, limit=50)
-        timeout = aiohttp.ClientTimeout(total=30)
-        self.session = aiohttp.ClientSession(connector=connector, timeout=timeout)
-        return self
-    
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Async context manager exit"""
-        if self.session:
-            await self.session.close()
-    
-    async def discover_startups(self, search_terms: List[str], max_results: int = 100) -> List[StartupLead]:
-        """Main method to discover startups from multiple sources"""
-        logger.info(f"🔍 Starting startup discovery with terms: {search_terms}")
-        
-        all_leads = []
-        
-        # 1. Search startup directories
-        for directory_name, directory in self.startup_directories.items():
-            try:
-                logger.info(f"Searching {directory.name}...")
-                leads = await self._search_directory(directory, search_terms, max_results // len(self.startup_directories))
-                all_leads.extend(leads)
-                
-                # Rate limiting
-                await asyncio.sleep(1)
-            except Exception as e:
-                logger.error(f"Error searching {directory.name}: {e}")
-                continue
-        
-        # 2. GitHub repository search for new projects
-        try:
-            logger.info("Searching GitHub for new startup repositories...")
-            github_leads = await self._search_github_startups(search_terms, 20)
-            all_leads.extend(github_leads)
-        except Exception as e:
-            logger.error(f"Error searching GitHub: {e}")
-        
-        # 3. Social media discovery (if marketing tools available)
-        if MARKETING_TOOLS_AVAILABLE:
-            try:
-                logger.info("Searching social media for startup mentions...")
-                social_leads = await self._discover_via_social_media(search_terms, 20)
-                all_leads.extend(social_leads)
-            except Exception as e:
-                logger.error(f"Error in social media discovery: {e}")
-        
-        # 4. Quality filtering and scoring
-        filtered_leads = await self._filter_and_score_leads(all_leads, search_terms)
+async def discover_real_startups(*args, **kwargs):
+    return []
         
         # 5. Enrich with additional data
         enriched_leads = await self._enrich_leads(filtered_leads[:max_results])
@@ -799,7 +596,20 @@ class StartupDiscoveryEngine:
         """Generic parser for startup directory results"""
         return []
 
-# Integration with existing lead generation system
+# Startup discovery (ARCHIVED)
+"""
+This module previously contained startup/lead discovery logic.
+It has been archived for the kid-friendly Roger edition and no longer
+performs any discovery. Keeping a small stub to avoid import errors.
+"""
+
+async def discover_startups(*args, **kwargs):
+    """Stubbed discover_startups - returns empty list."""
+    return []
+
+async def discover_real_startups(*args, **kwargs):
+    return []
+
 
 async def discover_real_startups(search_preferences: Dict[str, Any], max_results: int = 50) -> List[Dict[str, Any]]:
     """

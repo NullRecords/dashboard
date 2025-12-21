@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 import uvicorn
 import json
 import requests
+import re
 from datetime import datetime, timedelta
 import os
 import yaml
@@ -23,7 +24,40 @@ import threading
 import asyncio
 import time
 import secrets
-from typing import Dict, Any, Optional
+import io
+import zipfile
+from urllib.parse import quote
+from typing import Dict, Any, Optional, List
+
+# Comics RSS catalog (kept near top so endpoints can reference)
+COMIC_RSS_FEEDS = {
+    "calvin": "https://www.comicsrss.com/rss/calvinandhobbes.rss",
+    "xkcd": "https://xkcd.com/rss.xml",  # direct xkcd feed
+    "bc": "https://www.comicsrss.com/rss/bc.rss",
+    "beetle-bailey": "https://www.comicsrss.com/rss/beetle-bailey-1.rss",
+    "bloom-county": "https://www.comicsrss.com/rss/bloomcounty.rss",
+    "doonesbury": "https://www.comicsrss.com/rss/doonesbury.rss",
+    "family-tree": "https://www.comicsrss.com/rss/familytree.rss",
+    "foxtrot": "https://www.comicsrss.com/rss/foxtrot.rss",
+    "foxtrot-classics": "https://www.comicsrss.com/rss/foxtrotclassics.rss",
+    "heathcliff": "https://www.comicsrss.com/rss/heathcliff.rss",
+    "mark-trail": "https://www.comicsrss.com/rss/mark-trail.rss",
+    "mark-trail-vintage": "https://www.comicsrss.com/rss/mark-trail-vintage.rss",
+    "peanuts": "https://www.comicsrss.com/rss/peanuts.rss",
+}
+
+# Feeds known to return takedown/placeholder messages; keep catalogued but hide from UI lists
+COMIC_RSS_HIDDEN = {
+    "calvin",
+    "bc",
+    "bloom-county",
+    "doonesbury",
+    "family-tree",
+    "foxtrot",
+    "foxtrot-classics",
+    "heathcliff",
+    "peanuts",
+}
 
 # Add the src directory to path for imports
 src_dir = Path(__file__).parent
@@ -80,9 +114,6 @@ app = FastAPI(title="Simple Personal Dashboard")
 
 # Register custom module routers
 try:
-    from modules.music_news.endpoints import router as music_news_router
-    from modules.vanity_alerts.endpoints import router as vanity_alerts_router
-    from modules.comms.endpoints import router as comms_router
     from modules.foundershield.endpoints import router as foundershield_router
     from modules.leads.endpoints import router as leads_router
     from modules.tasks.endpoints import router as tasks_router
@@ -90,16 +121,13 @@ try:
     from modules.providers.endpoints import router as providers_router
     from modules.providers.oauth import router as providers_oauth_router
     
-    app.include_router(music_news_router)
-    app.include_router(vanity_alerts_router)
-    app.include_router(comms_router)
     app.include_router(foundershield_router, prefix="/foundershield")
     app.include_router(leads_router)
     app.include_router(tasks_router)
     app.include_router(ai_summarizer_router)
     app.include_router(providers_router)
     app.include_router(providers_oauth_router)
-    logging.info("✅ Custom modules registered (music_news, vanity_alerts, comms, foundershield, leads, tasks, ai_summarizer, providers)")
+    logging.info("✅ Custom modules registered (foundershield, leads, tasks, ai_summarizer, providers)")
 except ImportError as e:
     logging.warning(f"Could not load custom modules: {e}")
 
@@ -464,6 +492,76 @@ src_dir = Path(__file__).parent
 static_dir = src_dir / "static"
 if static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+
+@app.get("/api/comics/rss/{series}")
+async def get_comic_by_rss(series: str):
+    """Fetch latest comic from configured comicsrss-like feeds."""
+    series_key = series.lower()
+    feed_url = COMIC_RSS_FEEDS.get(series_key)
+    if not feed_url:
+        raise HTTPException(status_code=404, detail="Feed not found")
+    try:
+        resp = requests.get(feed_url, timeout=15, headers={"User-Agent": "Mozilla/5.0 (DashboardBot)"})
+        if resp.status_code != 200:
+            return {"success": False, "error": f"RSS status {resp.status_code}"}
+        soup = BeautifulSoup(resp.text, 'xml')
+        item = soup.find('item')
+        if not item:
+            return {"success": False, "error": "No items"}
+        pub_raw = item.pubDate.text if item.pubDate else ''
+        comic_id = datetime.utcnow().strftime('%Y-%m-%d')
+        try:
+            comic_id = datetime.strptime(pub_raw[:16], "%a, %d %b %Y").strftime('%Y-%m-%d')
+        except Exception:
+            pass
+        description = item.description.text if item.description else ''
+        img_match = re.search(r'<img[^>]+src="([^"]+)"', description)
+        image_url = img_match.group(1) if img_match else ''
+        # xkcd description may not contain img; look for <link> to page and fallback to enclosure
+        if not image_url:
+            enclosure = item.find('enclosure')
+            if enclosure and enclosure.get('url'):
+                image_url = enclosure['url']
+        if not image_url and 'xkcd.com' in feed_url:
+            # xkcd HTML page scrape for first img
+            try:
+                page = requests.get(link, timeout=10, headers={"User-Agent": "Mozilla/5.0 (DashboardBot)"})
+                if page.status_code == 200:
+                    psoup = BeautifulSoup(page.text, 'html.parser')
+                    comic_img = psoup.select_one('#comic img')
+                    if comic_img and comic_img.get('src'):
+                        image_url = comic_img['src']
+                        if image_url.startswith('//'):
+                            image_url = 'https:' + image_url
+            except Exception:
+                pass
+        link = item.link.text if item.link else feed_url
+        title = item.title.text if item.title else series_key
+        comic = {
+            "series": series_key,
+            "id": comic_id,
+            "title": title,
+            "date": comic_id,
+            "image_url": image_url,
+            "link": link,
+            "attribution": "© comicsrss feed"
+        }
+        return {"success": True, "comic": comic}
+    except Exception as e:
+        logger.error(f"Comic RSS error for {series_key}: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/comics/feeds")
+async def list_comic_feeds():
+    """List available comics feeds with name and URL."""
+    items = []
+    for key, url in COMIC_RSS_FEEDS.items():
+        if key in COMIC_RSS_HIDDEN:
+            continue
+        items.append({"id": key, "name": key.replace('-', ' ').title(), "url": url})
+    return {"success": True, "feeds": items}
 
 # Mount assets (images, logos, etc.)
 assets_dir = project_root / "assets"
@@ -1546,6 +1644,132 @@ async def get_github():
 async def health_check():
     """Health check endpoint for monitoring"""
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
+#############################
+# Wellbeing Feeds (Anxiety) #
+#############################
+
+ANXIETY_FEED_SOURCES = [
+    "https://www.heysigmund.com/feed/",
+    "https://www.reddit.com/r/Anxiety/.rss",
+]
+
+
+def _parse_rss_items(xml_text: str, source: str) -> List[Dict[str, Any]]:
+    articles: List[Dict[str, Any]] = []
+    try:
+        soup = BeautifulSoup(xml_text, 'xml')
+        for item in soup.find_all('item')[:10]:
+            title = (item.title.text if item.title else '').strip()
+            link = (item.link.text if item.link else '').strip()
+            pub_raw = (item.pubDate.text if item.pubDate else '').strip()
+            guid = (item.guid.text if item.guid else '') or link or title
+            if not title:
+                continue
+            safe_id = re.sub(r"[^a-zA-Z0-9]+", "-", guid).strip('-')[:80] or secrets.token_hex(4)
+            articles.append({
+                "id": safe_id,
+                "title": title,
+                "link": link or source,
+                "date": pub_raw,
+                "source": source,
+                "attribution": "Wellbeing RSS"
+            })
+    except Exception as e:
+        logger.error(f"Error parsing RSS feed {source}: {e}")
+    return articles
+
+
+@app.get("/api/feeds/anxiety")
+async def get_anxiety_feed():
+    """Aggregate calming/anxiety-friendly articles from curated RSS sources."""
+    articles: List[Dict[str, Any]] = []
+    for feed in ANXIETY_FEED_SOURCES:
+        try:
+            resp = requests.get(feed, timeout=15, headers={"User-Agent": "Mozilla/5.0 (DashboardBot)"})
+            if resp.status_code != 200:
+                logger.warning(f"Feed {feed} status {resp.status_code}")
+                continue
+            articles.extend(_parse_rss_items(resp.text, feed))
+        except Exception as e:
+            logger.error(f"Error fetching feed {feed}: {e}")
+
+    if not articles:
+        articles = [
+            {
+                "id": "breathing-reset",
+                "title": "4-7-8 breathing reset (2 minutes)",
+                "link": "https://www.healthline.com/health/4-7-8-breathing",
+                "date": "",
+                "source": "fallback",
+                "attribution": "Calm toolkit"
+            },
+            {
+                "id": "micro-action",
+                "title": "Pick one tiny action for the day (2–5 mins)",
+                "link": "https://jamesclear.com/atomic-habits",
+                "date": "",
+                "source": "fallback",
+                "attribution": "Calm toolkit"
+            },
+            {
+                "id": "community-check",
+                "title": "Say hi in one friendly community",
+                "link": "https://www.reddit.com/r/RetroComputing/",
+                "date": "",
+                "source": "fallback",
+                "attribution": "Calm toolkit"
+            },
+        ]
+
+    seen = set()
+    deduped = []
+    for art in articles:
+        key = art.get('id') or art.get('link') or art.get('title')
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        deduped.append(art)
+
+    return {"success": True, "articles": deduped[:25]}
+
+
+@app.get("/api/calendar/family")
+async def get_family_calendar():
+    """Get iCloud Family Calendar events"""
+    try:
+        # Return sample calendar data since iCloud calendar is not configured
+        from datetime import datetime, timedelta
+        today = datetime.now()
+        sample_events = [
+            {"id": "1", "title": "⚙️ Configure iCloud Calendar", "start_time": today.strftime("%Y-%m-%d %H:%M"), "end_time": "", "location": "Settings", "description": "Add your iCloud calendar URL in config/config.yaml under 'icloud_calendar_url'"},
+            {"id": "2", "title": "📅 Family Movie Night", "start_time": (today + timedelta(days=2)).strftime("%Y-%m-%d 19:00"), "end_time": (today + timedelta(days=2)).strftime("%Y-%m-%d 21:00"), "location": "Home", "description": "Popcorn and blankets ready!"},
+            {"id": "3", "title": "🎄 Holiday Gathering", "start_time": (today + timedelta(days=5)).strftime("%Y-%m-%d 14:00"), "end_time": (today + timedelta(days=5)).strftime("%Y-%m-%d 18:00"), "location": "Grandma's House", "description": "Bring the dessert"},
+            {"id": "4", "title": "🏥 Doctor Appointment", "start_time": (today + timedelta(days=7)).strftime("%Y-%m-%d 10:30"), "end_time": (today + timedelta(days=7)).strftime("%Y-%m-%d 11:30"), "location": "Medical Center", "description": "Annual checkup"}
+        ]
+        return {"success": True, "events": sample_events, "sample_data": True, "setup_note": "Add icloud_calendar_url to config/config.yaml for real calendar data"}
+    except Exception as e:
+        logger.error(f"Error fetching family calendar: {e}")
+        return {"success": False, "events": [], "error": str(e)}
+
+
+@app.get("/api/ebay/auctions")
+async def get_ebay_auctions(category: str = "retro_tech"):
+    """Get eBay auctions for retro tech"""
+    try:
+        from collectors.ebay_auction_collector import EBayAuctionCollector
+        
+        collector = EBayAuctionCollector()
+        
+        if category == "retro_tech":
+            auctions = await collector.get_retro_tech_auctions()
+        else:
+            auctions = []
+        
+        return {"success": True, "auctions": auctions[:20]}
+    except Exception as e:
+        logger.error(f"Error fetching eBay auctions: {e}")
+        return {"success": False, "auctions": [], "error": str(e)}
 
 
 @app.get("/api/ticktick")
@@ -3001,13 +3225,24 @@ async def get_joke():
 
 
 @app.get("/api/weather")
-async def get_weather():
-    """Get current weather and forecast"""
+async def get_weather(lat: float | None = None, lon: float | None = None, location: str | None = None, units: str | None = None):
+    """Get current weather and forecast for optional coordinates, plus severe alerts.
+    - Query params: lat, lon, location (name), units (imperial|metric)
+    - Adds `alerts` from Open-Meteo warnings API when available
+    """
     try:
         logger.info(f"Weather API called. COLLECTORS_AVAILABLE={COLLECTORS_AVAILABLE}")
         if COLLECTORS_AVAILABLE:
             try:
                 weather_collector = WeatherCollector()
+                # Override location if provided
+                if lat is not None and lon is not None:
+                    weather_collector.lat = lat
+                    weather_collector.lon = lon
+                if location:
+                    weather_collector.location_name = location
+                if units:
+                    weather_collector.units = units
                 logger.info("Instantiated WeatherCollector.")
                 weather_data = await weather_collector.collect_data()
                 logger.info(f"WeatherCollector.collect_data() returned: {weather_data}")
@@ -3028,7 +3263,8 @@ async def get_weather():
                         "api_status": weather_data.get('api_status', 'unknown'),
                         "setup_note": weather_data.get('setup_note', ''),
                         "timestamp": weather_data.get('timestamp', ''),
-                        "forecast": []
+                        "forecast": [],
+                        "alerts": []
                     }
                     
                     # Format forecast data for display
@@ -3052,6 +3288,31 @@ async def get_weather():
                             except Exception as e:
                                 logger.error(f"Error formatting forecast item: {e}")
                     
+                    # Enrich with severe weather alerts (Open-Meteo warnings)
+                    try:
+                        import httpx
+                        warn_lat = lat if lat is not None else weather_collector.lat
+                        warn_lon = lon if lon is not None else weather_collector.lon
+                        if warn_lat is not None and warn_lon is not None:
+                            async with httpx.AsyncClient(timeout=8.0) as client:
+                                wurl = f"https://api.open-meteo.com/v1/warnings?latitude={warn_lat}&longitude={warn_lon}"
+                                wresp = await client.get(wurl)
+                                if wresp.status_code == 200:
+                                    wjson = wresp.json()
+                                    alerts = []
+                                    for a in wjson.get('warnings', []) or []:
+                                        alerts.append({
+                                            "event": a.get('event'),
+                                            "severity": a.get('severity'),
+                                            "start": a.get('start'),
+                                            "end": a.get('end'),
+                                            "description": a.get('description'),
+                                            "source": "Open-Meteo"
+                                        })
+                                    result["alerts"] = alerts
+                    except Exception as ae:
+                        logger.warning(f"Weather warnings fetch failed: {ae}")
+
                     return result
                 else:
                     logger.warning("WeatherCollector returned None, using fallback data.")
@@ -3089,11 +3350,327 @@ async def get_weather():
                     "precipitation_chance": [10, 20, 40, 80, 30][i]
                 }
                 for i in range(5)
-            ]
+            ],
+            "alerts": []
         }
     except Exception as e:
         logger.error(f"Exception in /api/weather endpoint: {e}", exc_info=True)
         return {"error": str(e)}
+
+@app.get("/api/weather/search")
+async def weather_search(q: str, count: int = 6):
+    """Search locations by name (city, region) using Open-Meteo geocoding.
+    Returns a list of {name, country, latitude, longitude, timezone}.
+    """
+    try:
+        import httpx
+        url = f"https://geocoding-api.open-meteo.com/v1/search?name={q}&count={count}&language=en&format=json"
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.get(url)
+            if resp.status_code != 200:
+                return {"success": False, "results": [], "error": f"status {resp.status_code}"}
+            data = resp.json()
+            results = []
+            for r in data.get('results', []) or []:
+                results.append({
+                    "name": r.get('name'),
+                    "country": r.get('country'),
+                    "latitude": r.get('latitude'),
+                    "longitude": r.get('longitude'),
+                    "timezone": r.get('timezone')
+                })
+            return {"success": True, "results": results}
+    except Exception as e:
+        logger.error(f"Weather search error: {e}")
+        return {"success": False, "results": [], "error": str(e)}
+
+
+@app.get("/api/weather/ambient")
+async def get_ambient_weather():
+    """Get current weather from local Ambient Weather station.
+    
+    Returns data from the first configured weather station including:
+    - Temperature (indoor/outdoor)
+    - Humidity, pressure, wind
+    - Rain totals
+    - UV index, solar radiation
+    - Air quality (if sensor present)
+    """
+    try:
+        from collectors.ambient_weather_collector import AmbientWeatherCollector
+        from config.settings import settings
+        
+        # Get API keys from settings or environment
+        api_key = None
+        app_key = None
+        
+        if hasattr(settings, 'ambient_weather'):
+            api_key = settings.ambient_weather.api_key
+            app_key = settings.ambient_weather.application_key
+        
+        # Fall back to credentials.yaml
+        if not api_key or not app_key:
+            try:
+                import yaml
+                creds_path = project_root / "config" / "credentials.yaml"
+                if creds_path.exists():
+                    with open(creds_path) as f:
+                        creds = yaml.safe_load(f) or {}
+                    aw_creds = creds.get('ambient_weather', {})
+                    api_key = api_key or aw_creds.get('api_key')
+                    app_key = app_key or aw_creds.get('application_key')
+            except Exception as e:
+                logger.warning(f"Could not load ambient weather credentials: {e}")
+        
+        # Fall back to environment variables
+        import os
+        api_key = api_key or os.getenv('AMBIENT_WEATHER_API_KEY')
+        app_key = app_key or os.getenv('AMBIENT_WEATHER_APPLICATION_KEY')
+        
+        if not api_key or not app_key:
+            return {
+                "success": False,
+                "configured": False,
+                "error": "Ambient Weather not configured. Need both api_key and application_key.",
+                "setup_url": "https://ambientweather.net/account",
+                "help": "Get your API key and Application key from your AmbientWeather.net account page"
+            }
+        
+        collector = AmbientWeatherCollector(api_key=api_key, application_key=app_key)
+        weather = await collector.get_current_weather()
+        
+        if not weather:
+            return {
+                "success": False,
+                "configured": True,
+                "error": "No weather station data available. Check your device is online."
+            }
+        
+        return {
+            "success": True,
+            "configured": True,
+            "data": weather
+        }
+        
+    except Exception as e:
+        logger.error(f"Ambient Weather API error: {e}", exc_info=True)
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/weather/ambient/stations")
+async def get_ambient_stations():
+    """Get all Ambient Weather stations and their current data."""
+    try:
+        from collectors.ambient_weather_collector import AmbientWeatherCollector
+        from config.settings import settings
+        
+        api_key = None
+        app_key = None
+        
+        if hasattr(settings, 'ambient_weather'):
+            api_key = settings.ambient_weather.api_key
+            app_key = settings.ambient_weather.application_key
+        
+        # Load from credentials if needed
+        if not api_key or not app_key:
+            try:
+                import yaml
+                creds_path = project_root / "config" / "credentials.yaml"
+                if creds_path.exists():
+                    with open(creds_path) as f:
+                        creds = yaml.safe_load(f) or {}
+                    aw_creds = creds.get('ambient_weather', {})
+                    api_key = api_key or aw_creds.get('api_key')
+                    app_key = app_key or aw_creds.get('application_key')
+            except:
+                pass
+        
+        import os
+        api_key = api_key or os.getenv('AMBIENT_WEATHER_API_KEY')
+        app_key = app_key or os.getenv('AMBIENT_WEATHER_APPLICATION_KEY')
+        
+        if not api_key or not app_key:
+            return {"success": False, "stations": [], "error": "Not configured"}
+        
+        collector = AmbientWeatherCollector(api_key=api_key, application_key=app_key)
+        stations = await collector.get_all_stations()
+        
+        return {
+            "success": True,
+            "count": len(stations),
+            "stations": stations
+        }
+        
+    except Exception as e:
+        logger.error(f"Ambient Weather stations error: {e}")
+        return {"success": False, "stations": [], "error": str(e)}
+
+
+@app.get("/api/quote")
+async def get_quote():
+    """Return a simple positive quote."""
+    try:
+        quotes = [
+            # Inspirational
+            "The best way out is always through.",
+            "Small steps every day lead to big results.",
+            "Focus on progress, not perfection.",
+            "You are capable of amazing things.",
+            "Keep going — your future self will thank you.",
+            "Every expert was once a beginner.",
+            "Difficult roads often lead to beautiful destinations.",
+            "The only way to do great work is to love what you do.",
+            # Psychology-based
+            "Your brain believes what you tell it. Feed it hope.",
+            "Anxiety is a signal, not a sentence. Breathe through it.",
+            "Progress isn't always visible, but it's always happening.",
+            "You don't have to be perfect to be worthy of rest.",
+            "Healing isn't linear. Celebrate the small wins.",
+            # Droid-style
+            "Roger that. One task at a time.",
+            "Systems nominal. You're doing fine.",
+            "Processing complete. Time for a break.",
+            "All circuits clear. Move forward."
+        ]
+        import random
+        q = random.choice(quotes)
+        return {"quote": q}
+    except Exception as e:
+        logger.error(f"Quote endpoint error: {e}")
+        return {"quote": "Stay positive and keep moving forward."}
+
+# Voice settings storage
+VOICE_SETTINGS_FILE = project_root / "data" / "voice_settings.json"
+
+def _load_voice_settings() -> dict:
+    try:
+        if VOICE_SETTINGS_FILE.exists():
+            return json.loads(VOICE_SETTINGS_FILE.read_text())
+    except Exception as e:
+        logger.warning(f"Failed reading voice settings: {e}")
+    return {
+        "wake_word_enabled": False,
+        "wake_word": "roger",
+        "tts_voice": "piper-en_US-amy-medium",
+        "tts_style": "droid",
+        "speaking_rate": 1.0,
+        "auto_read_jokes": False,
+        "default_style": "droid",
+        "speed": 0.75,
+        "pitch": 0.85,
+        "use_authentic_samples": True,
+        "sarcasm_enabled": False,
+        "sarcasm_chance": 0.4,
+        "signature_chance": 0.3
+    }
+
+def _save_voice_settings(data: dict) -> bool:
+    try:
+        VOICE_SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        VOICE_SETTINGS_FILE.write_text(json.dumps(data, indent=2))
+        return True
+    except Exception as e:
+        logger.error(f"Failed saving voice settings: {e}")
+        return False
+
+@app.get("/api/voice/settings")
+async def get_voice_settings():
+    """Return current voice settings."""
+    return {"voice": _load_voice_settings()}
+
+@app.post("/api/voice/settings")
+async def update_voice_settings(request: Request):
+    """Update voice settings."""
+    data = await request.json()
+    current = _load_voice_settings()
+    # Legacy fields
+    for key in ["wake_word_enabled", "wake_word", "tts_voice", "tts_style", "speaking_rate", "auto_read_jokes"]:
+        if key in data:
+            current[key] = data[key]
+    # New voice system fields
+    for key in ["default_style", "speed", "pitch", "use_authentic_samples", "sarcasm_enabled", "sarcasm_chance", "signature_chance"]:
+        if key in data:
+            current[key] = data[key]
+    ok = _save_voice_settings(current)
+    
+    # Update the voice instance if available
+    try:
+        import voice as voice_module
+        if voice_module._voice:
+            voice_module._voice.sarcasm_enabled = current.get('sarcasm_enabled', False)
+            voice_module._voice.sarcasm_chance = current.get('sarcasm_chance', 0.4)
+            voice_module._voice.signature_chance = current.get('signature_chance', 0.3)
+            voice_module._voice.use_authentic_samples = current.get('use_authentic_samples', True)
+    except Exception as e:
+        logger.warning(f"Could not update voice instance: {e}")
+    
+    return {"ok": ok, "voice": current}
+
+@app.get("/api/roger_home")
+async def roger_home():
+    """Aggregate Roger content for overview widgets (garfield, parts, history, star wars, communities, jokes, quote)."""
+    try:
+        content: dict = {}
+
+        # Garfield image
+        try:
+            gr = await httpx.AsyncClient(timeout=8.0).get("http://localhost:8008/api/comics/garfield/random")
+            if gr.status_code == 200:
+                g = gr.json()
+                content["garfield_url"] = g.get("image_url") or g.get("url")
+            else:
+                content["garfield_url"] = None
+        except Exception as e:
+            logger.warning(f"RogerHome: garfield fetch failed: {e}")
+            content["garfield_url"] = None
+
+        # Joke
+        try:
+            jr = await httpx.AsyncClient(timeout=8.0).get("http://localhost:8008/api/joke")
+            joke_payload = jr.json() if jr.status_code == 200 else {}
+            content["jokes"] = [joke_payload.get("joke")] if joke_payload.get("joke") else []
+        except Exception as e:
+            logger.warning(f"RogerHome: joke fetch failed: {e}")
+            content["jokes"] = []
+
+        # Static suggestions and facts
+        content.setdefault("parts_search_terms", [
+            "ThinkPad T480 battery", "Framework 13 screws", "MacBook Pro 2012 RAM"
+        ])
+        content.setdefault("parts_tips", [
+            "Include model number and part code for accurate results.",
+            "Check seller feedback and return policy.",
+            "Search both eBay and local repair shops."
+        ])
+        content.setdefault("history_fact", "On this day, Apollo 17 returned to Earth in 1972.")
+        content.setdefault("starwars_fact", "The Millennium Falcon’s design was inspired by a hamburger.")
+        # Roger quotes - inspirational and droid-style
+        roger_quotes = [
+            "Roger roger. You're doing better than you think.",
+            "Systems check: You handled today. That's a win.",
+            "Copy that. Tomorrow is a fresh compile.",
+            "Affirmative. Small progress is still progress.",
+            "Roger roger. One task at a time, soldier.",
+            "Processing... Your effort counts. Keep going.",
+            "Unit status: Operational. And so are you.",
+            "Command received. Rest is productive too.",
+            "Roger that. Perfection not required.",
+            "Transmission clear. You've got this.",
+            "All systems nominal. Breathe. You're okay.",
+            "Copy. Even droids need downtime."
+        ]
+        import random
+        content["positive_quote"] = random.choice(roger_quotes)
+        content.setdefault("subreddit_suggestions", [
+            {"subreddit": "vintagecomputing", "tip": "Great retro laptop threads."},
+            {"subreddit": "retrogaming", "tip": "Auctions and restoration tips."},
+            {"subreddit": "framework", "tip": "Parts and community support."}
+        ])
+
+        return {"ok": True, "content": content}
+    except Exception as e:
+        logger.error(f"Roger home error: {e}")
+        return {"ok": False, "error": str(e)}
 
 @app.get("/api/investments")
 async def get_investments():
@@ -6776,6 +7353,585 @@ async def test_voice(request: Request):
         return {"success": False, "error": str(e)}
 
 
+@app.post("/api/voice/stop")
+async def stop_voice():
+    """Stop any currently playing voice audio."""
+    try:
+        import subprocess
+        subprocess.run(['pkill', '-9', 'ffplay'], check=False)
+        return {"success": True, "message": "Voice stopped"}
+    except Exception as e:
+        logger.error(f"Voice stop error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+def _fetch_garfield_from_rss(comic_id: Optional[str] = None):
+    """Fetch Garfield comic via comicsrss.com feed (fallback when GoComics blocks)."""
+    rss_url = 'https://www.comicsrss.com/rss/garfield.rss'
+    try:
+        resp = requests.get(rss_url, timeout=10, headers={"User-Agent": "Mozilla/5.0 (compatible; DashboardBot/1.0)"})
+        if resp.status_code != 200:
+            return None
+
+        soup = BeautifulSoup(resp.text, 'xml')
+        items = soup.find_all('item')
+        if not items:
+            return None
+
+        target_id = comic_id
+        for item in items:
+            pub_raw = item.pubDate.text if item.pubDate else None
+            if not pub_raw:
+                continue
+            try:
+                pub_dt = datetime.strptime(pub_raw[:16], "%a, %d %b %Y")
+            except Exception:
+                try:
+                    pub_dt = datetime.strptime(pub_raw.split(' ')[0], "%Y-%m-%d")
+                except Exception:
+                    continue
+            entry_id = pub_dt.strftime("%Y-%m-%d")
+            if target_id and entry_id != target_id:
+                continue
+
+            description = item.description.text if item.description else ''
+            img_match = re.search(r'<img[^>]+src="([^"]+)"', description)
+            image_url = img_match.group(1) if img_match else item.link.text if item.link else ''
+
+            return {
+                "id": entry_id,
+                "title": item.title.text if item.title else 'Garfield',
+                "date": entry_id,
+                "image_url": image_url,
+                "link": item.link.text if item.link else rss_url,
+                "attribution": "© Andrews McMeel / comicsrss.com"
+            }
+    except Exception:
+        return None
+    return None
+
+
+def _fetch_garfield_by_id(comic_id: str):
+    """Helper to fetch a specific Garfield comic by YYYY-MM-DD from GoComics, with RSS fallback."""
+    # Convert id to URL path
+    parts = comic_id.split('-')
+    if len(parts) != 3:
+        return _fetch_garfield_from_rss(comic_id)
+
+    url = f"https://www.gocomics.com/garfield/{parts[0]}/{parts[1]}/{parts[2]}"
+    headers = {"User-Agent": "Mozilla/5.0 (compatible; DashboardBot/1.0)"}
+    resp = requests.get(url, timeout=10, headers=headers)
+    if resp.status_code == 200:
+        soup = BeautifulSoup(resp.text, "html.parser")
+        og_image = soup.select_one('meta[property="og:image"]')
+        image_url = og_image['content'] if og_image and og_image.get('content') else None
+        og_title = soup.select_one('meta[property="og:title"]')
+        title = og_title['content'] if og_title and og_title.get('content') else "Garfield"
+        canonical = soup.find('link', rel='canonical')
+        link = canonical['href'] if canonical and canonical.get('href') else url
+
+        if not image_url or 'challenge.svg' in image_url:
+            # Fall back to RSS if blocked
+            fallback = _fetch_garfield_from_rss(comic_id)
+            if fallback:
+                return fallback
+        else:
+            return {
+                "id": comic_id,
+                "title": title,
+                "date": comic_id,
+                "image_url": image_url,
+                "link": link,
+                "attribution": "© Andrews McMeel / GoComics"
+            }
+
+    # Fallback via RSS if GoComics failed
+    return _fetch_garfield_from_rss(comic_id)
+
+
+@app.get("/api/garfield/daily")
+async def get_garfield_daily():
+    """Get today's Garfield comic from GoComics with attribution."""
+    try:
+        # Try GoComics first
+        url = "https://www.gocomics.com/garfield"
+        headers = {"User-Agent": "Mozilla/5.0 (compatible; DashboardBot/1.0)"}
+        resp = requests.get(url, timeout=10, headers=headers)
+
+        comic_id = None
+        title = "Garfield"
+        link = url
+        image_url = None
+
+        if resp.status_code == 200:
+            soup = BeautifulSoup(resp.text, "html.parser")
+            og_image = soup.select_one('meta[property="og:image"]')
+            image_url = og_image['content'] if og_image and og_image.get('content') else None
+
+            canonical = soup.find('link', rel='canonical')
+            canonical_href = canonical['href'] if canonical and canonical.get('href') else url
+            link = canonical_href or url
+
+            try:
+                parts = canonical_href.rstrip('/').split('/')
+                if len(parts) >= 4:
+                    y, m, d = parts[-3:]
+                    if len(y) == 4 and y.isdigit():
+                        comic_id = f"{y}-{m}-{d}"
+            except Exception:
+                pass
+
+            og_title = soup.select_one('meta[property="og:title"]')
+            if og_title and og_title.get('content'):
+                title = og_title['content']
+
+            if not image_url:
+                img_tag = soup.select_one('picture img') or soup.select_one('img')
+                if img_tag and img_tag.get('src'):
+                    image_url = img_tag['src']
+
+        # Fallback to today if not parsed
+        if not comic_id:
+            comic_id = datetime.utcnow().strftime("%Y-%m-%d")
+
+        # If blocked or missing image, fallback to RSS feed
+        if (not image_url) or ('challenge.svg' in str(image_url)):
+            fallback = _fetch_garfield_from_rss(comic_id)
+            if fallback:
+                favorites_file = Path('data/garfield_favorites.json')
+                is_favorite = False
+                if favorites_file.exists():
+                    with open(favorites_file, 'r') as f:
+                        favorites = json.load(f)
+                        is_favorite = any(fav['id'] == fallback['id'] for fav in favorites)
+                fallback['is_favorite'] = is_favorite
+                return {"success": True, "comic": fallback}
+
+        if not image_url:
+            return {"success": False, "error": "Image not found"}
+
+        favorites_file = Path('data/garfield_favorites.json')
+        is_favorite = False
+        if favorites_file.exists():
+            with open(favorites_file, 'r') as f:
+                favorites = json.load(f)
+                is_favorite = any(fav['id'] == comic_id for fav in favorites)
+
+        comic = {
+            "id": comic_id,
+            "title": title,
+            "date": comic_id,
+            "image_url": image_url,
+            "link": link,
+            "attribution": "© Andrews McMeel / GoComics",
+            "is_favorite": is_favorite
+        }
+
+        return {"success": True, "comic": comic}
+
+    except Exception as e:
+        logger.error(f"Garfield comic error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/garfield/favorites")
+async def get_garfield_favorites():
+    """Get all favorited Garfield comics."""
+    try:
+        favorites_file = Path('data/garfield_favorites.json')
+
+        if not favorites_file.exists():
+            return {"success": True, "favorites": []}
+
+        with open(favorites_file, 'r') as f:
+            favorites = json.load(f)
+
+        return {"success": True, "favorites": favorites}
+
+    except Exception as e:
+        logger.error(f"Garfield favorites error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/garfield/favorite")
+async def toggle_garfield_favorite(request: Request):
+    """Add or toggle a Garfield comic as favorite."""
+    try:
+        data = await request.json()
+        comic_id = data.get('comic_id')
+
+        if not comic_id:
+            return {"success": False, "error": "No comic_id provided"}
+
+        favorites_file = Path('data/garfield_favorites.json')
+        favorites = []
+
+        if favorites_file.exists():
+            with open(favorites_file, 'r') as f:
+                favorites = json.load(f)
+
+        existing_idx = next((i for i, fav in enumerate(favorites) if fav['id'] == comic_id), None)
+
+        if existing_idx is not None:
+            favorites.pop(existing_idx)
+            is_favorite = False
+        else:
+            comic = _fetch_garfield_by_id(comic_id)
+            if not comic:
+                return {"success": False, "error": "Comic not found"}
+            comic['saved_at'] = datetime.now().isoformat()
+            favorites.append(comic)
+            is_favorite = True
+
+        with open(favorites_file, 'w') as f:
+            json.dump(favorites, f, indent=2)
+
+        return {"success": True, "is_favorite": is_favorite}
+
+    except Exception as e:
+        logger.error(f"Toggle favorite error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.delete("/api/garfield/favorite")
+async def remove_garfield_favorite(request: Request):
+    """Remove a Garfield comic from favorites."""
+    try:
+        data = await request.json()
+        comic_id = data.get('comic_id')
+
+        if not comic_id:
+            return {"success": False, "error": "No comic_id provided"}
+
+        favorites_file = Path('data/garfield_favorites.json')
+
+        if not favorites_file.exists():
+            return {"success": True}
+
+        with open(favorites_file, 'r') as f:
+            favorites = json.load(f)
+
+        favorites = [fav for fav in favorites if fav['id'] != comic_id]
+
+        with open(favorites_file, 'w') as f:
+            json.dump(favorites, f, indent=2)
+
+        return {"success": True}
+
+    except Exception as e:
+        logger.error(f"Remove favorite error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+# ==============================================
+# Comics: Garfield (Archive.org) + Calvin & Hobbes
+# ==============================================
+
+GARFIELD_ARCHIVE_META_URL = "https://archive.org/metadata/garfield-complete"
+GARFIELD_ARCHIVE_DOWNLOAD_BASE = "https://archive.org/download/garfield-complete/"
+
+def _build_garfield_archive_sample(max_items: int = 400) -> list:
+    """Download Garfield CBZ archives, extract image pages, and cache locally for fast serving."""
+    try:
+        resp = requests.get(GARFIELD_ARCHIVE_META_URL, timeout=30)
+        if resp.status_code != 200:
+            logger.warning(f"Archive.org metadata status: {resp.status_code}")
+            return []
+
+        meta = resp.json()
+        files = meta.get('files', [])
+        cbz_files = [f.get('name') for f in files if f.get('name', '').lower().endswith('.cbz')]
+        cbz_files = [n for n in cbz_files if n]
+        cbz_files.sort()
+
+        target_dir = Path('data/comics/garfield')
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        images = []
+        import random
+
+        for cbz_name in cbz_files:
+            if len(images) >= max_items:
+                break
+
+            cbz_url = GARFIELD_ARCHIVE_DOWNLOAD_BASE + quote(cbz_name)
+            try:
+                logger.info(f"Downloading Garfield archive {cbz_name}...")
+                r = requests.get(cbz_url, timeout=120)
+                if r.status_code != 200:
+                    logger.warning(f"Could not download {cbz_name}: status {r.status_code}")
+                    continue
+
+                with zipfile.ZipFile(io.BytesIO(r.content)) as zf:
+                    entries = [n for n in zf.namelist() if re.search(r"\.(jpg|jpeg|png|gif)$", n, re.IGNORECASE)]
+                    if not entries:
+                        logger.warning(f"No image entries found in {cbz_name}")
+                        continue
+
+                    random.shuffle(entries)
+                    for entry in entries:
+                        if len(images) >= max_items:
+                            break
+                        try:
+                            data = zf.read(entry)
+                            ext = Path(entry).suffix or '.jpg'
+                            base = Path(entry).stem
+                            # Try to derive date from gaYYMMDD pattern inside file name
+                            date = "unknown"
+                            comic_id = base.replace(' ', '_')
+                            m = re.search(r"(\d{6})", base)
+                            if m:
+                                digits = m.group(1)
+                                yy = int(digits[:2])
+                                year = 1900 + yy if yy >= 78 else 2000 + yy
+                                month = digits[2:4]
+                                day = digits[4:]
+                                date = f"{year}-{month}-{day}"
+                                comic_id = date
+
+                            file_name = f"{comic_id}{ext.lower()}"
+                            out_path = target_dir / file_name
+                            if not out_path.exists():
+                                with open(out_path, 'wb') as f:
+                                    f.write(data)
+
+                            images.append({
+                                "series": "garfield",
+                                "id": comic_id,
+                                "title": f"Garfield {comic_id}",
+                                "date": date,
+                                "image_url": f"/api/comics/garfield/image/{file_name}",
+                                "link": f"https://archive.org/details/garfield-complete/{cbz_name.replace(' ', '%20')}",
+                                "attribution": "© Andrews McMeel / archive.org"
+                            })
+                        except Exception as inner_e:
+                            logger.error(f"Error extracting {entry} from {cbz_name}: {inner_e}")
+                            continue
+
+            except Exception as dl_e:
+                logger.error(f"Error processing {cbz_name}: {dl_e}")
+                continue
+
+        random.shuffle(images)
+        return images[:max_items]
+    except Exception as e:
+        logger.error(f"Error building Garfield archive sample: {e}")
+        return []
+
+
+@app.post("/api/comics/garfield/prefetch")
+async def prefetch_garfield_archive(request: Request):
+    """Prefetch a random sample of Garfield images (300-400) from archive.org and cache locally."""
+    try:
+        data = await request.json()
+        count = int(data.get('count', 350))
+        count = max(50, min(count, 600))
+        images = _build_garfield_archive_sample(max_items=count)
+        cache_file = Path('data/garfield_archive_images.json')
+        cache_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(cache_file, 'w') as f:
+            json.dump(images, f, indent=2)
+        return {"success": True, "count": len(images)}
+    except Exception as e:
+        logger.error(f"Prefetch Garfield error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/comics/garfield/random")
+async def get_random_garfield():
+    """Return a random Garfield image from the local archive sample; builds sample if missing."""
+    try:
+        cache_file = Path('data/garfield_archive_images.json')
+        images = []
+        if cache_file.exists():
+            try:
+                with open(cache_file, 'r') as f:
+                    images = json.load(f)
+            except Exception:
+                images = []
+        if not images:
+            images = _build_garfield_archive_sample(max_items=300)
+            cache_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(cache_file, 'w') as f:
+                json.dump(images, f, indent=2)
+        if not images:
+            return {"success": False, "error": "No images available"}
+        import random
+        comic = random.choice(images)
+        return {"success": True, "comic": comic}
+    except Exception as e:
+        logger.error(f"Random Garfield error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/comics/garfield/image/{filename}")
+async def serve_garfield_image(filename: str):
+    """Serve cached Garfield images extracted from archive.org CBZ files."""
+    path = Path('data/comics/garfield') / filename
+    if not path.exists() or not path.is_file():
+        raise HTTPException(status_code=404, detail="Garfield image not found")
+    return FileResponse(path)
+
+
+@app.get("/api/comics/calvin/daily")
+async def get_calvin_daily():
+    """Get today's Calvin and Hobbes comic via comicsrss feed."""
+    try:
+        rss_url = 'https://www.comicsrss.com/rss/calvinandhobbes.rss'
+        resp = requests.get(rss_url, timeout=15, headers={"User-Agent": "Mozilla/5.0 (compatible; DashboardBot/1.0)"})
+        if resp.status_code != 200:
+            return {"success": False, "error": f"RSS status {resp.status_code}"}
+        soup = BeautifulSoup(resp.text, 'xml')
+        item = soup.find('item')
+        if not item:
+            return {"success": False, "error": "No items"}
+        pub_raw = item.pubDate.text if item.pubDate else ''
+        # Derive YYYY-MM-DD if possible
+        comic_id = datetime.utcnow().strftime('%Y-%m-%d')
+        try:
+            comic_id = datetime.strptime(pub_raw[:16], "%a, %d %b %Y").strftime('%Y-%m-%d')
+        except Exception:
+            pass
+        description = item.description.text if item.description else ''
+        img_match = re.search(r'<img[^>]+src="([^"]+)"', description)
+        image_url = img_match.group(1) if img_match else ''
+        link = item.link.text if item.link else rss_url
+        title = item.title.text if item.title else 'Calvin and Hobbes'
+        comic = {
+            "series": "calvin",
+            "id": comic_id,
+            "title": title,
+            "date": comic_id,
+            "image_url": image_url,
+            "link": link,
+            "attribution": "© Andrews McMeel / comicsrss.com"
+        }
+        return {"success": True, "comic": comic}
+    except Exception as e:
+        logger.error(f"Calvin daily error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/comics/peanuts")
+async def get_peanuts(date: Optional[str] = None, save: bool = False):
+    """Get today's Peanuts comic from GoComics. Optionally save to data/peanuts."""
+    try:
+        from collectors.peanuts_collector import PeanutsCollector
+        dt = None
+        if date:
+            try:
+                dt = datetime.strptime(date, "%Y-%m-%d")
+            except Exception:
+                dt = None
+        collector = PeanutsCollector()
+        res = await collector.get_comic(date=dt, save=save)
+        return res
+    except Exception as e:
+        logger.error(f"Peanuts error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/comics/favorites")
+async def get_comic_favorites():
+    """Get all favorited comics (any series)."""
+    try:
+        favorites_file = Path('data/comics_favorites.json')
+        if not favorites_file.exists():
+            return {"success": True, "favorites": []}
+        with open(favorites_file, 'r') as f:
+            favorites = json.load(f)
+        return {"success": True, "favorites": favorites}
+    except Exception as e:
+        logger.error(f"Get favorites error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/assistant")
+async def assistant_page(request: Request):
+    """Roger Assistant chat interface."""
+    from pathlib import Path
+    src_dir = Path(__file__).parent
+    template_path = src_dir / "templates" / "assistant.html"
+    
+    if not template_path.exists():
+        return HTMLResponse(
+            content="<h1>Error: Assistant template not found</h1>",
+            status_code=500
+        )
+    
+    try:
+        with open(template_path, 'r') as f:
+            return HTMLResponse(content=f.read())
+    except Exception as e:
+        logger.error(f"Error loading assistant template: {e}")
+        return HTMLResponse(
+            content=f"<h1>Error loading assistant</h1><p>{str(e)}</p>",
+            status_code=500
+        )
+
+
+@app.post("/api/comics/favorite")
+async def toggle_comic_favorite(request: Request):
+    """Toggle favorite for a comic. Payload requires `series`, `id` and optional fields."""
+    try:
+        data = await request.json()
+        series = data.get('series')
+        comic_id = data.get('id') or data.get('comic_id')
+        if not series or not comic_id:
+            return {"success": False, "error": "Missing series or id"}
+        favorites_file = Path('data/comics_favorites.json')
+        favorites = []
+        if favorites_file.exists():
+            with open(favorites_file, 'r') as f:
+                favorites = json.load(f)
+        idx = next((i for i, fav in enumerate(favorites) if fav.get('series') == series and fav.get('id') == comic_id), None)
+        if idx is not None:
+            favorites.pop(idx)
+            is_favorite = False
+        else:
+            entry = {
+                "series": series,
+                "id": comic_id,
+                "title": data.get('title'),
+                "date": data.get('date'),
+                "image_url": data.get('image_url'),
+                "link": data.get('link'),
+                "attribution": data.get('attribution'),
+                "saved_at": datetime.utcnow().isoformat()
+            }
+            favorites.append(entry)
+            is_favorite = True
+        favorites_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(favorites_file, 'w') as f:
+            json.dump(favorites, f, indent=2)
+        return {"success": True, "is_favorite": is_favorite}
+    except Exception as e:
+        logger.error(f"Toggle comic favorite error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.delete("/api/comics/favorite")
+async def remove_comic_favorite(request: Request):
+    """Remove a comic from favorites by `series` and `id`."""
+    try:
+        data = await request.json()
+        series = data.get('series')
+        comic_id = data.get('id') or data.get('comic_id')
+        if not series or not comic_id:
+            return {"success": False, "error": "Missing series or id"}
+        favorites_file = Path('data/comics_favorites.json')
+        if not favorites_file.exists():
+            return {"success": True}
+        with open(favorites_file, 'r') as f:
+            favorites = json.load(f)
+        favorites = [fav for fav in favorites if not (fav.get('series') == series and fav.get('id') == comic_id)]
+        with open(favorites_file, 'w') as f:
+            json.dump(favorites, f, indent=2)
+        return {"success": True}
+    except Exception as e:
+        logger.error(f"Remove comic favorite error: {e}")
+        return {"success": False, "error": str(e)}
+
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on startup."""
@@ -6821,7 +7977,10 @@ async def startup_event():
             voice_module._voice = voice
             
             # Configure voice system with Piper path
-            piper_bin = project_root / "data" / "voice_models" / "piper" / "piper"
+            # Check both possible locations for piper binary
+            piper_bin = project_root / "data" / "voice_models" / "piper" / "piper" / "piper"
+            if not piper_bin.exists():
+                piper_bin = project_root / "data" / "voice_models" / "piper" / "piper"
             model_path = project_root / "data" / "voice_models" / "piper" / f"{model_name}.onnx"
             
             if piper_bin.exists() and model_path.exists():

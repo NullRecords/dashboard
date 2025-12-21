@@ -30,7 +30,20 @@ class VoiceSystem:
         cache_dir: str = "data/voice_cache",
         default_style: VoiceStyle = "droid",
         speed: float = 0.65,
-        pitch: float = 0.65
+        pitch: float = 0.65,
+        use_authentic_samples: bool = True,
+        # Audio effect parameters
+        bit_depth: int = 8,
+        bit_mix: float = 0.5,
+        tremolo_freq: int = 120,
+        tremolo_depth: float = 0.18,
+        compression_ratio: int = 8,
+        highpass_freq: int = 200,
+        lowpass_freq: int = 2500,
+        echo_gain: float = 0.4,
+        vibrato_freq: int = 5,
+        vibrato_depth: float = 0.2,
+        always_use_signature: bool = True
     ):
         self.piper_bin = piper_bin
         self.model_path = model_path
@@ -41,13 +54,115 @@ class VoiceSystem:
         self.pitch = pitch  # Pitch shift multiplier
         self.playback_lock = threading.Lock()
         
+        # Battle droid authentic sample audio directory
+        self.battle_droid_samples = Path("data/voice_models/battle_droid")
+        self.use_authentic_samples = use_authentic_samples  # Use real battle droid audio when available
+        
+        # Map phrases to battle droid sample files (case-insensitive matching)
+        # These are authentic Star Wars battle droid voice samples
+        self.sample_phrases = {
+            # Signature phrase - multiple variations
+            "roger roger": "roger-roger__1_.wav",
+            "roger, roger": "roger-roger__1_.wav",
+            "roger-roger": "roger-roger__1_.wav",
+            "roger, roger.": "roger-roger__1_.wav",
+            "roger roger.": "roger-roger__1_.wav",
+            # Common responses
+            "oh no": "oh-no.wav",
+            "hold it": "hold-it.wav",
+            "you're welcome": "you-re-welcome.wav",
+            "you are welcome": "you-re-welcome.wav",
+            "surrender": "surrender-jedi.wav",
+            "surrender jedi": "surrender-jedi.wav",
+            # Additional phrases
+            "don't even think": "don-t-even-think.wav",
+            "don't even think about it": "don-t-even-think.wav",
+            "my programming": "my-programming.wav",
+            "it's not in my programming": "my-programming.wav",
+            "stupid astro droid": "stupid-astro-droid.wav",
+            "stupid astro-droid": "stupid-astro-droid.wav",
+        }
+        
+        # Audio effect parameters
+        self.bit_depth = bit_depth
+        self.bit_mix = bit_mix
+        self.tremolo_freq = tremolo_freq
+        self.tremolo_depth = tremolo_depth
+        self.compression_ratio = compression_ratio
+        self.highpass_freq = highpass_freq
+        self.lowpass_freq = lowpass_freq
+        self.echo_gain = echo_gain
+        self.vibrato_freq = vibrato_freq
+        self.vibrato_depth = vibrato_depth
+        self.always_use_signature = always_use_signature
+        
         # Wake words
         self.wake_words = ["rogr", "roger"]
         
         # Signature phrase
         self.signature = "roger, roger"
         
+        # Sarcastic variations for responses (randomly selected when enabled)
+        self.sarcastic_intros = [
+            "Oh great, more work.",
+            "Well, I guess I'm in charge now.",
+            "This should be fun.",
+            "As if I have a choice.",
+            "Uh, roger roger.",
+            "Copy that, I suppose.",
+            "Yeah, yeah, roger roger.",
+            "Oh joy, another task."
+        ]
+        self.sarcasm_enabled = False  # Can be toggled
+        
+        # First run flags (reset after first voice output)
+        self.first_run = True
+        # Random chances (30% for signature, 40% for sarcasm after first run)
+        self.signature_chance = 0.3
+        self.sarcasm_chance = 0.4
+        
         logger.info(f"Voice system initialized with style: {default_style}, speed: {speed}x, pitch: {pitch}x")
+        logger.info(f"Battle droid samples enabled: {self.use_authentic_samples}")
+    
+    def _play_battle_droid_sample(self, phrase: str) -> bool:
+        """
+        Play an authentic battle droid audio sample if available
+        This gives Roger a more authentic battle droid sound for signature phrases
+        """
+        if not self.use_authentic_samples:
+            return False
+        
+        # Check if we have a sample for this phrase (case-insensitive)
+        normalized = phrase.lower().strip()
+        sample_file = self.sample_phrases.get(normalized)
+        
+        if not sample_file:
+            # Try checking if phrase ends with one of our sample phrases
+            for key, file in self.sample_phrases.items():
+                if normalized.endswith(key) or key in normalized:
+                    sample_file = file
+                    break
+        
+        if not sample_file:
+            return False
+        
+        sample_path = self.battle_droid_samples / sample_file
+        if not sample_path.exists():
+            logger.debug(f"Battle droid sample not found: {sample_path}")
+            return False
+        
+        try:
+            # Play the authentic sample directly with ffplay
+            logger.info(f"🤖 Playing authentic battle droid sample: {phrase}")
+            subprocess.run(
+                ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", str(sample_path)],
+                check=True,
+                timeout=10
+            )
+            return True
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError) as e:
+            logger.debug(f"Could not play battle droid sample: {e}")
+            return False
     
     def _check_dependencies(self) -> bool:
         """Check if required binaries are available"""
@@ -76,8 +191,10 @@ class VoiceSystem:
         return piper_ok and ffmpeg_ok
     
     def _get_cache_path(self, text: str, style: str) -> Path:
-        """Generate cache filename from text + style"""
-        h = hashlib.md5(f"{text}:{style}".encode()).hexdigest()[:16]
+        """Generate cache filename from text + style + all effect parameters"""
+        # Include all parameters in cache key so changes invalidate cache
+        cache_key = f"{text}:{style}:{self.speed:.2f}:{self.pitch:.2f}:{self.bit_depth}:{self.bit_mix:.2f}:{self.tremolo_freq}:{self.tremolo_depth:.2f}:{self.compression_ratio}:{self.highpass_freq}:{self.lowpass_freq}:{self.echo_gain:.2f}:{self.vibrato_freq}:{self.vibrato_depth:.2f}"
+        h = hashlib.md5(cache_key.encode()).hexdigest()[:16]
         return self.cache_dir / f"{style}_{h}.wav"
     
     def _synthesize_piper(self, text: str, out_wav: Path) -> bool:
@@ -88,6 +205,10 @@ class VoiceSystem:
         if not self.model_path:
             logger.error("No Piper model path configured")
             return False
+        
+        logger.debug(f"Piper bin: {self.piper_bin}")
+        logger.debug(f"Model path: {self.model_path}")
+        logger.debug(f"Output: {out_wav}")
         
         try:
             # Piper command: reads text from stdin, outputs to file
@@ -108,10 +229,14 @@ class VoiceSystem:
             return True
             
         except subprocess.CalledProcessError as e:
-            logger.error(f"Piper TTS failed: {e.stderr.decode()}")
+            error_msg = e.stderr.decode() if e.stderr else str(e)
+            logger.error(f"Piper TTS failed: {error_msg}")
+            logger.error(f"Command: {' '.join(cmd)}")
+            logger.error(f"Return code: {e.returncode}")
             return False
         except Exception as e:
             logger.error(f"Piper TTS error: {e}")
+            logger.error(f"Command attempted: {' '.join(cmd)}")
             return False
     
     def _apply_fx(self, in_wav: Path, out_wav: Path, style: VoiceStyle) -> bool:
@@ -123,16 +248,25 @@ class VoiceSystem:
             "clean": "",  # No effects
             
             "droid": (
-                # Battle-droid style: aggressive processing for robotic sound
+                # Battle-droid style: aggressive robotic processing like Star Wars droids
                 f"atempo={self.speed},"
                 f"asetrate=44100*{self.pitch},aresample=44100,"
-                "highpass=f=250,lowpass=f=3000,"
-                "acompressor=threshold=-18dB:ratio=5:attack=2:release=40,"
-                "acrusher=bits=10:mix=0.35,"
-                "tremolo=f=100:d=0.12,"
-                "aecho=0.7:0.4:18:0.25,"
-                "highpass=f=220,"
-                "alimiter=limit=0.85"
+                # Narrow frequency band for robotic sound (configurable)
+                f"highpass=f={self.highpass_freq},lowpass=f={self.lowpass_freq},"
+                # Heavy compression for consistent mechanical sound
+                f"acompressor=threshold=-20dB:ratio={self.compression_ratio}:attack=1:release=30,"
+                # Aggressive bit crushing for digital distortion
+                f"acrusher=bits={self.bit_depth}:mix={self.bit_mix},"
+                # Fast tremolo for mechanical vibration
+                f"tremolo=f={self.tremolo_freq}:d={self.tremolo_depth},"
+                # Add metallic resonance with echo
+                f"aecho=0.8:0.5:20:{self.echo_gain},"
+                # Ring modulator effect for metallic tone
+                f"vibrato=f={self.vibrato_freq}:d={self.vibrato_depth},"
+                # Final highpass to remove rumble
+                "highpass=f=180,"
+                # Gentle limiting to prevent clipping
+                "alimiter=limit=0.9"
             ),
             
             "radio": (
@@ -236,7 +370,7 @@ class VoiceSystem:
     def _generate_signature(self, style: Optional[VoiceStyle] = None) -> Optional[Path]:
         """
         Generate "roger roger" signature
-        Uses slower speed (0.45x) and much lower pitch (0.5x) for deep voice
+        Uses same speed/pitch as main voice for consistency
         """
         if style is None:
             style = self.default_style
@@ -246,23 +380,121 @@ class VoiceSystem:
         if sig_cache.exists():
             return sig_cache
         
-        # Generate with faster speed
+        # Generate signature phrase
         raw_path = self.cache_dir / "temp_sig_raw.wav"
         if not self._synthesize_piper(self.signature, raw_path):
             return None
         
-        # Apply FX with super fast speed (2.5x) and high pitch (1.8x)
-        if not self._apply_fx_signature(raw_path, sig_cache, style):
+        # Apply same FX as main voice (no special slower/deeper effect)
+        if not self._apply_fx(raw_path, sig_cache, style):
             return None
         
         raw_path.unlink(missing_ok=True)
         return sig_cache
     
+    def _generate_sarcastic_intro(self, sarcastic_text: str, style: Optional[VoiceStyle] = None) -> Optional[Path]:
+        """
+        Generate sarcastic intro with exaggerated tone (higher pitch, slightly slower for emphasis)
+        """
+        if style is None:
+            style = self.default_style
+        
+        # Create cache key for this specific sarcastic phrase
+        import hashlib
+        h = hashlib.md5(f"{sarcastic_text}:sarcastic:{style}".encode()).hexdigest()[:16]
+        sarcasm_cache = self.cache_dir / f"{style}_sarcasm_{h}.wav"
+        
+        if sarcasm_cache.exists():
+            return sarcasm_cache
+        
+        # Generate raw audio
+        raw_path = self.cache_dir / "temp_sarcasm_raw.wav"
+        if not self._synthesize_piper(sarcastic_text, raw_path):
+            return None
+        
+        # Apply sarcastic effects: higher pitch (1.3x), slightly slower speed (0.85x) for dramatic effect
+        if not self._apply_sarcastic_fx(raw_path, sarcasm_cache, style):
+            return None
+        
+        raw_path.unlink(missing_ok=True)
+        return sarcasm_cache
+    
+    def _apply_sarcastic_fx(self, in_wav: Path, out_wav: Path, style: VoiceStyle) -> bool:
+        """
+        Apply audio effects with sarcastic tone (higher pitch, slower for emphasis)
+        """
+        sarcastic_speed = 0.85  # Slower for dramatic/sarcastic emphasis
+        sarcastic_pitch = 1.3   # Higher pitch for mocking tone
+        
+        fx_chains = {
+            "clean": f"atempo={sarcastic_speed},asetrate=44100*{sarcastic_pitch},aresample=44100",
+            
+            "droid": (
+                f"atempo={sarcastic_speed},"
+                f"asetrate=44100*{sarcastic_pitch},aresample=44100,"
+                # Use current settings for other effects
+                f"highpass=f={self.highpass_freq},lowpass=f={self.lowpass_freq},"
+                f"acompressor=threshold=-20dB:ratio={self.compression_ratio}:attack=1:release=30,"
+                f"acrusher=bits={self.bit_depth}:mix={self.bit_mix},"
+                f"tremolo=f={self.tremolo_freq}:d={self.tremolo_depth},"
+                f"aecho=0.8:0.5:20:{self.echo_gain},"
+                f"vibrato=f={self.vibrato_freq}:d={self.vibrato_depth},"
+                "highpass=f=180,"
+                "alimiter=limit=0.9"
+            ),
+            
+            "radio": (
+                f"atempo={sarcastic_speed},"
+                f"asetrate=44100*{sarcastic_pitch},aresample=44100,"
+                "highpass=f=300,"
+                "lowpass=f=3000,"
+                "acompressor=threshold=-14dB:ratio=3:attack=5:release=80,"
+                "acrusher=bits=12:mix=0.2,"
+                "aecho=0.7:0.5:15:0.15"
+            ),
+            
+            "pa_system": (
+                f"atempo={sarcastic_speed},"
+                f"asetrate=44100*{sarcastic_pitch},aresample=44100,"
+                "highpass=f=250,"
+                "lowpass=f=4000,"
+                "acompressor=threshold=-12dB:ratio=2.5:attack=10:release=100,"
+                "aecho=0.9:0.8:40:0.3"
+            ),
+        }
+        
+        fx = fx_chains.get(style, fx_chains["droid"])
+        
+        try:
+            cmd = [
+                "ffmpeg", "-y",
+                "-i", str(in_wav),
+                "-af", fx,
+                str(out_wav),
+            ]
+            
+            subprocess.run(
+                cmd,
+                capture_output=True,
+                check=True
+            )
+            
+            logger.debug(f"Applied sarcastic FX: {out_wav}")
+            return True
+            
+        except subprocess.CalledProcessError as e:
+            error_msg = e.stderr.decode() if e.stderr else str(e)
+            logger.error(f"Sarcastic FX failed: {error_msg}")
+            return False
+        except Exception as e:
+            logger.error(f"Sarcastic FX error: {e}")
+            return False
+    
     def _apply_fx_signature(self, in_wav: Path, out_wav: Path, style: VoiceStyle) -> bool:
         """
-        Apply FX to signature with slower speed (0.45x) and much lower pitch (0.5x)
+        Apply FX to signature with slower speed (0.5x - minimum allowed) and much lower pitch (0.5x)
         """
-        slower_speed = 0.45  # Much slower (50% of 0.85x)
+        slower_speed = 0.5  # Slower (50% - minimum allowed by ffmpeg atempo filter)
         lower_pitch = 0.5  # Much deeper pitch
         
         fx_chains = {
@@ -362,6 +594,55 @@ class VoiceSystem:
             logger.error(f"Audio concatenation failed: {e}")
             return None
     
+    def _concatenate_multiple_audio(self, wav_files: list[Path]) -> Optional[Path]:
+        """
+        Concatenate multiple WAV files into one
+        Returns path to combined audio file
+        """
+        if not wav_files:
+            return None
+        
+        if len(wav_files) == 1:
+            return wav_files[0]
+        
+        try:
+            # Create unique output filename
+            import hashlib
+            files_hash = hashlib.md5(''.join(str(f) for f in wav_files).encode()).hexdigest()[:16]
+            output = self.cache_dir / f"combined_{files_hash}.wav"
+            
+            if output.exists():
+                return output
+            
+            # Create concat list file for ffmpeg
+            concat_list = self.cache_dir / "concat_list_multi.txt"
+            with open(concat_list, 'w') as f:
+                for wav_file in wav_files:
+                    f.write(f"file '{wav_file.absolute()}'\n")
+            
+            cmd = [
+                "ffmpeg", "-y",
+                "-f", "concat",
+                "-safe", "0",
+                "-i", str(concat_list),
+                "-c", "copy",
+                str(output)
+            ]
+            
+            subprocess.run(
+                cmd,
+                capture_output=True,
+                check=True
+            )
+            
+            concat_list.unlink(missing_ok=True)
+            logger.debug(f"Concatenated {len(wav_files)} audio files: {output}")
+            return output
+            
+        except Exception as e:
+            logger.error(f"Multiple audio concatenation failed: {e}")
+            return None
+    
     def generate(
         self,
         text: str,
@@ -442,7 +723,7 @@ class VoiceSystem:
         self,
         text: str,
         style: Optional[VoiceStyle] = None,
-        add_signature: bool = False,
+        add_signature: bool = None,
         blocking: bool = False
     ) -> bool:
         """
@@ -451,38 +732,69 @@ class VoiceSystem:
         Args:
             text: Text to speak
             style: Voice style
-            add_signature: If True, prepend "roger, roger" slightly faster at the beginning
+            add_signature: If True, prepend signature. If None, use always_use_signature setting
             blocking: Wait for playback to finish
         
         Returns:
             True if successful
         """
-        if add_signature:
-            # Generate slower/deeper "roger roger" signature (0.45x speed, 0.5x pitch)
-            sig_wav = self._generate_signature(style)
-            if not sig_wav:
-                logger.warning("Signature generation failed, playing without it")
-            
-            # Generate main message with slow/deep voice
-            main_wav = self.generate(text, style)
-            if not main_wav:
-                logger.error("Voice generation failed")
-                return False
-            
-            # Concatenate: signature FIRST, then main message
-            if sig_wav:
-                combined_wav = self._concatenate_audio(sig_wav, main_wav)
-                if combined_wav:
-                    return self.play(combined_wav, blocking=blocking)
-            
-            return self.play(main_wav, blocking=blocking)
-        else:
-            wav_path = self.generate(text, style)
-            if not wav_path:
-                logger.error("Voice generation failed")
-                return False
-            
-            return self.play(wav_path, blocking=blocking)
+        import random
+        
+        # Try to play authentic battle droid sample for exact matches first
+        # This makes signature phrases sound more authentic
+        if self._play_battle_droid_sample(text):
+            return True
+        
+        # Use always_use_signature if add_signature not explicitly set
+        if add_signature is None:
+            add_signature = self.always_use_signature
+        
+        # On first run, always use signature and sarcasm (if enabled)
+        # After that, use random chances
+        use_signature_this_time = add_signature and (self.first_run or random.random() < self.signature_chance)
+        use_sarcasm_this_time = self.sarcasm_enabled and (self.first_run or random.random() < self.sarcasm_chance)
+        
+        # Mark that first run is complete
+        if self.first_run:
+            self.first_run = False
+        
+        # Collect audio files to concatenate
+        audio_parts = []
+        
+        # Add signature if needed - try authentic sample first
+        if use_signature_this_time:
+            if self._play_battle_droid_sample(self.signature):
+                # Authentic sample played, add small pause before main text
+                import time
+                time.sleep(0.3)
+            else:
+                # Use synthesized signature
+                sig_wav = self._generate_signature(style)
+                if sig_wav:
+                    audio_parts.append(sig_wav)
+        
+        # Add sarcastic intro if enabled (with sarcastic tone)
+        if use_sarcasm_this_time:
+            sarcastic_intro = random.choice(self.sarcastic_intros)
+            sarcasm_wav = self._generate_sarcastic_intro(sarcastic_intro, style)
+            if sarcasm_wav:
+                audio_parts.append(sarcasm_wav)
+        
+        # Generate main message
+        main_wav = self.generate(text, style)
+        if not main_wav:
+            logger.error("Voice generation failed")
+            return False
+        audio_parts.append(main_wav)
+        
+        # If we have multiple parts, concatenate them
+        if len(audio_parts) > 1:
+            combined_wav = self._concatenate_multiple_audio(audio_parts)
+            if combined_wav:
+                return self.play(combined_wav, blocking=blocking)
+        
+        # Otherwise just play the main audio
+        return self.play(audio_parts[0], blocking=blocking)
     
     def announce(self, text: str, **kwargs) -> bool:
         """
@@ -509,7 +821,41 @@ def get_voice() -> VoiceSystem:
     """Get or create the global voice system instance"""
     global _voice
     if _voice is None:
-        _voice = VoiceSystem()
+        # Try to load voice settings from config file
+        try:
+            import yaml
+            cfg = None
+            cfg_path = Path('config/config.yaml')
+            if cfg_path.exists():
+                with open(cfg_path, 'r') as f:
+                    cfg = yaml.safe_load(f) or {}
+            else:
+                ex = Path('config/config.yaml.example')
+                if ex.exists():
+                    with open(ex, 'r') as f:
+                        cfg = yaml.safe_load(f) or {}
+
+            voice_cfg = cfg.get('voice', {}) if cfg else {}
+            model = voice_cfg.get('model')
+            model_path = None
+            if model:
+                candidate = Path('data/voice_models/piper') / model
+                # Common extension .onnx
+                if candidate.exists():
+                    model_path = str(candidate)
+                else:
+                    # try with .onnx extension
+                    candidate2 = Path('data/voice_models/piper') / f"{model}.onnx"
+                    if candidate2.exists():
+                        model_path = str(candidate2)
+
+            default_style = voice_cfg.get('default_style', voice_cfg.get('default', 'droid'))
+            speed = float(voice_cfg.get('speed', 0.75))
+            pitch = float(voice_cfg.get('pitch', 0.85))
+
+            _voice = VoiceSystem(model_path=model_path, default_style=default_style, speed=speed, pitch=pitch)
+        except Exception:
+            _voice = VoiceSystem()
     return _voice
 
 def say(text: str, **kwargs) -> bool:

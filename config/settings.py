@@ -86,6 +86,16 @@ class WeatherSettings(BaseSettings):
         env_prefix = "WEATHER_"
 
 
+class AmbientWeatherSettings(BaseSettings):
+    """Ambient Weather station configuration."""
+    api_key: Optional[str] = Field(default=None, description="Ambient Weather API key from ambientweather.net/account")
+    application_key: Optional[str] = Field(default=None, description="Ambient Weather application key")
+    enabled: bool = Field(default=True, description="Enable Ambient Weather integration")
+    
+    class Config:
+        env_prefix = "AMBIENT_WEATHER_"
+
+
 class MusicSettings(BaseSettings):
     """Music service OAuth configuration."""
     spotify_client_id: Optional[str] = Field(default=None, description="Spotify OAuth client ID")
@@ -195,6 +205,7 @@ class Settings(BaseSettings):
     github: GitHubSettings = Field(default_factory=GitHubSettings)
     buildly: BuildlySettings = Field(default_factory=BuildlySettings)
     weather: WeatherSettings = Field(default_factory=WeatherSettings)
+    ambient_weather: AmbientWeatherSettings = Field(default_factory=AmbientWeatherSettings)
     music: MusicSettings = Field(default_factory=MusicSettings)
     notes: NotesSettings = Field(default_factory=NotesSettings)
     dashboard: DashboardSettings = Field(default_factory=DashboardSettings)

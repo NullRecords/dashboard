@@ -21,7 +21,7 @@ class JokesCollector(BaseCollector):
         super().__init__(settings)
         self.api_url = "https://icanhazdadjoke.com/"
         
-    async def collect_data(self, start_date: datetime, end_date: datetime) -> CollectionResult:
+    async def collect_data(self, start_date: datetime = None, end_date: datetime = None) -> CollectionResult:
         """
         Collect jokes data.
         For jokes, we don't use date range but fetch current jokes.
@@ -30,24 +30,18 @@ class JokesCollector(BaseCollector):
             jokes = await self._fetch_jokes(count=5)  # Fetch 5 jokes at once
             
             return CollectionResult(
-                source="jokes",
+                success=True,
                 data=jokes,
-                metadata={
-                    'count': len(jokes),
-                    'api_source': 'icanhazdadjoke.com'
-                },
                 timestamp=datetime.now()
             )
             
         except Exception as e:
-            self.logger.error(f"Error collecting jokes: {e}")
+            logger.error(f"Error collecting jokes: {e}")
             return CollectionResult(
-                source="jokes",
+                success=False,
                 data=[],
-                metadata={},
-                timestamp=datetime.now(),
                 error=str(e),
-                success=False
+                timestamp=datetime.now()
             )
     
     async def _fetch_jokes(self, count: int = 1) -> List[Dict[str, Any]]:
@@ -74,11 +68,28 @@ class JokesCollector(BaseCollector):
                 jokes.append(joke)
                 
             except Exception as e:
-                self.logger.warning(f"Error fetching individual joke: {e}")
-                # Add fallback joke
+                logger.warning(f"Error fetching individual joke: {e}")
+                # Add fallback joke from curated collection
+                fallback_jokes = [
+                    "Why don't scientists trust atoms? Because they make up everything! 😄",
+                    "Why did Garfield join a gym? To get fit enough to catch more lasagna! 🍝",
+                    "What's Garfield's favorite day? Lasagna Monday! (Every Monday is better with lasagna)",
+                    "Why doesn't Garfield like computers? Too many mice! 🖱️😸",
+                    "What do you call Garfield on a diet? An imposter! 😹",
+                    "Why did the Star Wars fan cross the road? To get to the Dark Side! 🌑",
+                    "What's a Jedi's favorite car? A Toy-Yoda! 🚗",
+                    "Why did Anakin Skywalker cross the road? To get to the Dark Side! 😈",
+                    "What do you call Chewbacca when he gets chocolate in his hair? A chocolate chip Wookiee! 🍪",
+                    "Why is Yoda such a good gardener? Because he has a green thumb! 🌱",
+                    "What's a retro PC's favorite snack? Microchips! 💾",
+                    "Why did the 386 go to therapy? Too many memory issues! 🖥️",
+                    "What do you call a broken floppy disk? A flippy disk! 💿",
+                    "Why don't old computers ever get cold? They have lots of Windows! 🪟"
+                ]
+                import random
                 jokes.append({
                     'id': f'fallback_{datetime.now().timestamp()}',
-                    'text': "Why don't scientists trust atoms? Because they make up everything! 😄",
+                    'text': random.choice(fallback_jokes),
                     'source': 'fallback',
                     'fetched_at': datetime.now().isoformat(),
                     'is_liked': False
@@ -93,16 +104,26 @@ class JokesCollector(BaseCollector):
             if jokes:
                 return jokes[0]
             else:
-                # Return fallback joke
+                # Return fallback joke from curated collection
+                fallback_jokes = [
+                    "Why don't scientists trust atoms? Because they make up everything! 😄",
+                    "Why did Garfield join a gym? To get fit enough to catch more lasagna! 🍝",
+                    "What's Garfield's favorite day? Lasagna Monday!",
+                    "Why doesn't Garfield like computers? Too many mice! 🖱️😸",
+                    "Why did the Star Wars fan cross the road? To get to the Dark Side! 🌑",
+                    "What's a Jedi's favorite car? A Toy-Yoda! 🚗",
+                    "What do you call a broken floppy disk? A flippy disk! 💿"
+                ]
+                import random
                 return {
                     'id': f'fallback_{datetime.now().timestamp()}',
-                    'text': "Why don't scientists trust atoms? Because they make up everything! 😄",
+                    'text': random.choice(fallback_jokes),
                     'source': 'fallback',
                     'fetched_at': datetime.now().isoformat(),
                     'is_liked': False
                 }
         except Exception as e:
-            self.logger.error(f"Error fetching single joke: {e}")
+            logger.error(f"Error fetching single joke: {e}")
             # Return fallback joke
             return {
                 'id': f'fallback_{datetime.now().timestamp()}',
@@ -155,7 +176,7 @@ class JokesCollector(BaseCollector):
             return result[0] if result else False
             
         except Exception as e:
-            self.logger.debug(f"Error checking joke like status: {e}")
+            logger.debug(f"Error checking joke like status: {e}")
             return False
     
     async def like_joke(self, joke_id: str, is_liked: bool) -> Dict[str, Any]:
@@ -186,7 +207,7 @@ class JokesCollector(BaseCollector):
             }
             
         except Exception as e:
-            self.logger.error(f"Error updating joke like status: {e}")
+            logger.error(f"Error updating joke like status: {e}")
             return {
                 'success': False,
                 'error': str(e)
@@ -218,7 +239,7 @@ class JokesCollector(BaseCollector):
             ]
             
         except Exception as e:
-            self.logger.error(f"Error getting liked jokes: {e}")
+            logger.error(f"Error getting liked jokes: {e}")
             return []
     
     def get_data_schema(self) -> Dict[str, Any]:

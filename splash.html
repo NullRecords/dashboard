@@ -43,6 +43,59 @@
             animation: pulse 2s ease-in-out infinite;
         }
 
+        /* New kid-friendly styles */
+        .top-left {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .rog-logo {
+            width: 192px;
+            height: 192px;
+            border-radius: 50%;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+            object-fit: cover;
+            border: 3px solid rgba(255,255,255,0.06);
+        }
+
+        .listen-btn {
+            background: linear-gradient(90deg,#ff6b6b,#f94dff);
+            color: #fff;
+            border: none;
+            padding: 10px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .greeting {
+            margin-top: 12px;
+            color: #e2e8f0;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .controls input {
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.06);
+            width: 320px;
+            margin-right: 8px;
+            background: rgba(255,255,255,0.02);
+            color: #fff;
+        }
+
+        .controls button { padding: 10px 12px; border-radius: 10px; border: none; background: #667eea; color: #fff; cursor: pointer; }
+
+        .response { margin-top: 20px; font-size: 15px; color: #cbd5e0; white-space: pre-line; }
+
+        .quick-actions { margin-top: 16px; display: flex; gap: 8px; justify-content: center; }
+        .quick-actions button { padding: 8px 12px; border-radius: 10px; border: none; background: rgba(255,255,255,0.06); color: #fff; cursor: pointer; }
+
         @keyframes pulse {
             0%, 100% {
                 transform: scale(1);
@@ -92,30 +145,85 @@
             margin: 0 auto;
             border: 4px solid rgba(102, 126, 234, 0.2);
             border-top-color: #667eea;
+        
+        .header {
+            position: absolute;
+            top: 18px;
+            left: 18px;
+            right: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        
+        .rog-logo {
+            width: 360px;
+            height: 360px;
+            border-radius: 50%;
+            box-shadow: 0 18px 40px rgba(0,0,0,0.6);
+            object-fit: cover;
+            border: 4px solid rgba(255,255,255,0.06);
+        }
+        
+        .brand-title {
+            color: #e2e8f0;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 0.6px;
+        }
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
+    <div class="header">
+        <div class="brand" style="flex-direction:column;align-items:center;gap:8px;">
+            <img src="/assets/images/rogr.gif" alt="Roger" class="rog-logo" id="rogLogo">
+        </div>
+        <div class="brand-title">Roger Assistant</div>
+        <div style="display:flex;align-items:center;gap:12px;">
+            <button id="listenBtn" class="listen-btn">Listen</button>
+            <button id="voiceSettingsBtn" class="listen-btn" style="background:linear-gradient(90deg,#4fd1c5,#48bb78);">Voice Settings</button>
+        </div>
+    </div>
 
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
+    <div class="splash-container">
+        <h1>Welcome, Parker</h1>
+        <div class="subtitle">Quick hub for repairs, history facts, Garfield, and friendly communities</div>
+        <p class="greeting">I'm Roger — let's do one small thing today. Say "hey roger" or use the search box.</p>
 
-        .dots {
-            display: inline-flex;
-            gap: 6px;
-            margin-left: 4px;
-        }
+        <div class="controls" style="display:flex;gap:8px;align-items:center;">
+            <input id="searchInput" placeholder="Search the web or say 'hey roger'..." style="flex:1;" />
+            <button id="searchBtn">Search</button>
+        </div>
 
-        .dot {
-            width: 6px;
-            height: 6px;
-            background: #667eea;
-            border-radius: 50%;
-            animation: bounce 1.4s ease-in-out infinite;
-        }
+        <div class="hub-grid">
+            <div>
+                <div class="card" id="mainCard">
+                    <h3>Today's Picks</h3>
+                    <div id="garfield" style="margin-bottom:12px;"></div>
+                    <div id="history" style="margin-bottom:12px;"></div>
+                    <div id="starwars" style="margin-bottom:12px;"></div>
+                </div>
 
+                <div class="card" style="margin-top:12px;" id="responseCard">
+                    <h3>Roger</h3>
+                    <div id="response" class="response">Waiting for your command...</div>
+                </div>
+            </div>
+
+            <div>
+                <div class="card" id="parts" style="margin-bottom:12px;"></div>
+                <div class="card" id="weather" style="margin-bottom:12px;"></div>
+                <div class="card" id="quote" style="margin-bottom:12px;font-weight:600;"></div>
+                <div class="card" id="communities" style="margin-top:12px;"></div>
+            </div>
+        </div>
         .dot:nth-child(1) {
             animation-delay: 0s;
         }
@@ -194,69 +302,321 @@
 </head>
 <body>
     <div class="splash-container">
-        <div class="logo">FD</div>
-        <h1>Founder Dashboard</h1>
-        <div class="subtitle">Your AI-powered productivity hub</div>
-        
-        <div class="loading-text" id="loadingText">
-            Building your dashboard<span class="dots">
-                <span class="dot"></span>
-                <span class="dot"></span>
-                <span class="dot"></span>
-            </span>
+        <div class="brand" style="display:flex;flex-direction:column;align-items:center;gap:16px;margin-bottom:20px;">
+            <img src="/assets/images/rogr.gif" alt="Roger" class="rog-logo" id="rogLogo">
+            <div class="brand-title" style="font-size:32px;margin-top:8px;">Roger Assistant</div>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <button id="listenBtn" class="listen-btn">Listen</button>
+                <button id="voiceSettingsBtn" class="listen-btn" style="background:linear-gradient(90deg,#4fd1c5,#48bb78);">Voice Settings</button>
+            </div>
         </div>
-        
-        <div class="spinner"></div>
-        
-        <div class="status" id="status">Initializing application...</div>
-        
-        <div class="progress-bar">
-            <div class="progress-fill"></div>
+
+        <div class="controls">
+            <input id="searchInput" placeholder="Search the web or say 'hey roger'..."/>
+            <button id="searchBtn">Search</button>
+        </div>
+
+        <div class="quick-actions">
+            <button id="startProjectBtn">Start a tiny project</button>
+            <button id="joinCommunityBtn">Find friendly communities</button>
+        </div>
+
+        <div id="voiceSettingsModal" style="display:none; position:fixed; right:20px; top:90px; width:320px; background:rgba(10,12,16,0.95); border-radius:12px; padding:14px; box-shadow:0 10px 40px rgba(0,0,0,0.6); color:#e2e8f0;">
+            <h3 style="margin:0 0 8px 0; font-size:16px;">Voice Settings</h3>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <label>Style
+                    <select id="vs_style" style="width:100%;padding:8px;border-radius:8px;background:#0f1724;color:#e2e8f0;border:1px solid rgba(255,255,255,0.04);">
+                        <option value="droid">droid</option>
+                        <option value="clean">clean</option>
+                        <option value="radio">radio</option>
+                        <option value="pa_system">pa_system</option>
+                    </select>
+                </label>
+                <label>Speed <input id="vs_speed" type="number" step="0.05" min="0.3" max="2.0" style="width:100%;padding:8px;border-radius:8px;background:#0f1724;color:#e2e8f0;border:1px solid rgba(255,255,255,0.04);"/></label>
+                <label>Pitch <input id="vs_pitch" type="number" step="0.05" min="0.4" max="2.0" style="width:100%;padding:8px;border-radius:8px;background:#0f1724;color:#e2e8f0;border:1px solid rgba(255,255,255,0.04);"/></label>
+                <label>Signature phrase <input id="vs_signature" type="text" style="width:100%;padding:8px;border-radius:8px;background:#0f1724;color:#e2e8f0;border:1px solid rgba(255,255,255,0.04);"/></label>
+                <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px;">
+                    <button id="vs_cancel" style="padding:8px 10px;border-radius:8px;background:#2d3748;color:#e2e8f0;border:none;">Cancel</button>
+                    <button id="vs_save" style="padding:8px 10px;border-radius:8px;background:#9f7aea;color:#fff;border:none;">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="response" class="response">Waiting for your command...</div>
+
+        <div id="homeContent" style="margin-top:20px; text-align:left; max-width:760px;">
+            <div id="garfield" style="margin-bottom:12px;"></div>
+            <div id="parts" style="margin-bottom:12px;"></div>
+            <div id="history" style="margin-bottom:12px;"></div>
+            <div id="starwars" style="margin-bottom:12px;"></div>
+            <div id="weather" style="margin-bottom:12px;"></div>
+            <div id="quote" style="margin-bottom:12px; font-weight:600;"></div>
+            <div id="jokes" style="margin-bottom:12px;"></div>
+            <div id="communities" style="margin-bottom:12px;"></div>
         </div>
     </div>
 
-    <div class="buildly-badge">Powered by Buildly</div>
+    <div class="buildly-badge">Made for your kid — simple and fast</div>
 
     <script>
-        const statusMessages = [
-            'Initializing application...',
-            'Starting server...',
-            'Loading modules...',
-            'Connecting services...',
-            'Almost ready...'
-        ];
-        
-        let messageIndex = 0;
-        const statusEl = document.getElementById('status');
-        
-        // Rotate status messages
-        setInterval(() => {
-            messageIndex = (messageIndex + 1) % statusMessages.length;
-            statusEl.textContent = statusMessages[messageIndex];
-        }, 800);
+        const responseEl = document.getElementById('response');
+        const listenBtn = document.getElementById('listenBtn');
+        const searchBtn = document.getElementById('searchBtn');
+        const searchInput = document.getElementById('searchInput');
 
-        // Check if main app is ready (called from parent window)
-        function checkServerReady() {
-            return fetch('http://127.0.0.1:8008/health')
-                .then(response => response.ok)
-                .catch(() => false);
+        // Simple search button
+        searchBtn.addEventListener('click', async () => {
+            const q = searchInput.value.trim();
+            if (!q) return;
+            responseEl.textContent = 'Searching...';
+            try {
+                const r = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+                const data = await r.json();
+                responseEl.textContent = data.answer || data.summary || 'No results';
+            } catch (e) {
+                responseEl.textContent = 'Search failed';
+            }
+        });
+
+        // Quick actions
+        document.getElementById('startProjectBtn').addEventListener('click', () => {
+            responseEl.textContent = "Nice! How about a tiny retro web page project? I can help with step 1: pick a name.\nSay 'hey roger' and tell me the name, or type it below.";
+        });
+
+        document.getElementById('joinCommunityBtn').addEventListener('click', async () => {
+            responseEl.textContent = "Want friendly places to hang out? I can look up safe Discord servers or Reddit communities about retro PCs and Garfield. Say 'search communities' or type what you want.";
+        });
+
+        // Voice recognition (wake-word) using Web Speech API
+        let recognition = null;
+        let listening = false;
+        let awaitingCommand = false;
+
+        function supportsSpeech() {
+            return 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
         }
 
-        // Auto-transition when server is ready
-        let checkCount = 0;
-        const checkInterval = setInterval(async () => {
-            checkCount++;
-            const isReady = await checkServerReady();
-            
-            if (isReady || checkCount > 60) { // Max 30 seconds
-                clearInterval(checkInterval);
-                
-                if (window.pywebview) {
-                    // Signal to Python that we're ready to transition
-                    window.pywebview.api.server_ready();
+        if (supportsSpeech()) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = (event) => {
+                let transcript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    transcript += event.results[i][0].transcript;
                 }
+                transcript = transcript.trim().toLowerCase();
+
+                // If we are awaiting a command (after wake-word), send it
+                if (awaitingCommand) {
+                    // Use the recent transcript as the command
+                    sendVoiceCommand(transcript);
+                    awaitingCommand = false;
+                    return;
+                }
+
+                // Detect wake phrase
+                if (transcript.includes('hey roger') || transcript.includes('hey roger,')) {
+                    awaitingCommand = true;
+                    responseEl.textContent = 'Heard "hey roger" — say your command now.';
+                }
+            };
+
+            recognition.onstart = () => {
+                listening = true;
+                listenBtn.textContent = 'Listening...';
+                responseEl.textContent = 'Listening for "hey roger"';
+            };
+
+            recognition.onend = () => {
+                listening = false;
+                listenBtn.textContent = 'Listen';
+                if (!awaitingCommand) responseEl.textContent = 'Stopped listening';
+            };
+
+            recognition.onerror = (e) => {
+                console.warn('Speech error', e);
+                responseEl.textContent = 'Speech recognition error';
+            };
+        } else {
+            listenBtn.disabled = true;
+            listenBtn.textContent = 'Voice not supported';
+        }
+
+        listenBtn.addEventListener('click', () => {
+            if (!recognition) return;
+            if (listening) {
+                recognition.stop();
+            } else {
+                recognition.start();
             }
-        }, 500);
+        });
+
+        // Voice settings modal
+        const voiceSettingsBtn = document.getElementById('voiceSettingsBtn');
+        const voiceModal = document.getElementById('voiceSettingsModal');
+        const vs_style = document.getElementById('vs_style');
+        const vs_speed = document.getElementById('vs_speed');
+        const vs_pitch = document.getElementById('vs_pitch');
+        const vs_signature = document.getElementById('vs_signature');
+        const vs_save = document.getElementById('vs_save');
+        const vs_cancel = document.getElementById('vs_cancel');
+
+        voiceSettingsBtn.addEventListener('click', async () => {
+            // Toggle and load current settings
+            if (voiceModal.style.display === 'none') {
+                voiceModal.style.display = 'block';
+                try {
+                    const r = await fetch('/api/voice/settings');
+                    const data = await r.json();
+                    const v = data.voice || {};
+                    vs_style.value = v.default_style || v.default || 'droid';
+                    vs_speed.value = v.speed || 0.75;
+                    vs_pitch.value = v.pitch || 0.85;
+                    vs_signature.value = v.signature_phrase || v.signature || 'roger, roger';
+                } catch (e) {
+                    console.warn('Could not load voice settings', e);
+                }
+            } else {
+                voiceModal.style.display = 'none';
+            }
+        });
+
+        vs_cancel.addEventListener('click', () => { voiceModal.style.display = 'none'; });
+
+        vs_save.addEventListener('click', async () => {
+            const payload = {
+                default_style: vs_style.value,
+                speed: parseFloat(vs_speed.value) || 0.75,
+                pitch: parseFloat(vs_pitch.value) || 0.85,
+                signature_phrase: vs_signature.value || 'roger, roger'
+            };
+            try {
+                const r = await fetch('/api/voice/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await r.json();
+                if (data.ok) {
+                    responseEl.textContent = 'Voice settings saved.';
+                } else {
+                    responseEl.textContent = 'Failed to save settings';
+                }
+            } catch (e) {
+                responseEl.textContent = 'Failed to save settings';
+            }
+            voiceModal.style.display = 'none';
+        });
+
+        async function sendVoiceCommand(text) {
+            responseEl.textContent = 'Processing command...';
+            try {
+                const r = await fetch('/api/voice', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                const data = await r.json();
+                responseEl.textContent = data.response || 'No response';
+            } catch (e) {
+                responseEl.textContent = 'Failed to process voice command';
+            }
+        }
+
+        // On load, fetch Roger home content and render sections
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const r = await fetch('/api/roger_home');
+                const payload = await r.json();
+                if (!payload.ok) return;
+                const c = payload.content || {};
+
+                // Garfield
+                const gar = document.getElementById('garfield');
+                if (c.garfield_url) {
+                    gar.innerHTML = `<img src="${c.garfield_url}" alt="Garfield" style="max-width:100%; border-radius:10px;"/>`;
+                }
+
+                // Parts: suggested search terms and tips
+                const parts = document.getElementById('parts');
+                if (c.parts_search_terms || c.parts_tips) {
+                    let html = '<strong>Parts search tips</strong><br/>';
+                    if (c.parts_search_terms && c.parts_search_terms.length) {
+                        html += '<div style="margin-top:6px;">Suggested searches: ' + c.parts_search_terms.slice(0,3).map(s => `<button class="quick-search" data-q="${encodeURIComponent(s)}" style="margin-right:6px;padding:6px;border-radius:8px;border:none;background:#2d3748;color:#fff;">${s}</button>`).join('') + '</div>';
+                    }
+                    if (c.parts_tips && c.parts_tips.length) {
+                        html += '<div style="margin-top:8px;color:#cbd5e0;">' + c.parts_tips.map(t => `<div>• ${t}</div>`).join('') + '</div>';
+                    }
+                    parts.innerHTML = html;
+                }
+
+                // History
+                const hist = document.getElementById('history');
+                if (c.history_fact) hist.innerHTML = `<strong>History fact</strong><div style="color:#cbd5e0;margin-top:6px;">${c.history_fact}</div>`;
+
+                // Star Wars
+                const sw = document.getElementById('starwars');
+                if (c.starwars_fact) sw.innerHTML = `<strong>Star Wars</strong><div style="color:#cbd5e0;margin-top:6px;">${c.starwars_fact}</div>`;
+
+                // Weather
+                const w = document.getElementById('weather');
+                if (c.weather_summary) w.innerHTML = `<strong>Weather</strong><div style="color:#cbd5e0;margin-top:6px;">${c.weather_summary}</div>`;
+
+                // Quote
+                const q = document.getElementById('quote');
+                if (c.positive_quote) q.innerHTML = `"${c.positive_quote}"`;
+
+                // Communities
+                const comm = document.getElementById('communities');
+                if (c.subreddit_suggestions && c.subreddit_suggestions.length) {
+                    comm.innerHTML = '<strong>Communities</strong>' + '<div style="margin-top:6px;color:#cbd5e0;">' + c.subreddit_suggestions.map(s => `<div style="margin-bottom:6px;"><a href="https://reddit.com/${s.subreddit}" target="_blank" style="color:#9f7aea;text-decoration:none;">/${s.subreddit}</a> — <span style="color:#cbd5e0">${s.tip}</span></div>`).join('') + '</div>';
+                }
+
+                // Jokes
+                const jokesDiv = document.getElementById('jokes');
+                if (c.jokes && c.jokes.length) {
+                    let jokesHtml = '<strong>Jokes</strong><div style="margin-top:6px;color:#cbd5e0;background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;">';
+                    c.jokes.forEach((joke, idx) => {
+                        jokesHtml += `<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.06);">• ${joke}</div>`;
+                    });
+                    jokesHtml += `</div><button id="readJokesBtn" style="margin-top:8px;padding:8px 12px;border-radius:8px;background:#9f7aea;color:#fff;border:none;cursor:pointer;">Read Jokes</button>`;
+                    jokesDiv.innerHTML = jokesHtml;
+                    
+                    // Wire read jokes button to voice
+                    document.getElementById('readJokesBtn').addEventListener('click', async () => {
+                        const jokesText = c.jokes.join(' ... ');
+                        responseEl.textContent = 'Roger is reading jokes...';
+                        try {
+                            const r = await fetch('/api/voice', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ text: jokesText })
+                            });
+                            const data = await r.json();
+                            responseEl.textContent = 'Jokes delivered!';
+                        } catch (e) {
+                            responseEl.textContent = 'Could not read jokes';
+                        }
+                    });
+                }
+
+                // Wire quick-search buttons
+                document.querySelectorAll('.quick-search').forEach(btn => {
+                    btn.addEventListener('click', async (ev) => {
+                        const q = decodeURIComponent(btn.dataset.q);
+                        searchInput.value = q;
+                        searchBtn.click();
+                    });
+                });
+
+            } catch (e) {
+                console.warn('Could not load Roger content', e);
+            }
+        });
     </script>
 </body>
 </html>
