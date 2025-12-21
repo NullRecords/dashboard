@@ -28,13 +28,38 @@ STATION_TAGS = {
 }
 
 
+def _get_lastfm_credentials() -> Dict[str, str]:
+    """Get Last.fm credentials from database or environment."""
+    try:
+        from database import DatabaseManager
+        db = DatabaseManager()
+        creds = db.get_credentials('lastfm')
+        if creds and creds.get('api_key'):
+            return creds
+    except Exception as e:
+        logger.debug(f"Could not load Last.fm credentials from database: {e}")
+    
+    # Fallback to environment variables
+    return {
+        'api_key': os.getenv('LASTFM_API_KEY', ''),
+        'shared_secret': os.getenv('LASTFM_SHARED_SECRET', ''),
+        'username': os.getenv('LASTFM_USERNAME', '')
+    }
+
+
 class LastFMCollector:
     """Collector for Last.fm music data"""
     
     def __init__(self):
-        self.api_key = os.getenv('LASTFM_API_KEY', '')
+        creds = _get_lastfm_credentials()
+        self.api_key = creds.get('api_key', '')
+        self.shared_secret = creds.get('shared_secret', '')
+        self.username = creds.get('username', '')
+        
         if not self.api_key:
-            logger.warning("LASTFM_API_KEY not set - Last.fm features will be limited")
+            logger.warning("Last.fm API key not configured - features will be limited")
+        else:
+            logger.info(f"Last.fm collector initialized for user: {self.username}")
     
     async def _make_request(self, method: str, params: Dict[str, str]) -> Optional[Dict]:
         """Make an async request to Last.fm API"""

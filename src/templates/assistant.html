@@ -3,23 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>R0-GR Assistant</title>
+    <title id="page-title">Assistant</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
+    <style id="skin-css">
+        :root {
+            --skin-primary: #9333ea;
+            --skin-primary-light: #a855f7;
+            --skin-primary-dark: #7e22ce;
+            --skin-secondary: #6366f1;
+            --skin-accent: #06b6d4;
+            --skin-bg-primary: #1a1a2e;
+            --skin-bg-secondary: #16213e;
+            --skin-bg-tertiary: #0f3460;
+            --skin-text-primary: #f3f4f6;
+            --skin-text-secondary: #d1d5db;
+            --skin-text-muted: #9ca3af;
+            --skin-border-primary: #374151;
+            --skin-border-accent: #7c3aed;
+        }
         body {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            background: linear-gradient(135deg, var(--skin-bg-primary) 0%, var(--skin-bg-secondary) 50%, var(--skin-bg-tertiary) 100%);
             min-height: 100vh;
         }
-        .glow-purple {
-            box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+        .glow-accent {
+            box-shadow: 0 0 20px color-mix(in srgb, var(--skin-primary) 40%, transparent);
         }
         .chat-bubble-user {
-            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            background: linear-gradient(135deg, var(--skin-secondary), var(--skin-primary));
         }
-        .chat-bubble-roger {
+        .chat-bubble-assistant {
             background: linear-gradient(135deg, #374151, #1f2937);
-            border-left: 3px solid #a855f7;
+            border-left: 3px solid var(--skin-primary);
         }
         .typing-indicator span {
             animation: blink 1.4s infinite both;
@@ -38,22 +53,26 @@
             50% { transform: scale(1); opacity: 0.3; }
             100% { transform: scale(0.8); opacity: 0.5; }
         }
+        .border-skin { border-color: var(--skin-primary); }
+        .text-skin { color: var(--skin-primary-light); }
+        .bg-skin { background-color: var(--skin-primary); }
+        .bg-skin-dark { background-color: var(--skin-primary-dark); }
     </style>
 </head>
 <body class="text-gray-100">
     <!-- Header -->
-    <header class="bg-gray-900/80 backdrop-blur border-b border-purple-500/30 sticky top-0 z-50">
+    <header class="bg-gray-900/80 backdrop-blur border-b sticky top-0 z-50" style="border-color: color-mix(in srgb, var(--skin-primary) 30%, transparent);">
         <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <a href="/" class="text-gray-400 hover:text-white transition-colors">
                     <i class="fas fa-arrow-left"></i>
                 </a>
-                <div class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center glow-purple">
+                <div id="header-avatar" class="w-10 h-10 rounded-full flex items-center justify-center glow-accent" style="background-color: var(--skin-primary);">
                     <span class="text-xl">🤖</span>
                 </div>
                 <div>
-                    <h1 class="font-bold text-lg text-purple-300">R0-GR Assistant</h1>
-                    <div class="text-xs text-gray-500">Battle Droid AI • Always ready to help</div>
+                    <h1 id="header-title" class="font-bold text-lg" style="color: var(--skin-primary-light);">Assistant</h1>
+                    <div id="header-subtitle" class="text-xs text-gray-500">AI Assistant • Always ready to help</div>
                 </div>
             </div>
             <div class="flex items-center gap-2">
@@ -72,14 +91,14 @@
 
     <!-- Main Chat Area -->
     <main class="max-w-4xl mx-auto px-4 py-6 pb-32">
-        <!-- Roger Greeting -->
+        <!-- Assistant Greeting -->
         <div class="text-center mb-8">
             <div class="relative inline-block">
-                <div class="absolute inset-0 bg-purple-500/20 rounded-full pulse-ring"></div>
-                <img src="/assets/images/rogr.gif" alt="Roger" class="w-32 h-32 rounded-full border-4 border-purple-500 relative z-10 mx-auto">
+                <div class="absolute inset-0 rounded-full pulse-ring" style="background-color: color-mix(in srgb, var(--skin-primary) 20%, transparent);"></div>
+                <img id="assistant-avatar" src="/assets/images/rogr.gif" alt="Assistant" class="w-32 h-32 rounded-full border-4 relative z-10 mx-auto" style="border-color: var(--skin-primary);">
             </div>
-            <h2 class="text-2xl font-bold mt-4 text-purple-300">Roger Roger!</h2>
-            <p class="text-gray-400 text-sm mt-1">How can I assist you today, Commander?</p>
+            <h2 id="greeting-title" class="text-2xl font-bold mt-4" style="color: var(--skin-primary-light);">Hello!</h2>
+            <p id="greeting-subtitle" class="text-gray-400 text-sm mt-1">How can I assist you today?</p>
         </div>
 
         <!-- Quick Actions -->
@@ -234,7 +253,7 @@
                     <label class="block text-sm text-gray-300 mb-2">Read responses aloud</label>
                     <label class="flex items-center gap-2">
                         <input type="checkbox" id="auto-speak" checked class="rounded bg-gray-700 border-gray-600">
-                        <span class="text-sm text-gray-400">Auto-speak Roger's responses</span>
+                        <span id="auto-speak-label" class="text-sm text-gray-400">Auto-speak responses</span>
                     </label>
                 </div>
                 
@@ -275,12 +294,13 @@
             div.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
             
             const bubble = document.createElement('div');
-            bubble.className = `${role === 'user' ? 'chat-bubble-user' : 'chat-bubble-roger'} rounded-lg p-4 max-w-[80%] ${animate ? 'animate-fade-in' : ''}`;
+            bubble.className = `${role === 'user' ? 'chat-bubble-user' : 'chat-bubble-assistant'} rounded-lg p-4 max-w-[80%] ${animate ? 'animate-fade-in' : ''}`;
             
             if (role === 'assistant') {
+                const icon = currentSkin?.icon || '🤖';
                 bubble.innerHTML = `
                     <div class="flex items-start gap-2">
-                        <span class="text-lg">🤖</span>
+                        <span class="text-lg">${icon}</span>
                         <div class="text-sm text-gray-200">${formatResponse(content)}</div>
                     </div>
                 `;
@@ -346,7 +366,7 @@
                     body: JSON.stringify({
                         message: message,
                         history: conversationHistory.slice(-10),  // Last 10 messages for context
-                        persona: 'roger'
+                        persona: currentSkin?.name || 'roger'
                     })
                 });
 
@@ -365,12 +385,18 @@
                         speakResponse(data.response);
                     }
                 } else {
-                    addMessageToUI('assistant', 'Roger roger. I encountered an error processing that request.');
+                    const errorMsg = currentSkin?.name === 'dracula' ? 
+                        'The spirits are being difficult. I encountered an error processing that request.' :
+                        'Roger roger. I encountered an error processing that request.';
+                    addMessageToUI('assistant', errorMsg);
                 }
             } catch (e) {
                 document.getElementById('typing-indicator').classList.add('hidden');
                 console.error('Chat error:', e);
-                addMessageToUI('assistant', 'Roger roger. Communication systems experiencing interference. Please try again.');
+                const errorMsg = currentSkin?.name === 'dracula' ?
+                    'The void has swallowed our connection. Please try again.' :
+                    'Roger roger. Communication systems experiencing interference. Please try again.';
+                addMessageToUI('assistant', errorMsg);
             }
         }
 
@@ -398,19 +424,19 @@
         // Speak response using voice API
         async function speakResponse(text) {
             try {
-                const style = document.getElementById('voice-style').value || 'droid';
+                const style = document.getElementById('voice-style').value || currentSkin?.voice?.style || 'droid';
                 // Show stop button
                 document.getElementById('stop-voice-btn').classList.remove('hidden');
                 
-                // Play roger-roger sample first
-                await fetch('/api/voice/play-sample', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sample: 'roger-roger' })
-                });
-                
-                // Small pause then speak the response
-                await new Promise(r => setTimeout(r, 300));
+                // Play signature sample first if available
+                if (currentSkin?.voice?.signature_phrase) {
+                    await fetch('/api/voice/test', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ signature: true, style: style })
+                    });
+                    await new Promise(r => setTimeout(r, 300));
+                }
                 
                 await fetch('/api/voice/test', {
                     method: 'POST',
@@ -614,7 +640,7 @@
 
         async function testVoice() {
             try {
-                const style = document.getElementById('voice-style').value;
+                const style = document.getElementById('voice-style').value || currentSkin?.voice?.style || 'droid';
                 const settings = {
                     style: style,
                     pitch: parseInt(document.getElementById('pitch').value) / 100,
@@ -625,12 +651,16 @@
                     echoGain: parseInt(document.getElementById('echoGain').value) / 100
                 };
                 
+                const testMessage = currentSkin?.name === 'dracula' ? 
+                    'What delicious chaos shall we create? Testing voice configuration.' :
+                    'Roger roger. Testing voice configuration. All systems operational.';
+                
                 // Test actual TTS voice with current settings
                 await fetch('/api/voice/test', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        message: 'Roger roger. Testing voice configuration. All systems operational.',
+                        message: testMessage,
                         style: style,
                         signature: false,
                         settings: settings
@@ -650,7 +680,77 @@
             }
         }
 
+        // Skin management
+        let currentSkin = null;
+
+        async function loadActiveSkin() {
+            try {
+                const resp = await fetch('/api/skins/active');
+                const data = await resp.json();
+                if (data.skin) {
+                    currentSkin = data.skin;
+                    applySkin(data.skin);
+                }
+            } catch (e) {
+                console.error('Failed to load skin:', e);
+            }
+        }
+
+        function applySkin(skin) {
+            // Update page title
+            document.getElementById('page-title').textContent = `${skin.display_name} Assistant`;
+            
+            // Update CSS variables
+            const cssVars = skin.css_variables || {};
+            const root = document.documentElement;
+            for (const [key, value] of Object.entries(cssVars)) {
+                root.style.setProperty(key, value);
+            }
+            
+            // Update header
+            document.getElementById('header-title').textContent = `${skin.display_name} Assistant`;
+            document.getElementById('header-subtitle').textContent = skin.tagline || 'AI Assistant • Always ready to help';
+            
+            // Update avatar
+            const avatar = document.getElementById('assistant-avatar');
+            if (avatar && skin.avatar) {
+                avatar.src = skin.avatar;
+                avatar.alt = skin.display_name;
+            }
+            
+            // Update header avatar icon
+            const headerAvatar = document.getElementById('header-avatar');
+            if (headerAvatar) {
+                headerAvatar.innerHTML = `<span class="text-xl">${skin.icon || '🤖'}</span>`;
+            }
+            
+            // Update greeting
+            const greetingTitle = document.getElementById('greeting-title');
+            const greetingSubtitle = document.getElementById('greeting-subtitle');
+            if (greetingTitle) {
+                greetingTitle.textContent = skin.signature_phrase || 'Hello!';
+            }
+            if (greetingSubtitle) {
+                greetingSubtitle.textContent = skin.name === 'dracula' ? 
+                    'What chaos shall we create together?' : 
+                    'How can I assist you today, Commander?';
+            }
+            
+            // Update auto-speak label
+            const autoSpeakLabel = document.getElementById('auto-speak-label');
+            if (autoSpeakLabel) {
+                autoSpeakLabel.textContent = `Auto-speak ${skin.display_name}'s responses`;
+            }
+            
+            // Set default voice style from skin
+            const voiceStyle = document.getElementById('voice-style');
+            if (voiceStyle && skin.voice?.style) {
+                voiceStyle.value = skin.voice.style;
+            }
+        }
+
         // Initialize
+        loadActiveSkin();
         loadConversation();
         loadVoiceSettings();
     </script>
