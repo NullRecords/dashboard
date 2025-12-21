@@ -97,6 +97,18 @@ except ImportError as e:
     COLLECTORS_AVAILABLE = False
     TASK_MANAGER_AVAILABLE = False
 
+# Import skin loader for theming system
+try:
+    from config.skin_loader import (
+        get_skin_loader, get_active_skin, set_active_skin, 
+        list_skins, SkinLoader
+    )
+    SKIN_SYSTEM_AVAILABLE = True
+    logger.info("✅ Skin system loaded successfully")
+except ImportError as e:
+    print(f"Note: Could not import skin system: {e}")
+    SKIN_SYSTEM_AVAILABLE = False
+
 # Try to import AI Assistant modules
 try:
     from processors.ai_providers import ai_manager, create_provider, OllamaProvider, OpenAIProvider, GeminiProvider
@@ -593,7 +605,16 @@ async def dashboard(code: str = None, state: str = None, error: str = None):
     
     try:
         with open(template_path, 'r') as f:
-            return HTMLResponse(content=f.read())
+            content = f.read()
+        # Return with no-cache headers to prevent stale content
+        return HTMLResponse(
+            content=content,
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
+        )
     except Exception as e:
         logger.error(f"Error loading template: {e}")
         return HTMLResponse(
@@ -1644,6 +1665,220 @@ async def get_github():
 async def health_check():
     """Health check endpoint for monitoring"""
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
+
+# ==============================================================================
+# SKIN/THEME API ENDPOINTS
+# ==============================================================================
+
+@app.get("/api/skins")
+async def get_available_skins():
+    """List all available skins/themes."""
+    if not SKIN_SYSTEM_AVAILABLE:
+        return {"success": False, "error": "Skin system not available", "skins": []}
+    
+    try:
+        skins = list_skins()
+        active = get_skin_loader().active_skin_name
+        return {
+            "success": True, 
+            "skins": skins,
+            "active_skin": active
+        }
+    except Exception as e:
+        logger.error(f"Error listing skins: {e}")
+        return {"success": False, "error": str(e), "skins": []}
+
+
+@app.get("/api/skins/active")
+async def get_active_skin_config():
+    """Get the currently active skin configuration."""
+    if not SKIN_SYSTEM_AVAILABLE:
+        return {"success": False, "error": "Skin system not available"}
+    
+    try:
+        skin = get_active_skin()
+        if skin:
+            return {
+                "success": True,
+                "skin": skin.to_json()
+            }
+        return {"success": False, "error": "No active skin found"}
+    except Exception as e:
+        logger.error(f"Error getting active skin: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/skins/switch/{skin_name}")
+async def switch_skin(skin_name: str):
+    """Switch to a different skin/theme."""
+    if not SKIN_SYSTEM_AVAILABLE:
+        return {"success": False, "error": "Skin system not available"}
+    
+    try:
+        success = set_active_skin(skin_name)
+        if success:
+            skin = get_active_skin()
+            return {
+                "success": True,
+                "message": f"Switched to {skin.display_name}",
+                "skin": skin.to_json()
+            }
+        return {"success": False, "error": f"Skin '{skin_name}' not found"}
+    except Exception as e:
+        logger.error(f"Error switching skin: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/skins/{skin_name}")
+async def get_skin_config(skin_name: str):
+    """Get configuration for a specific skin."""
+    if not SKIN_SYSTEM_AVAILABLE:
+        return {"success": False, "error": "Skin system not available"}
+    
+    try:
+        loader = get_skin_loader()
+        skin = loader.load_skin(skin_name)
+        if skin:
+            return {
+                "success": True,
+                "skin": skin.to_json()
+            }
+        return {"success": False, "error": f"Skin '{skin_name}' not found"}
+    except Exception as e:
+        logger.error(f"Error getting skin {skin_name}: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/skins/active/quote")
+async def get_skin_quote(category: str = "random_quotes"):
+    """Get a random quote from the active skin."""
+    if not SKIN_SYSTEM_AVAILABLE:
+        return {"success": False, "quote": "System ready."}
+    
+    try:
+        skin = get_active_skin()
+        quote = skin.get_random_quote(category)
+        return {
+            "success": True,
+            "quote": quote,
+            "category": category,
+            "skin": skin.name
+        }
+    except Exception as e:
+        logger.error(f"Error getting skin quote: {e}")
+        return {"success": False, "quote": "Error loading quote."}
+
+
+@app.get("/api/skins/active/css")
+async def get_skin_css():
+    """Get CSS variables for the active skin."""
+    if not SKIN_SYSTEM_AVAILABLE:
+        return {"success": False, "css": ""}
+    
+    try:
+        skin = get_active_skin()
+        return {
+            "success": True,
+            "css": skin.get_css_string(),
+            "variables": skin.get_css_variables(),
+            "skin": skin.name
+        }
+    except Exception as e:
+        logger.error(f"Error getting skin CSS: {e}")
+        return {"success": False, "css": ""}
+
+
+#############################
+# Last.fm Music Integration #
+#############################
+
+try:
+    from collectors.lastfm_collector import get_lastfm_collector, STATION_TAGS
+    LASTFM_AVAILABLE = True
+except ImportError:
+    LASTFM_AVAILABLE = False
+    logger.warning("Last.fm collector not available")
+
+
+@app.get("/api/music/stations")
+async def get_music_stations():
+    """Get available music stations/genres"""
+    stations = [
+        {"id": "90s_alternative", "name": "90's Alternative Rock", "icon": "🎸"},
+        {"id": "gothic_rock", "name": "Gothic Rock", "icon": "🦇"},
+        {"id": "darkwave", "name": "Darkwave", "icon": "🌙"},
+        {"id": "musicals", "name": "Musical Theater", "icon": "🎭"},
+        {"id": "industrial", "name": "Industrial", "icon": "⚙️"},
+        {"id": "shoegaze", "name": "Shoegaze", "icon": "👟"},
+        {"id": "post_punk", "name": "Post-Punk", "icon": "🖤"},
+        {"id": "grunge", "name": "Grunge", "icon": "🎤"},
+        {"id": "trip_hop", "name": "Trip-Hop", "icon": "🎧"}
+    ]
+    return {"success": True, "stations": stations}
+
+
+@app.get("/api/music/station/{station_id}")
+async def get_station_data(station_id: str):
+    """Get tracks and artists for a music station"""
+    if not LASTFM_AVAILABLE:
+        return {"success": False, "error": "Last.fm integration not available"}
+    
+    try:
+        collector = get_lastfm_collector()
+        data = await collector.get_station_data(station_id)
+        return {"success": True, "data": data}
+    except Exception as e:
+        logger.error(f"Error fetching station data: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/music/search")
+async def search_music(q: str, limit: int = 10):
+    """Search for tracks"""
+    if not LASTFM_AVAILABLE:
+        return {"success": False, "error": "Last.fm integration not available"}
+    
+    try:
+        collector = get_lastfm_collector()
+        tracks = await collector.search_tracks(q, limit)
+        return {"success": True, "tracks": tracks}
+    except Exception as e:
+        logger.error(f"Error searching music: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/music/artist/{artist_name}")
+async def get_artist_info(artist_name: str):
+    """Get artist information"""
+    if not LASTFM_AVAILABLE:
+        return {"success": False, "error": "Last.fm integration not available"}
+    
+    try:
+        collector = get_lastfm_collector()
+        info = await collector.get_artist_info(artist_name)
+        if info:
+            return {"success": True, "artist": info}
+        return {"success": False, "error": "Artist not found"}
+    except Exception as e:
+        logger.error(f"Error fetching artist info: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/music/similar/{artist_name}")
+async def get_similar_artists(artist_name: str, limit: int = 5):
+    """Get similar artists"""
+    if not LASTFM_AVAILABLE:
+        return {"success": False, "error": "Last.fm integration not available"}
+    
+    try:
+        collector = get_lastfm_collector()
+        similar = await collector.get_similar_artists(artist_name, limit)
+        return {"success": True, "artists": similar}
+    except Exception as e:
+        logger.error(f"Error fetching similar artists: {e}")
+        return {"success": False, "error": str(e)}
+
 
 #############################
 # Wellbeing Feeds (Anxiety) #
@@ -8351,10 +8586,10 @@ if __name__ == "__main__":
         local_ip = "127.0.0.1"
     
     print("🌟 Starting Simple Dashboard Server...")
-    print(f"📍 Dashboard (Local): http://localhost:8008")
-    print(f"📍 Dashboard (Network): http://{local_ip}:8008")
-    print(f"🔧 API Docs: http://localhost:8008/docs")
+    print(f"📍 Dashboard (Local): http://localhost:8020")
+    print(f"📍 Dashboard (Network): http://{local_ip}:8020")
+    print(f"🔧 API Docs: http://localhost:8020/docs")
     print("🌐 Server accessible from anywhere on the network!")
     
-    # Always run on 0.0.0.0:8008 for network accessibility
-    uvicorn.run(app, host="0.0.0.0", port=8008, log_level="info")
+    # Always run on 0.0.0.0:8020 for network accessibility
+    uvicorn.run(app, host="0.0.0.0", port=8020, log_level="info")

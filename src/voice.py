@@ -124,6 +124,100 @@ class VoiceSystem:
         logger.info(f"Voice system initialized with style: {default_style}, speed: {speed}x, pitch: {pitch}x")
         logger.info(f"Battle droid samples enabled: {self.use_authentic_samples}")
     
+    @classmethod
+    def from_skin(cls, skin) -> "VoiceSystem":
+        """
+        Create a VoiceSystem configured from a skin object.
+        This allows different skins to have different voice personalities.
+        """
+        voice_config = skin.voice if hasattr(skin, 'voice') else {}
+        effects = voice_config.get('effects', {})
+        
+        # Get the voice model path based on skin
+        model_name = voice_config.get('model', 'en_US-lessac-medium')
+        model_path = f"data/voice_models/piper/{model_name}.onnx"
+        
+        # Create VoiceSystem with skin's voice settings
+        voice_system = cls(
+            model_path=model_path if Path(model_path).exists() else None,
+            default_style=voice_config.get('style', 'droid'),
+            speed=voice_config.get('speed', 0.85),
+            pitch=voice_config.get('pitch', 0.80),
+            use_authentic_samples=voice_config.get('use_authentic_samples', True),
+            # Audio effects from skin
+            bit_depth=effects.get('bit_depth', 8),
+            bit_mix=effects.get('bit_mix', 0.5),
+            tremolo_freq=effects.get('tremolo_freq', 120),
+            tremolo_depth=effects.get('tremolo_depth', 0.18),
+            compression_ratio=effects.get('compression_ratio', 8),
+            highpass_freq=effects.get('highpass_freq', 200),
+            lowpass_freq=effects.get('lowpass_freq', 2500),
+            echo_gain=effects.get('echo_gain', 0.4),
+            vibrato_freq=effects.get('vibrato_freq', 5),
+            vibrato_depth=effects.get('vibrato_depth', 0.2),
+        )
+        
+        # Update wake words and signature from skin identity
+        identity = skin.identity if hasattr(skin, 'identity') else {}
+        voice_system.wake_words = identity.get('wake_words', voice_system.wake_words)
+        voice_system.signature = identity.get('signature_phrase', voice_system.signature)
+        
+        # Update samples directory if skin has custom samples
+        samples_dir = voice_config.get('samples_dir')
+        if samples_dir:
+            voice_system.battle_droid_samples = Path(samples_dir)
+        
+        # Load quotes from skin for sarcastic intros
+        quotes = skin.quotes if hasattr(skin, 'quotes') else {}
+        if 'sarcastic_intros' in quotes:
+            voice_system.sarcastic_intros = quotes['sarcastic_intros']
+        
+        logger.info(f"Voice system configured from skin: {skin.name if hasattr(skin, 'name') else 'unknown'}")
+        return voice_system
+    
+    def update_from_skin(self, skin) -> None:
+        """
+        Update this VoiceSystem's settings from a skin.
+        Used for runtime skin switching without recreating the system.
+        """
+        voice_config = skin.voice if hasattr(skin, 'voice') else {}
+        effects = voice_config.get('effects', {})
+        
+        # Update voice settings
+        self.default_style = voice_config.get('style', self.default_style)
+        self.speed = voice_config.get('speed', self.speed)
+        self.pitch = voice_config.get('pitch', self.pitch)
+        self.use_authentic_samples = voice_config.get('use_authentic_samples', self.use_authentic_samples)
+        
+        # Update effects
+        self.bit_depth = effects.get('bit_depth', self.bit_depth)
+        self.bit_mix = effects.get('bit_mix', self.bit_mix)
+        self.tremolo_freq = effects.get('tremolo_freq', self.tremolo_freq)
+        self.tremolo_depth = effects.get('tremolo_depth', self.tremolo_depth)
+        self.compression_ratio = effects.get('compression_ratio', self.compression_ratio)
+        self.highpass_freq = effects.get('highpass_freq', self.highpass_freq)
+        self.lowpass_freq = effects.get('lowpass_freq', self.lowpass_freq)
+        self.echo_gain = effects.get('echo_gain', self.echo_gain)
+        self.vibrato_freq = effects.get('vibrato_freq', self.vibrato_freq)
+        self.vibrato_depth = effects.get('vibrato_depth', self.vibrato_depth)
+        
+        # Update identity
+        identity = skin.identity if hasattr(skin, 'identity') else {}
+        self.wake_words = identity.get('wake_words', self.wake_words)
+        self.signature = identity.get('signature_phrase', self.signature)
+        
+        # Update samples directory
+        samples_dir = voice_config.get('samples_dir')
+        if samples_dir:
+            self.battle_droid_samples = Path(samples_dir)
+        
+        # Update sarcastic intros from skin quotes
+        quotes = skin.quotes if hasattr(skin, 'quotes') else {}
+        if 'sarcastic_intros' in quotes:
+            self.sarcastic_intros = quotes['sarcastic_intros']
+        
+        logger.info(f"Voice system updated from skin: {skin.name if hasattr(skin, 'name') else 'unknown'}")
+
     def _play_battle_droid_sample(self, phrase: str) -> bool:
         """
         Play an authentic battle droid audio sample if available

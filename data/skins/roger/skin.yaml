@@ -1,0 +1,188 @@
+# Roger (R0-GR) Skin Configuration
+# Battle droid assistant from Star Wars universe
+
+identity:
+  name: "roger"
+  display_name: "R0-GR"
+  tagline: "Battle Droid Personal Assistant"
+  description: "A sarcastic battle droid assistant who reluctantly helps with your tasks"
+  avatar: "/assets/images/rogr.gif"
+  wake_words: ["rogr", "roger"]
+  signature_phrase: "Roger, roger."
+
+# Color scheme - Purple/Gray tech theme
+colors:
+  # Primary colors
+  primary: "#9333ea"        # Purple-600
+  primary_light: "#a855f7"  # Purple-500
+  primary_dark: "#7e22ce"   # Purple-700
+  
+  # Secondary colors  
+  secondary: "#6366f1"      # Indigo-500
+  secondary_light: "#818cf8" # Indigo-400
+  secondary_dark: "#4f46e5" # Indigo-600
+  
+  # Accent colors
+  accent: "#06b6d4"         # Cyan-500
+  accent_light: "#22d3ee"   # Cyan-400
+  accent_dark: "#0891b2"    # Cyan-600
+  
+  # Background colors
+  bg_primary: "#111827"     # Gray-900
+  bg_secondary: "#1f2937"   # Gray-800
+  bg_tertiary: "#374151"    # Gray-700
+  
+  # Text colors
+  text_primary: "#f3f4f6"   # Gray-100
+  text_secondary: "#d1d5db" # Gray-300
+  text_muted: "#9ca3af"     # Gray-400
+  
+  # Border colors
+  border_primary: "#374151" # Gray-700
+  border_accent: "#7c3aed"  # Violet-600
+  
+  # Widget-specific colors
+  weather_border: "#0e7490"   # Cyan-700
+  comics_border: "#ea580c"    # Orange-600
+  jokes_border: "#9333ea"     # Purple-600
+  quote_border: "#4f46e5"     # Indigo-600
+  tasks_border: "#16a34a"     # Green-600
+  calendar_border: "#2563eb"  # Blue-600
+  news_border: "#dc2626"      # Red-600
+  ebay_border: "#eab308"      # Yellow-500
+  communities_border: "#9333ea" # Purple-600
+
+# Voice configuration
+voice:
+  model: "en_US-lessac-medium"
+  style: "droid"
+  speed: 0.85
+  pitch: 0.80
+  effects:
+    bit_depth: 8
+    bit_mix: 0.5
+    tremolo_freq: 120
+    tremolo_depth: 0.18
+    compression_ratio: 8
+    highpass_freq: 200
+    lowpass_freq: 2500
+    echo_gain: 0.4
+    vibrato_freq: 5
+    vibrato_depth: 0.2
+  use_authentic_samples: true
+  samples_dir: "data/voice_models/battle_droid"
+
+# Dashboard configuration
+dashboard:
+  default_section: "overview"
+  
+  # Widgets configuration - modular system
+  widgets:
+    # ENABLED for Roger theme
+    weather:
+      enabled: true
+      title: "🌡️ Weather"
+      icon: "fa-cloud-sun"
+    comics:
+      enabled: true
+      title: "📚 Comics"
+      icon: "fa-book"
+      default: "garfield"
+      available:
+        - garfield
+        - calvin
+        - peanuts
+    jokes:
+      enabled: true
+      title: "😄 Jokes"
+      icon: "fa-laugh"
+    quote:
+      enabled: true
+      title: "✨ Quote"
+      icon: "fa-quote-right"
+    ebay:
+      enabled: true
+      title: "🔨 eBay Auctions"
+      icon: "fa-gavel"
+    parts_search:
+      enabled: true
+      title: "🔧 Parts Search"
+      icon: "fa-wrench"
+    history_fact:
+      enabled: true
+      title: "📜 History Fact"
+      icon: "fa-history"
+    starwars:
+      enabled: true
+      title: "⭐ Star Wars"
+      icon: "fa-jedi"
+    communities:
+      enabled: true
+      title: "🚀 Communities"
+      icon: "fa-users"
+      sources:
+        - name: "r/StarWars"
+          url: "https://reddit.com/r/StarWars"
+        - name: "r/retrogaming"
+          url: "https://reddit.com/r/retrogaming"
+        - name: "r/vintagecomputing"
+          url: "https://reddit.com/r/vintagecomputing"
+    roger_quotes:
+      enabled: true
+      title: "🤖 Roger Quotes"
+      icon: "fa-robot"
+    
+    # DISABLED for Roger theme
+    music_player:
+      enabled: false
+    art_communities:
+      enabled: false
+    music_communities:
+      enabled: false
+    dark_news:
+      enabled: false
+
+  # News categories
+  news:
+    categories:
+      - technology
+      - business
+      - science
+      - gaming
+    default_category: "technology"
+
+# Backgrounds
+backgrounds:
+  - name: "Tech Abstract"
+    file: "photo-1472457897821-70d3819a0e24.avif"
+  - name: "Purple Gradient"
+    file: "photo-1618336753974-aae8e04506aa.avif"
+  - name: "Dark Space"
+    file: "premium_photo-1721254102757-6ac920920e0a.avif"
+
+# Sidebar navigation
+navigation:
+  - id: "overview"
+    label: "Overview"
+    icon: "fa-home"
+  - id: "weather"
+    label: "Weather"
+    icon: "fa-cloud-sun"
+  - id: "news"
+    label: "News"
+    icon: "fa-newspaper"
+  - id: "tasks"
+    label: "Tasks"
+    icon: "fa-tasks"
+  - id: "calendar"
+    label: "Calendar"
+    icon: "fa-calendar"
+  - id: "settings"
+    label: "Settings"
+    icon: "fa-cog"
+
+# Features
+features:
+  ebay_auctions: true
+  parts_search: true
+  starwars_facts: true

@@ -159,11 +159,23 @@ class NotesSettings(BaseSettings):
         env_prefix = "NOTES_"
 
 
+class SkinSettings(BaseSettings):
+    """Skin/theme configuration."""
+    active_skin: str = Field(default="roger", description="Active dashboard skin (roger, dracula, etc.)")
+    skins_dir: str = Field(default="data/skins", description="Directory containing skin configurations")
+    
+    class Config:
+        env_prefix = "SKIN_"
+
+
 class DashboardSettings(BaseSettings):
     """Dashboard configuration."""
     output_dir: str = Field(default="output", description="Dashboard output directory")
     template_dir: str = Field(default="templates", description="Dashboard templates directory")
     static_dir: str = Field(default="static", description="Static files directory")
+    
+    # Skin settings
+    skin: SkinSettings = Field(default_factory=SkinSettings)
     
     # KPI Configuration
     weekly_goals: Dict[str, Any] = Field(default_factory=lambda: {

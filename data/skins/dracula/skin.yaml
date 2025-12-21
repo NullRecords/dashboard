@@ -1,0 +1,279 @@
+# Demon Skin Configuration
+# Gothic assistant for art, music, and dark aesthetics
+# Persona: Artistic goth girl who loves 90s alternative, art, and the macabre
+
+identity:
+  name: "dracula"
+  display_name: "Demon"
+  tagline: "Your Dark Muse & Creative Companion"
+  description: "A mischievous demon assistant passionate about art, music, chaos, and all things beautifully dark"
+  avatar: "/assets/images/dracula.svg"
+  wake_words: ["demon", "hey demon", "darkness", "fiend"]
+  signature_phrase: "What delicious chaos shall we create?"
+
+# Color scheme - Gothic dark red/purple/black
+colors:
+  # Primary colors - Blood red
+  primary: "#991b1b"        # Red-800
+  primary_light: "#dc2626"  # Red-600
+  primary_dark: "#7f1d1d"   # Red-900
+  
+  # Secondary colors - Deep purple
+  secondary: "#581c87"      # Purple-900
+  secondary_light: "#7e22ce" # Purple-700
+  secondary_dark: "#3b0764" # Purple-950
+  
+  # Accent colors - Crimson/Rose
+  accent: "#be123c"         # Rose-700
+  accent_light: "#e11d48"   # Rose-600
+  accent_dark: "#9f1239"    # Rose-800
+  
+  # Background colors - Near black
+  bg_primary: "#0a0a0a"     # Almost black
+  bg_secondary: "#171717"   # Neutral-900
+  bg_tertiary: "#262626"    # Neutral-800
+  
+  # Text colors - Pale/ghostly
+  text_primary: "#fafafa"   # Neutral-50
+  text_secondary: "#e5e5e5" # Neutral-200
+  text_muted: "#a3a3a3"     # Neutral-400
+  
+  # Border colors
+  border_primary: "#404040" # Neutral-700
+  border_accent: "#991b1b"  # Red-800
+  
+  # Widget-specific colors - Gothic theme
+  weather_border: "#581c87"   # Purple-900 (mysterious)
+  music_border: "#be123c"     # Rose-700
+  art_border: "#7e22ce"       # Purple-700
+  communities_border: "#991b1b" # Red-800
+  news_border: "#7f1d1d"      # Red-900
+  quote_border: "#581c87"     # Purple-900
+  tasks_border: "#3b0764"     # Purple-950
+  calendar_border: "#4c1d95"  # Violet-900
+
+# Voice configuration - British, dark, dramatic
+voice:
+  model: "en_GB-alba-medium"
+  style: "pa_system"
+  speed: 0.75
+  pitch: 0.70
+  effects:
+    bit_depth: 12
+    bit_mix: 0.3
+    tremolo_freq: 4
+    tremolo_depth: 0.12
+    compression_ratio: 4
+    highpass_freq: 100
+    lowpass_freq: 4000
+    echo_gain: 0.55
+    vibrato_freq: 3
+    vibrato_depth: 0.15
+  use_authentic_samples: true
+  samples_dir: "data/voice_models/dracula"
+
+# Dashboard configuration - Art/Music/Horror focus
+dashboard:
+  default_section: "overview"
+  
+  # Widgets configuration - modular system
+  widgets:
+    # ENABLED for Dracula theme
+    weather:
+      enabled: true
+      title: "🌙 Weather"
+      icon: "fa-cloud-moon"
+    music_player:
+      enabled: true
+      title: "🎵 Music Stream"
+      icon: "fa-music"
+      default_station: "90s_alternative"
+      stations:
+        - id: "90s_alternative"
+          name: "90s Alternative"
+          url: "https://www.last.fm/tag/90s+alternative"
+        - id: "musicals"
+          name: "Musicals & Soundtracks"
+          url: "https://www.last.fm/tag/musical"
+        - id: "gothic_rock"
+          name: "Gothic Rock"
+          url: "https://www.last.fm/tag/gothic+rock"
+        - id: "darkwave"
+          name: "Darkwave"
+          url: "https://www.last.fm/tag/darkwave"
+    art_communities:
+      enabled: true
+      title: "🎨 Art Communities"
+      icon: "fa-palette"
+      sources:
+        - name: "r/Art"
+          url: "https://reddit.com/r/Art"
+        - name: "r/DigitalArt"
+          url: "https://reddit.com/r/DigitalArt"
+        - name: "r/ImaginaryMonsters"
+          url: "https://reddit.com/r/ImaginaryMonsters"
+        - name: "r/DarkArt"
+          url: "https://reddit.com/r/DarkArt"
+        - name: "DeviantArt"
+          url: "https://www.deviantart.com"
+    music_communities:
+      enabled: true
+      title: "🎸 Music Communities"
+      icon: "fa-headphones"
+      sources:
+        - name: "r/90sAlternative"
+          url: "https://reddit.com/r/90sAlternative"
+        - name: "r/goth"
+          url: "https://reddit.com/r/goth"
+        - name: "r/postpunk"
+          url: "https://reddit.com/r/postpunk"
+        - name: "r/shoegaze"
+          url: "https://reddit.com/r/shoegaze"
+        - name: "Last.fm"
+          url: "https://www.last.fm"
+    dark_news:
+      enabled: true
+      title: "🦇 Dark News"
+      icon: "fa-ghost"
+      categories:
+        - horror
+        - fantasy
+        - music
+        - gothic
+    jokes:
+      enabled: true
+      title: "🖤 Dark Humor"
+      icon: "fa-skull"
+    quote:
+      enabled: true
+      title: "✨ Dark Quote"
+      icon: "fa-feather-alt"
+    history_fact:
+      enabled: true
+      title: "📜 This Day in Dark History"
+      icon: "fa-book-dead"
+    dracula_quotes:
+      enabled: true
+      title: "😈 Demon's Wisdom"
+      icon: "fa-fire"
+    communities:
+      enabled: false
+    
+    # DISABLED for Dracula theme
+    comics:
+      enabled: false
+    ebay:
+      enabled: false
+    parts_search:
+      enabled: false
+    roger_quotes:
+      enabled: false
+    starwars:
+      enabled: false
+
+  # News categories - Art, Music, Horror focus
+  news:
+    categories:
+      - horror
+      - fantasy
+      - music
+      - art
+      - gothic
+    default_category: "horror"
+    feeds:
+      - name: "Bloody Disgusting"
+        url: "https://bloody-disgusting.com/feed/"
+        category: "horror"
+      - name: "Dread Central"
+        url: "https://www.dreadcentral.com/feed/"
+        category: "horror"
+      - name: "Tor.com"
+        url: "https://www.tor.com/feed/"
+        category: "fantasy"
+      - name: "Pitchfork"
+        url: "https://pitchfork.com/rss/reviews/albums/"
+        category: "music"
+      - name: "Stereogum"
+        url: "https://www.stereogum.com/feed/"
+        category: "music"
+      - name: "Consequence"
+        url: "https://consequence.net/feed/"
+        category: "music"
+      - name: "Colossal Art"
+        url: "https://www.thisiscolossal.com/feed/"
+        category: "art"
+      - name: "Hi-Fructose"
+        url: "https://hifructose.com/feed/"
+        category: "art"
+
+  # Music discovery - 90s alternative focus
+  music:
+    genres:
+      - "90s alternative"
+      - "gothic rock"
+      - "darkwave"
+      - "shoegaze"
+      - "post-punk"
+      - "grunge"
+      - "trip-hop"
+      - "industrial"
+    favorite_artists:
+      - "The Cure"
+      - "Siouxsie and the Banshees"
+      - "Nine Inch Nails"
+      - "Portishead"
+      - "Massive Attack"
+      - "Cocteau Twins"
+      - "Bauhaus"
+      - "Joy Division"
+      - "The Smiths"
+      - "Radiohead"
+      - "Smashing Pumpkins"
+      - "Hole"
+      - "PJ Harvey"
+      - "Björk"
+      - "Mazzy Star"
+      - "My Bloody Valentine"
+
+# Backgrounds - Using existing dark images until custom ones are added
+backgrounds:
+  - name: "Dark Void"
+    file: "photo-1472457897821-70d3819a0e24.avif"
+  - name: "Purple Mist"
+    file: "photo-1618336753974-aae8e04506aa.avif"
+  - name: "Night Sky"
+    file: "premium_photo-1721254102757-6ac520920e0a.avif"
+
+# Sidebar navigation - Creative/Dark focus
+navigation:
+  - id: "overview"
+    label: "Sanctuary"
+    icon: "fa-moon"
+  - id: "music"
+    label: "Music"
+    icon: "fa-music"
+  - id: "art"
+    label: "Art"
+    icon: "fa-palette"
+  - id: "weather"
+    label: "Weather"
+    icon: "fa-cloud-moon"
+  - id: "news"
+    label: "Dark News"
+    icon: "fa-ghost"
+  - id: "tasks"
+    label: "Rituals"
+    icon: "fa-scroll"
+  - id: "calendar"
+    label: "Calendar"
+    icon: "fa-calendar-alt"
+  - id: "settings"
+    label: "Settings"
+    icon: "fa-cog"
+
+# Special features
+features:
+  moon_phase: true
+  poetry_of_the_day: true
+  music_player: true
+  lastfm_integration: true

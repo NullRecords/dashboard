@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a0a0a"/>
+      <stop offset="100%" style="stop-color:#3d0f0f"/>
+    </linearGradient>
+    <linearGradient id="moon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f0e68c"/>
+      <stop offset="100%" style="stop-color:#daa520"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="200" height="200" fill="url(#bg)" rx="10"/>
+  
+  <!-- Moon -->
+  <circle cx="160" cy="40" r="25" fill="url(#moon)" opacity="0.9"/>
+  <circle cx="170" cy="35" r="22" fill="url(#bg)"/>
+  
+  <!-- Bats -->
+  <g fill="#2d0a0a" opacity="0.8">
+    <path d="M30 50 Q25 45 20 50 L25 55 Q30 50 35 55 L30 50" transform="scale(0.8)"/>
+    <path d="M60 30 Q55 25 50 30 L55 35 Q60 30 65 35 L60 30" transform="scale(0.7)"/>
+  </g>
+  
+  <!-- Dracula silhouette -->
+  <g transform="translate(100, 100)">
+    <!-- Cape -->
+    <path d="M-50 80 Q-60 20 -30 -20 L0 -60 L30 -20 Q60 20 50 80 Z" fill="#1a0505"/>
+    
+    <!-- Body -->
+    <ellipse cx="0" cy="20" rx="25" ry="40" fill="#2d0808"/>
+    
+    <!-- Head -->
+    <circle cx="0" cy="-35" r="30" fill="#e8d5c4"/>
+    
+    <!-- Hair -->
+    <path d="M-25 -50 Q-30 -70 -15 -65 Q0 -75 15 -65 Q30 -70 25 -50" fill="#0a0a0a"/>
+    
+    <!-- Eyes -->
+    <ellipse cx="-10" cy="-38" rx="5" ry="4" fill="#8b0000"/>
+    <ellipse cx="10" cy="-38" rx="5" ry="4" fill="#8b0000"/>
+    <circle cx="-10" cy="-38" r="2" fill="#ff0000"/>
+    <circle cx="10" cy="-38" r="2" fill="#ff0000"/>
+    
+    <!-- Eyebrows -->
+    <path d="M-18 -48 Q-10 -52 -5 -48" stroke="#0a0a0a" stroke-width="2" fill="none"/>
+    <path d="M5 -48 Q10 -52 18 -48" stroke="#0a0a0a" stroke-width="2" fill="none"/>
+    
+    <!-- Nose -->
+    <path d="M0 -35 L3 -28 L-3 -28 Z" fill="#d4c0b0"/>
+    
+    <!-- Mouth with fangs -->
+    <path d="M-10 -20 Q0 -15 10 -20" stroke="#5a0a0a" stroke-width="2" fill="none"/>
+    <path d="M-5 -20 L-3 -14" stroke="#ffffff" stroke-width="2"/>
+    <path d="M5 -20 L3 -14" stroke="#ffffff" stroke-width="2"/>
+    
+    <!-- Collar -->
+    <path d="M-25 -5 L-15 20 L0 5 L15 20 L25 -5" fill="#8b0000" stroke="#5a0000" stroke-width="1"/>
+  </g>
+  
+  <!-- Text -->
+  <text x="100" y="185" text-anchor="middle" fill="#8b0000" font-family="serif" font-size="16" font-style="italic">Dracula</text>
+</svg>

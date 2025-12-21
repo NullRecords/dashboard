@@ -3,27 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>R0-GR Personal Assistant</title>
+    <title id="page-title">Personal Assistant</title>
     <link rel="icon" href="/assets/images/forge-logo.png" type="image/png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style id="skin-css">
+        /* Default skin variables - will be overwritten by active skin */
+        :root {
+            --skin-primary: #9333ea;
+            --skin-primary-light: #a855f7;
+            --skin-primary-dark: #7e22ce;
+            --skin-secondary: #6366f1;
+            --skin-accent: #06b6d4;
+            --skin-bg-primary: #111827;
+            --skin-bg-secondary: #1f2937;
+            --skin-bg-tertiary: #374151;
+            --skin-text-primary: #f3f4f6;
+            --skin-text-secondary: #d1d5db;
+            --skin-text-muted: #9ca3af;
+            --skin-border-primary: #374151;
+            --skin-border-accent: #7c3aed;
+        }
+        /* Apply skin colors to elements */
+        .skin-primary { color: var(--skin-primary); }
+        .skin-primary-bg { background-color: var(--skin-primary); }
+        .skin-primary-border { border-color: var(--skin-primary); }
+        .skin-secondary { color: var(--skin-secondary); }
+        .skin-accent { color: var(--skin-accent); }
+        .skin-bg-primary { background-color: var(--skin-bg-primary); }
+        .skin-bg-secondary { background-color: var(--skin-bg-secondary); }
+        .skin-text-primary { color: var(--skin-text-primary); }
+        .skin-text-secondary { color: var(--skin-text-secondary); }
+        .skin-border { border-color: var(--skin-border-primary); }
+        .skin-border-accent { border-color: var(--skin-border-accent); }
+    </style>
 </head>
-<body class="bg-gray-900 text-gray-100 h-full">
+<body class="bg-gray-900 text-gray-100 h-full" style="background-color: var(--skin-bg-primary); color: var(--skin-text-primary);">
     <div id="app-bg" class="fixed inset-0 -z-10 bg-cover bg-center opacity-25"></div>
     <!-- Main Container -->
     <div class="flex h-full">
         <!-- Sidebar Navigation -->
-        <aside class="w-64 bg-gray-800 border-r border-gray-700 overflow-y-auto">
-            <div class="p-6 border-b border-gray-700 space-y-3">
-                <img src="/assets/images/rogr.gif" alt="Roger" class="w-full h-auto rounded-lg border border-purple-500 object-cover"/>
-                <div class="text-xl font-bold text-purple-300">R0-GR</div>
+        <aside class="w-64 border-r overflow-y-auto" style="background-color: var(--skin-bg-secondary); border-color: var(--skin-border-primary);">
+            <div class="p-6 border-b space-y-3" style="border-color: var(--skin-border-primary);">
+                <img id="assistant-avatar" src="/assets/images/rogr.gif" alt="Assistant" class="w-full h-auto rounded-lg object-cover" style="border: 2px solid var(--skin-primary);"/>
+                <div id="assistant-name" class="text-xl font-bold" style="color: var(--skin-primary-light);">R0-GR</div>
                 <div class="flex gap-2">
-                    <button onclick="toggleWakeWord()" class="px-3 py-2 bg-purple-700 hover:bg-purple-600 rounded text-xs">🎤 Listen</button>
-                    <button onclick="promptSpeak()" class="px-3 py-2 bg-purple-600 hover:bg-purple-500 rounded text-xs">💬 Ask</button>
+                    <button onclick="toggleWakeWord()" class="px-3 py-2 rounded text-xs" style="background-color: var(--skin-primary-dark);">🎤 Listen</button>
+                    <button onclick="promptSpeak()" class="px-3 py-2 rounded text-xs" style="background-color: var(--skin-primary);">💬 Ask</button>
                 </div>
-                <a href="/assistant" class="block text-xs text-purple-400 hover:text-purple-300 underline">Open R0-GR Assistant</a>
+                <a id="assistant-link" href="/assistant" class="block text-xs underline" style="color: var(--skin-primary-light);">Open Assistant</a>
+                <!-- Skin Switcher -->
+                <div class="pt-2 border-t" style="border-color: var(--skin-border-primary);">
+                    <label class="text-xs" style="color: var(--skin-text-muted);">Theme:</label>
+                    <select id="skin-select" onchange="switchSkin(this.value)" class="w-full mt-1 px-2 py-1 rounded text-sm" style="background-color: var(--skin-bg-primary); border: 1px solid var(--skin-border-primary); color: var(--skin-text-secondary);">
+                        <option value="roger">🤖 Roger (Battle Droid)</option>
+                        <option value="dracula">😈 Demon (Gothic)</option>
+                    </select>
+                </div>
             </div>
-            <nav class="space-y-2 px-4 py-4">
+            <nav id="sidebar-nav" class="space-y-2 px-4 py-4">
                 <button onclick="showSection('overview')" class="nav-link w-full text-left px-4 py-3 rounded-lg bg-gray-700 text-white transition-colors hover:bg-gray-600">
                     <i class="fas fa-home mr-2"></i>Overview
                 </button>
@@ -53,136 +91,262 @@
 
         <!-- Main Content Area -->
         <main class="flex-1 overflow-y-auto">
-            <div class="sticky top-0 z-10 backdrop-blur bg-gray-800/60 border-b border-gray-700">
+            <div class="sticky top-0 z-10 backdrop-blur border-b" style="background-color: var(--skin-bg-secondary); border-color: var(--skin-border-primary);">
                 <div class="px-6 py-3 flex items-center justify-between">
-                    <div class="text-xl font-bold text-white">Dashboard</div>
-                    <div class="flex items-center gap-2 text-sm">
-                        <span class="text-gray-300">Background:</span>
-                        <select id="bg-select" class="px-2 py-1 bg-gray-900 border border-gray-700 rounded text-sm text-gray-200">
+                    <div id="header-title" class="text-xl font-bold text-white">Dashboard</div>
+                    <div class="flex items-center gap-3 text-sm">
+                        <!-- Theme Switcher - Prominent Position -->
+                        <div class="flex items-center gap-2 px-3 py-1 rounded-lg" style="background-color: var(--skin-bg-tertiary);">
+                            <span style="color: var(--skin-accent);">🎨 Theme:</span>
+                            <select id="skin-select-header" onchange="switchSkin(this.value)" class="px-2 py-1 rounded text-sm font-semibold" style="background-color: var(--skin-bg-primary); border: 2px solid var(--skin-primary); color: var(--skin-text-primary);">
+                                <option value="roger">🤖 Roger</option>
+                                <option value="dracula">😈 Demon</option>
+                            </select>
+                        </div>
+                        <span style="color: var(--skin-text-muted);">|</span>
+                        <span style="color: var(--skin-text-secondary);">Background:</span>
+                        <select id="bg-select" class="px-2 py-1 rounded text-sm" style="background-color: var(--skin-bg-primary); border: 1px solid var(--skin-border-primary); color: var(--skin-text-secondary);">
                             <option value="bg1">Background 1</option>
                             <option value="bg2">Background 2</option>
                             <option value="bg3">Background 3</option>
                         </select>
-                        <button id="bg-prev" class="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded" title="Previous">⟨</button>
-                        <button id="bg-next" class="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded" title="Next">⟩</button>
-                        <input id="bg-url" type="url" placeholder="Paste image URL" class="hidden md:block w-64 px-2 py-1 bg-gray-900 border border-gray-700 rounded text-sm text-gray-200"/>
-                        <button id="bg-url-set" class="hidden md:block px-2 py-1 bg-indigo-600 hover:bg-indigo-500 rounded">Set URL</button>
+                        <button id="bg-prev" class="px-2 py-1 rounded" style="background-color: var(--skin-bg-tertiary);" title="Previous">⟨</button>
+                        <button id="bg-next" class="px-2 py-1 rounded" style="background-color: var(--skin-bg-tertiary);" title="Next">⟩</button>
+                        <input id="bg-url" type="url" placeholder="Paste image URL" class="hidden md:block w-48 px-2 py-1 rounded text-sm" style="background-color: var(--skin-bg-primary); border: 1px solid var(--skin-border-primary); color: var(--skin-text-secondary);"/>
+                        <button id="bg-url-set" class="hidden md:block px-2 py-1 rounded" style="background-color: var(--skin-secondary);">Set</button>
                     </div>
                 </div>
             </div>
             <!-- Overview Section -->
             <section id="section-overview" class="section-content p-8 space-y-8">
-                <!-- Top Focus: Weather + Garfield -->
+                <!-- Top Focus: Weather + Second Widget (Comics or Music Player) -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Weather Widget (Large) -->
-                    <div class="bg-gray-800 rounded-lg border border-cyan-700 p-6">
+                    <!-- Weather Widget (Large) - Always visible -->
+                    <div data-widget="weather" class="widget-container bg-gray-800 rounded-lg p-6" style="border: 2px solid var(--skin-weather-border, #0e7490);">
                         <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-2xl font-bold text-cyan-300">🌡️ Weather</h3>
+                            <h3 class="text-2xl font-bold" style="color: var(--skin-accent);">🌡️ Weather</h3>
                             <div class="flex gap-2">
-                                <button onclick="useCurrentLocation()" class="px-3 py-2 bg-cyan-700 hover:bg-cyan-600 rounded text-xs">Use Current</button>
+                                <button onclick="useCurrentLocation()" class="px-3 py-2 rounded text-xs" style="background-color: var(--skin-secondary); color: var(--skin-text-primary);">Use Current</button>
                             </div>
                         </div>
                         <div class="flex gap-3 mb-3">
-                            <input id="weather-search-input" type="text" placeholder="Search city or place..." class="flex-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded text-sm text-gray-200 placeholder-gray-500">
-                            <button onclick="searchWeather()" class="px-3 py-2 bg-cyan-700 hover:bg-cyan-600 rounded text-sm">Search</button>
+                            <input id="weather-search-input" type="text" placeholder="Search city or place..." class="flex-1 px-3 py-2 rounded text-sm" style="background-color: var(--skin-bg-primary); border: 1px solid var(--skin-border-primary); color: var(--skin-text-secondary);">
+                            <button onclick="searchWeather()" class="px-3 py-2 rounded text-sm" style="background-color: var(--skin-secondary); color: var(--skin-text-primary);">Search</button>
                         </div>
-                        <div id="weather-search-results" class="mb-3 text-sm text-gray-400"></div>
+                        <div id="weather-search-results" class="mb-3 text-sm" style="color: var(--skin-text-muted);"></div>
                         <div class="mb-3">
-                            <div class="text-xs text-gray-400 mb-2">Quick picks:</div>
+                            <div class="text-xs mb-2" style="color: var(--skin-text-muted);">Quick picks:</div>
                             <div class="flex flex-wrap gap-2">
-                                <button class="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs" onclick="selectWeatherLocation(45.5152,-122.6784,'Portland, OR')">Portland, OR</button>
-                                <button class="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs" onclick="selectWeatherLocation(51.5072,-0.1276,'London, UK')">London</button>
-                                <button class="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs" onclick="selectWeatherLocation(35.6762,139.6503,'Tokyo, JP')">Tokyo</button>
-                                <button class="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs" onclick="selectWeatherLocation(-33.8688,151.2093,'Sydney, AU')">Sydney</button>
-                                <button class="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs" onclick="selectWeatherLocation(48.8566,2.3522,'Paris, FR')">Paris</button>
-                                <button class="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs" onclick="selectWeatherLocation(40.7128,-74.0060,'New York, US')">New York</button>
+                                <button class="px-2 py-1 rounded text-xs" style="background-color: var(--skin-bg-tertiary); color: var(--skin-text-secondary);" onclick="selectWeatherLocation(45.5152,-122.6784,'Portland, OR')">Portland, OR</button>
+                                <button class="px-2 py-1 rounded text-xs" style="background-color: var(--skin-bg-tertiary); color: var(--skin-text-secondary);" onclick="selectWeatherLocation(51.5072,-0.1276,'London, UK')">London</button>
+                                <button class="px-2 py-1 rounded text-xs" style="background-color: var(--skin-bg-tertiary); color: var(--skin-text-secondary);" onclick="selectWeatherLocation(35.6762,139.6503,'Tokyo, JP')">Tokyo</button>
+                                <button class="px-2 py-1 rounded text-xs" style="background-color: var(--skin-bg-tertiary); color: var(--skin-text-secondary);" onclick="selectWeatherLocation(-33.8688,151.2093,'Sydney, AU')">Sydney</button>
+                                <button class="px-2 py-1 rounded text-xs" style="background-color: var(--skin-bg-tertiary); color: var(--skin-text-secondary);" onclick="selectWeatherLocation(48.8566,2.3522,'Paris, FR')">Paris</button>
+                                <button class="px-2 py-1 rounded text-xs" style="background-color: var(--skin-bg-tertiary); color: var(--skin-text-secondary);" onclick="selectWeatherLocation(40.7128,-74.0060,'New York, US')">New York</button>
                             </div>
                         </div>
-                        <div id="weather-display" class="text-gray-200">Loading...</div>
+                        <div id="weather-display" style="color: var(--skin-text-secondary);">Loading...</div>
                         <div id="weather-forecast" class="mt-4 grid grid-cols-2 md:grid-cols-5 gap-2"></div>
                         <div id="weather-alerts" class="mt-4"></div>
                     </div>
 
-                    <!-- Garfield (Large) -->
-                    <div class="bg-gray-800 rounded-lg border border-orange-600 p-6">
+                    <!-- Comics Widget (Roger) -->
+                    <div data-widget="comics" class="widget-container bg-gray-800 rounded-lg p-6" style="border: 2px solid var(--skin-comics-border, #ea580c);">
                         <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-2xl font-bold text-orange-300">📚 Comics</h3>
-                            <select id="comic-select" class="px-3 py-2 bg-gray-900 border border-gray-700 rounded text-sm text-gray-200">
+                            <h3 class="text-2xl font-bold" style="color: var(--skin-accent);">📚 Comics</h3>
+                            <select id="comic-select" class="px-3 py-2 rounded text-sm" style="background-color: var(--skin-bg-primary); border: 1px solid var(--skin-border-primary); color: var(--skin-text-secondary);">
                                 <option value="garfield">Garfield</option>
                                 <option value="calvin">Calvin & Hobbes</option>
                                 <option value="peanuts">Peanuts</option>
                                 <option value="favorites">Favorites</option>
                             </select>
                         </div>
-                        <div id="garfield" class="text-sm text-gray-300 min-h-64">Loading...</div>
+                        <div id="garfield" class="text-sm min-h-64" style="color: var(--skin-text-secondary);">Loading...</div>
                         <div class="flex gap-2 mt-4">
-                            <button onclick="reloadComic()" class="px-3 py-2 bg-orange-600 hover:bg-orange-700 rounded text-sm">Reload</button>
-                            <button onclick="showComicsArchive()" class="px-3 py-2 bg-orange-700 hover:bg-orange-800 rounded text-sm">📚 Archive</button>
+                            <button onclick="reloadComic()" class="px-3 py-2 rounded text-sm" style="background-color: var(--skin-primary); color: var(--skin-text-primary);">Reload</button>
+                            <button onclick="showComicsArchive()" class="px-3 py-2 rounded text-sm" style="background-color: var(--skin-primary-dark); color: var(--skin-text-primary);">📚 Archive</button>
+                        </div>
+                    </div>
+
+                    <!-- Music Player Widget (Dracula) -->
+                    <div data-widget="music_player" class="widget-container bg-gray-800 rounded-lg p-6 hidden" style="border: 2px solid var(--skin-accent, #dc2626);">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-2xl font-bold" style="color: var(--skin-accent);">🎵 Music Player</h3>
+                            <button onclick="toggleMusicPlayer()" class="px-3 py-1 rounded text-xs" style="background-color: var(--skin-primary); color: var(--skin-text-primary);">▶️ Play</button>
+                        </div>
+                        <div class="mb-4">
+                            <label class="text-sm" style="color: var(--skin-text-muted);">Last.fm Station:</label>
+                            <select id="lastfm-station" class="w-full px-3 py-2 rounded text-sm mt-2" style="background-color: var(--skin-bg-primary); border: 1px solid var(--skin-border-primary); color: var(--skin-text-secondary);">
+                                <option value="90s_alternative">🎸 90's Alternative Rock</option>
+                                <option value="gothic_rock">🦇 Gothic Rock</option>
+                                <option value="darkwave">🌙 Darkwave</option>
+                                <option value="musicals">🎭 Musical Theater</option>
+                                <option value="industrial">⚙️ Industrial</option>
+                                <option value="shoegaze">👟 Shoegaze</option>
+                            </select>
+                        </div>
+                        <div id="now-playing" class="text-sm mb-4" style="color: var(--skin-text-secondary);">
+                            <div class="flex items-center gap-3">
+                                <div class="w-16 h-16 rounded" style="background-color: var(--skin-bg-tertiary);"></div>
+                                <div>
+                                    <div class="font-semibold">Select a station to begin</div>
+                                    <div class="text-xs" style="color: var(--skin-text-muted);">Your 90's alternative vibes await</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="recent-tracks" class="space-y-2 text-sm" style="color: var(--skin-text-muted);">
+                            <div class="text-xs uppercase tracking-wide mb-2">Recent Tracks</div>
+                            <div class="italic">Play something to see recent tracks...</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Jokes & Quote -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-gray-800 rounded-lg border border-purple-600 p-6">
+                <div data-widget="jokes_quote" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div data-widget="jokes" class="widget-container bg-gray-800 rounded-lg p-6" style="border: 2px solid var(--skin-jokes-border, #9333ea);">
                         <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-semibold text-purple-300">😄 Jokes</h3>
-                            <button onclick="readJokes()" class="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-xs">🔊 Read</button>
+                            <h3 class="text-lg font-semibold" style="color: var(--skin-primary-light);">😄 Jokes</h3>
+                            <button onclick="readJokes()" class="px-3 py-1 rounded text-xs" style="background-color: var(--skin-primary); color: var(--skin-text-primary);">🔊 Read</button>
                         </div>
-                        <div id="jokes" class="text-sm text-gray-300">Loading...</div>
+                        <div id="jokes" class="text-sm" style="color: var(--skin-text-secondary);">Loading...</div>
                     </div>
-                    <div class="bg-gray-800 rounded-lg border border-indigo-600 p-6">
+                    <div data-widget="quote" class="widget-container bg-gray-800 rounded-lg p-6" style="border: 2px solid var(--skin-quote-border, #4f46e5);">
                         <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-semibold text-indigo-300">✨ Quote</h3>
-                            <button onclick="readQuote()" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 rounded text-xs">🔊 Read</button>
+                            <h3 class="text-lg font-semibold" style="color: var(--skin-secondary-light);">✨ Quote</h3>
+                            <button onclick="readQuote()" class="px-3 py-1 rounded text-xs" style="background-color: var(--skin-secondary); color: var(--skin-text-primary);">🔊 Read</button>
                         </div>
-                        <div id="quote" class="text-sm text-gray-300 italic">Loading...</div>
+                        <div id="quote" class="text-sm italic" style="color: var(--skin-text-secondary);">Loading...</div>
                     </div>
                 </div>
 
-                <!-- eBay Auctions Section -->
-                <div class="bg-gray-800 rounded-lg border border-yellow-600 p-6">
+                <!-- eBay Auctions Section (Roger) -->
+                <div data-widget="ebay" class="widget-container bg-gray-800 rounded-lg p-6" style="border: 2px solid var(--skin-ebay-border, #eab308);">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xl font-semibold text-yellow-300">
+                        <h3 class="text-xl font-semibold" style="color: var(--skin-accent);">
                             <i class="fas fa-gavel mr-2"></i>eBay Auction Finds
                         </h3>
-                        <button onclick="loadEbayAuctions()" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg text-sm">
+                        <button onclick="loadEbayAuctions()" class="px-4 py-2 rounded-lg text-sm" style="background-color: var(--skin-accent); color: var(--skin-bg-primary);">
                             <i class="fas fa-sync-alt mr-2"></i>Refresh
                         </button>
                     </div>
-                    <p class="text-sm text-gray-400 mb-4">💻 Retro laptops & gaming systems ending soon with great prices</p>
+                    <p class="text-sm mb-4" style="color: var(--skin-text-muted);">💻 Retro laptops & gaming systems ending soon with great prices</p>
                     <div id="ebay-auctions-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div class="text-gray-400 text-center py-8 col-span-full">Loading retro tech auctions...</div>
+                        <div class="text-center py-8 col-span-full" style="color: var(--skin-text-muted);">Loading retro tech auctions...</div>
+                    </div>
+                </div>
+
+                <!-- Dark News Section (Dracula) - Horror, Fantasy, 90s Music -->
+                <div data-widget="dark_news" class="widget-container bg-gray-800 rounded-lg p-6 hidden" style="border: 2px solid var(--skin-news-border, #dc2626);">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-semibold" style="color: var(--skin-accent);">
+                            <i class="fas fa-moon mr-2"></i>Dark News Feed
+                        </h3>
+                        <button onclick="loadDarkNews()" class="px-4 py-2 rounded-lg text-sm" style="background-color: var(--skin-primary); color: var(--skin-text-primary);">
+                            <i class="fas fa-sync-alt mr-2"></i>Refresh
+                        </button>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <button onclick="loadDarkNews('horror')" class="px-3 py-1 rounded text-xs" style="background-color: var(--skin-bg-tertiary); color: var(--skin-text-secondary);">🧛 Horror</button>
+                        <button onclick="loadDarkNews('fantasy')" class="px-3 py-1 rounded text-xs" style="background-color: var(--skin-bg-tertiary); color: var(--skin-text-secondary);">🐉 Fantasy</button>
+                        <button onclick="loadDarkNews('90s_music')" class="px-3 py-1 rounded text-xs" style="background-color: var(--skin-bg-tertiary); color: var(--skin-text-secondary);">🎸 90's Music</button>
+                        <button onclick="loadDarkNews('gothic')" class="px-3 py-1 rounded text-xs" style="background-color: var(--skin-bg-tertiary); color: var(--skin-text-secondary);">🦇 Gothic</button>
+                    </div>
+                    <div id="dark-news-list" class="space-y-3">
+                        <div class="text-center py-8" style="color: var(--skin-text-muted);">Loading dark news...</div>
+                    </div>
+                </div>
+
+                <!-- Art Communities (Dracula) -->
+                <div data-widget="art_communities" class="widget-container bg-gray-800 rounded-lg p-6 hidden" style="border: 2px solid var(--skin-communities-border, #9333ea);">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-semibold" style="color: var(--skin-primary);">
+                            <i class="fas fa-palette mr-2"></i>Art Communities
+                        </h3>
+                        <button onclick="loadArtCommunities()" class="px-3 py-1 rounded text-xs" style="background-color: var(--skin-primary); color: var(--skin-text-primary);">Refresh</button>
+                    </div>
+                    <div id="art-communities-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <a href="https://reddit.com/r/Art" target="_blank" class="block p-3 rounded hover:opacity-80" style="background-color: var(--skin-bg-tertiary);">
+                            <div class="font-semibold" style="color: var(--skin-text-primary);">🎨 r/Art</div>
+                            <div class="text-xs" style="color: var(--skin-text-muted);">Art and artists</div>
+                        </a>
+                        <a href="https://reddit.com/r/DigitalArt" target="_blank" class="block p-3 rounded hover:opacity-80" style="background-color: var(--skin-bg-tertiary);">
+                            <div class="font-semibold" style="color: var(--skin-text-primary);">💻 r/DigitalArt</div>
+                            <div class="text-xs" style="color: var(--skin-text-muted);">Digital creation</div>
+                        </a>
+                        <a href="https://reddit.com/r/creepy" target="_blank" class="block p-3 rounded hover:opacity-80" style="background-color: var(--skin-bg-tertiary);">
+                            <div class="font-semibold" style="color: var(--skin-text-primary);">👻 r/creepy</div>
+                            <div class="text-xs" style="color: var(--skin-text-muted);">Dark and creepy art</div>
+                        </a>
+                        <a href="https://reddit.com/r/ImaginaryMonsters" target="_blank" class="block p-3 rounded hover:opacity-80" style="background-color: var(--skin-bg-tertiary);">
+                            <div class="font-semibold" style="color: var(--skin-text-primary);">🐲 r/ImaginaryMonsters</div>
+                            <div class="text-xs" style="color: var(--skin-text-muted);">Fantasy creatures</div>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Music Communities (Dracula) -->
+                <div data-widget="music_communities" class="widget-container bg-gray-800 rounded-lg p-6 hidden" style="border: 2px solid var(--skin-communities-border, #9333ea);">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-semibold" style="color: var(--skin-primary);">
+                            <i class="fas fa-music mr-2"></i>Music Communities
+                        </h3>
+                        <button onclick="loadMusicCommunities()" class="px-3 py-1 rounded text-xs" style="background-color: var(--skin-primary); color: var(--skin-text-primary);">Refresh</button>
+                    </div>
+                    <div id="music-communities-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <a href="https://reddit.com/r/90sAlternative" target="_blank" class="block p-3 rounded hover:opacity-80" style="background-color: var(--skin-bg-tertiary);">
+                            <div class="font-semibold" style="color: var(--skin-text-primary);">🎸 r/90sAlternative</div>
+                            <div class="text-xs" style="color: var(--skin-text-muted);">90's alternative rock</div>
+                        </a>
+                        <a href="https://reddit.com/r/goth" target="_blank" class="block p-3 rounded hover:opacity-80" style="background-color: var(--skin-bg-tertiary);">
+                            <div class="font-semibold" style="color: var(--skin-text-primary);">🦇 r/goth</div>
+                            <div class="text-xs" style="color: var(--skin-text-muted);">Goth music & culture</div>
+                        </a>
+                        <a href="https://reddit.com/r/musicals" target="_blank" class="block p-3 rounded hover:opacity-80" style="background-color: var(--skin-bg-tertiary);">
+                            <div class="font-semibold" style="color: var(--skin-text-primary);">🎭 r/musicals</div>
+                            <div class="text-xs" style="color: var(--skin-text-muted);">Musical theater</div>
+                        </a>
+                        <a href="https://reddit.com/r/singing" target="_blank" class="block p-3 rounded hover:opacity-80" style="background-color: var(--skin-bg-tertiary);">
+                            <div class="font-semibold" style="color: var(--skin-text-primary);">🎤 r/singing</div>
+                            <div class="text-xs" style="color: var(--skin-text-muted);">Singing tips & feedback</div>
+                        </a>
                     </div>
                 </div>
 
                 <!-- Calm Radar / Anxiety Feed -->
                     
 
-                <!-- Roger Home Content -->
+                <!-- Roger Home Content - Modular Widgets Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div class="bg-gray-800 rounded-lg border border-gray-700 p-6">
-                        <h3 class="text-lg font-semibold text-gray-300 mb-3">🔧 Parts Search</h3>
-                        <div id="parts" class="text-sm text-gray-400">Loading...</div>
+                    <div data-widget="parts_search" class="widget-container bg-gray-800 rounded-lg p-6" style="border: 1px solid var(--skin-border-primary);">
+                        <h3 class="text-lg font-semibold mb-3" style="color: var(--skin-text-secondary);">🔧 Parts Search</h3>
+                        <div id="parts" class="text-sm" style="color: var(--skin-text-muted);">Loading...</div>
                     </div>
-                    <div class="bg-gray-800 rounded-lg border border-gray-700 p-6">
-                        <h3 class="text-lg font-semibold text-gray-300 mb-3">📜 History Fact</h3>
-                        <div id="history" class="text-sm text-gray-400">Loading...</div>
+                    <div data-widget="history_fact" class="widget-container bg-gray-800 rounded-lg p-6" style="border: 1px solid var(--skin-border-primary);">
+                        <h3 class="text-lg font-semibold mb-3" style="color: var(--skin-text-secondary);">📜 History Fact</h3>
+                        <div id="history" class="text-sm" style="color: var(--skin-text-muted);">Loading...</div>
                     </div>
-                    <div class="bg-gray-800 rounded-lg border border-gray-700 p-6">
-                        <h3 class="text-lg font-semibold text-gray-300 mb-3">⭐ Star Wars</h3>
-                        <div id="starwars" class="text-sm text-gray-400">Loading...</div>
+                    <div data-widget="starwars" class="widget-container bg-gray-800 rounded-lg p-6" style="border: 1px solid var(--skin-border-primary);">
+                        <h3 class="text-lg font-semibold mb-3" style="color: var(--skin-text-secondary);">⭐ Star Wars</h3>
+                        <div id="starwars" class="text-sm" style="color: var(--skin-text-muted);">Loading...</div>
                     </div>
-                    <div class="bg-gray-800 rounded-lg border border-gray-700 p-6">
-                        <h3 class="text-lg font-semibold text-gray-300 mb-3">🚀 Communities</h3>
-                        <div id="communities" class="text-sm text-gray-400">Loading...</div>
+                    <div data-widget="communities" class="widget-container bg-gray-800 rounded-lg p-6" style="border: 1px solid var(--skin-border-primary);">
+                        <h3 class="text-lg font-semibold mb-3" style="color: var(--skin-text-secondary);">🚀 Communities</h3>
+                        <div id="communities" class="text-sm" style="color: var(--skin-text-muted);">Loading...</div>
                     </div>
-                    <div class="bg-gray-800 rounded-lg border border-gray-700 p-6">
+                    <div data-widget="roger_quotes" class="widget-container bg-gray-800 rounded-lg p-6" style="border: 1px solid var(--skin-border-primary);">
                         <div class="flex items-center justify-between mb-3">
-                            <h3 class="text-lg font-semibold text-gray-300">🤖 Roger Quotes</h3>
-                            <button onclick="readRogerQuote()" class="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-xs">🔊 Read</button>
+                            <h3 class="text-lg font-semibold" style="color: var(--skin-text-secondary);">🤖 Roger Quotes</h3>
+                            <button onclick="readRogerQuote()" class="px-3 py-1 rounded text-xs" style="background-color: var(--skin-primary); color: var(--skin-text-primary);">🔊 Read</button>
                         </div>
-                        <div id="roger-quotes" class="text-sm text-gray-400">Loading...</div>
+                        <div id="roger-quotes" class="text-sm" style="color: var(--skin-text-muted);">Loading...</div>
+                    </div>
+                    <!-- Demon Quote Widget - Shows skin-specific quotes -->
+                    <div data-widget="dracula_quotes" class="widget-container bg-gray-800 rounded-lg p-6 hidden" style="border: 1px solid var(--skin-border-primary);">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-lg font-semibold" style="color: var(--skin-text-secondary);">😈 Demon's Wisdom</h3>
+                            <button onclick="readDraculaQuote()" class="px-3 py-1 rounded text-xs" style="background-color: var(--skin-primary); color: var(--skin-text-primary);">🔊 Read</button>
+                        </div>
+                        <div id="dracula-quotes" class="text-sm italic" style="color: var(--skin-text-muted);">Loading chaotic wisdom...</div>
                     </div>
                 </div>
             </section>
@@ -426,7 +590,398 @@
             } else {
                 setBackgroundByKey('gradient-ocean');
             }
+            
+            // Initialize skin system
+            initializeSkin();
         });
+
+        // =====================================================
+        // SKIN/THEME SYSTEM
+        // =====================================================
+        
+        let currentSkin = null;
+        
+        async function initializeSkin() {
+            // Load saved skin preference or get active from server
+            const savedSkin = localStorage.getItem('dashboard_skin') || 'roger';
+            await switchSkin(savedSkin, false);
+            
+            // Update skin selector
+            const skinSelect = document.getElementById('skin-select');
+            if (skinSelect) {
+                skinSelect.value = savedSkin;
+            }
+            
+            console.log('✅ Skin system initialized');
+        }
+        
+        async function switchSkin(skinName, animate = true) {
+            try {
+                console.log(`🎨 Switching to skin: ${skinName}`);
+                
+                // Fetch skin config from server
+                const response = await fetch(`/api/skins/switch/${skinName}`, { method: 'POST' });
+                const data = await response.json();
+                
+                if (!data.success) {
+                    console.error('Failed to switch skin:', data.error);
+                    return;
+                }
+                
+                currentSkin = data.skin;
+                console.log('📦 Skin data received:', JSON.stringify(currentSkin.dashboard?.widgets || {}, null, 2));
+                localStorage.setItem('dashboard_skin', skinName);
+                
+                // Apply the skin (colors, avatar, widgets visibility)
+                applySkin(currentSkin, animate);
+                
+                // Reload data for newly visible widgets
+                initializeDataLoaders();
+                
+                console.log(`✅ Skin applied: ${currentSkin.display_name}`);
+                
+            } catch (error) {
+                console.error('Error switching skin:', error);
+            }
+        }
+        
+        function applySkin(skin, animate = true) {
+            if (!skin) return;
+            
+            // Update CSS variables
+            const cssVars = skin.css_variables || {};
+            const root = document.documentElement;
+            for (const [key, value] of Object.entries(cssVars)) {
+                root.style.setProperty(key, value);
+            }
+            
+            // Update page title
+            document.getElementById('page-title').textContent = `${skin.display_name} - Personal Assistant`;
+            
+            // Update assistant avatar
+            const avatar = document.getElementById('assistant-avatar');
+            if (avatar && skin.avatar) {
+                avatar.src = skin.avatar;
+                avatar.alt = skin.display_name;
+            }
+            
+            // Update assistant name
+            const nameEl = document.getElementById('assistant-name');
+            if (nameEl) {
+                nameEl.textContent = skin.display_name;
+            }
+            
+            // Update header title with tagline
+            const headerTitle = document.getElementById('header-title');
+            if (headerTitle && skin.tagline) {
+                headerTitle.textContent = skin.tagline;
+            }
+            
+            // Update ALL skin selectors (sidebar and header)
+            const skinSelectors = ['skin-select', 'skin-select-header'];
+            skinSelectors.forEach(id => {
+                const sel = document.getElementById(id);
+                if (sel) sel.value = skin.name;
+            });
+            
+            // Update backgrounds dropdown if skin has backgrounds
+            if (skin.backgrounds && skin.backgrounds.length > 0) {
+                updateBackgroundOptions(skin.backgrounds);
+            }
+            
+            // MODULAR WIDGET SYSTEM - Show/hide widgets based on skin config
+            applyWidgetVisibility(skin);
+            
+            // Update navigation if skin has custom nav
+            if (skin.navigation && skin.navigation.length > 0) {
+                // Could update nav labels/icons here
+            }
+            
+            // Apply animation effect
+            if (animate) {
+                document.body.style.opacity = '0.8';
+                setTimeout(() => {
+                    document.body.style.opacity = '1';
+                }, 150);
+            }
+            
+            console.log(`🎨 Theme applied: ${skin.display_name} - Colors and widgets updated!`);
+        }
+        
+        // Widget visibility management based on skin config
+        function applyWidgetVisibility(skin) {
+            if (!skin || !skin.dashboard || !skin.dashboard.widgets) {
+                console.log('⚠️ No widget config in skin, showing all widgets');
+                return;
+            }
+            
+            const widgets = skin.dashboard.widgets;
+            console.log(`🎛️ Applying widget visibility for ${skin.name}:`, widgets);
+            
+            // Find all widget containers and apply visibility
+            document.querySelectorAll('[data-widget]').forEach(container => {
+                const widgetName = container.dataset.widget;
+                const widgetConfig = widgets[widgetName];
+                
+                // Check if widget is explicitly enabled
+                const isEnabled = widgetConfig && widgetConfig.enabled === true;
+                
+                if (isEnabled) {
+                    container.classList.remove('hidden');
+                    container.style.display = '';  // Reset any inline display style
+                    console.log(`  ✅ ${widgetName}: SHOW`);
+                } else {
+                    container.classList.add('hidden');
+                    container.style.display = 'none';  // Force hide with inline style too
+                    console.log(`  ❌ ${widgetName}: HIDE`);
+                }
+            });
+            
+            console.log('🎛️ Widget visibility applied!');
+        }
+        
+        // Load Dracula-specific quote
+        async function loadDraculaQuote() {
+            const el = document.getElementById('dracula-quotes');
+            if (!el || !currentSkin) return;
+            
+            const quote = getSkinQuote('random_quotes') || getSkinQuote('greetings');
+            if (quote) {
+                el.innerHTML = `<p class="italic">"${quote}"</p>`;
+            }
+        }
+        
+        // Read Dracula quote aloud
+        async function readDraculaQuote() {
+            const el = document.getElementById('dracula-quotes');
+            if (!el) return;
+            const text = el.innerText;
+            try {
+                await fetch('/api/voice/speak', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text, style: currentSkin?.voice?.style || 'dramatic' })
+                });
+            } catch (e) {
+                console.error('Dracula quote read error:', e);
+            }
+        }
+        
+        // Dark news loader for Dracula theme
+        async function loadDarkNews(category = 'all') {
+            const list = document.getElementById('dark-news-list');
+            if (!list) return;
+            
+            list.innerHTML = '<div class="text-center py-4" style="color: var(--skin-text-muted);">Loading dark news...</div>';
+            
+            // For now, show placeholder content - in production, this would call an API
+            const darkNewsItems = {
+                horror: [
+                    { title: '🧛 New Dracula Adaptation Announced', source: 'Horror News', link: '#' },
+                    { title: '👻 Best Horror Movies of 2024', source: 'Dread Central', link: '#' },
+                    { title: '🎃 Halloween Horror Nights Preview', source: 'Bloody Disgusting', link: '#' }
+                ],
+                fantasy: [
+                    { title: '🐉 Game of Thrones Spinoff Update', source: 'Fantasy Hive', link: '#' },
+                    { title: '📚 Brandon Sanderson New Book', source: 'Tor.com', link: '#' },
+                    { title: '🧙 D&D Movie Sequel News', source: 'IGN', link: '#' }
+                ],
+                '90s_music': [
+                    { title: '🎸 Smashing Pumpkins Reunion Tour', source: 'Rolling Stone', link: '#' },
+                    { title: '🎤 Portishead Reissue Announced', source: 'Pitchfork', link: '#' },
+                    { title: '🎹 Massive Attack Documentary', source: 'NME', link: '#' }
+                ],
+                gothic: [
+                    { title: '🦇 Sisters of Mercy Live Dates', source: 'Post-Punk.com', link: '#' },
+                    { title: '🖤 The Cure New Album Rumors', source: 'Stereogum', link: '#' },
+                    { title: '🌙 Bauhaus Retrospective', source: 'The Quietus', link: '#' }
+                ]
+            };
+            
+            let items = [];
+            if (category === 'all') {
+                Object.values(darkNewsItems).forEach(arr => items.push(...arr));
+            } else {
+                items = darkNewsItems[category] || [];
+            }
+            
+            if (items.length === 0) {
+                list.innerHTML = '<div class="text-center py-4" style="color: var(--skin-text-muted);">No dark news found...</div>';
+                return;
+            }
+            
+            list.innerHTML = items.map(item => `
+                <a href="${item.link}" target="_blank" class="block p-3 rounded hover:opacity-80" style="background-color: var(--skin-bg-tertiary);">
+                    <div class="font-semibold" style="color: var(--skin-text-primary);">${item.title}</div>
+                    <div class="text-xs" style="color: var(--skin-text-muted);">${item.source}</div>
+                </a>
+            `).join('');
+        }
+        
+        // Music player - Last.fm integration
+        let currentStation = null;
+        
+        async function loadMusicStation(stationId = null) {
+            const station = stationId || document.getElementById('lastfm-station')?.value || '90s_alternative';
+            const nowPlaying = document.getElementById('now-playing');
+            const recentTracks = document.getElementById('recent-tracks');
+            
+            if (nowPlaying) {
+                nowPlaying.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-16 h-16 rounded flex items-center justify-center text-2xl animate-pulse" style="background-color: var(--skin-bg-tertiary);">🎵</div>
+                        <div>
+                            <div class="font-semibold">Loading ${station.replace(/_/g, ' ')}...</div>
+                            <div class="text-xs" style="color: var(--skin-text-muted);">Fetching tracks from Last.fm</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            try {
+                const response = await fetch(`/api/music/station/${station}`);
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    currentStation = data.data;
+                    displayMusicStation(data.data);
+                } else {
+                    displayMusicError(data.error || 'Failed to load station');
+                }
+            } catch (error) {
+                console.error('Music station error:', error);
+                displayMusicError('Connection error');
+            }
+        }
+        
+        function displayMusicStation(data) {
+            const nowPlaying = document.getElementById('now-playing');
+            const recentTracks = document.getElementById('recent-tracks');
+            
+            if (nowPlaying && data.tracks && data.tracks.length > 0) {
+                const featured = data.tracks[0];
+                nowPlaying.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-16 h-16 rounded overflow-hidden" style="background-color: var(--skin-bg-tertiary);">
+                            ${featured.image ? `<img src="${featured.image}" class="w-full h-full object-cover" alt="${featured.name}">` : '<div class="w-full h-full flex items-center justify-center text-2xl">🎵</div>'}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-semibold truncate" style="color: var(--skin-text-primary);">${featured.name}</div>
+                            <div class="text-sm truncate" style="color: var(--skin-text-secondary);">${featured.artist}</div>
+                            <div class="text-xs" style="color: var(--skin-text-muted);">${Number(featured.listeners).toLocaleString()} listeners</div>
+                        </div>
+                        <a href="${featured.url}" target="_blank" class="px-3 py-1 rounded text-xs" style="background-color: var(--skin-primary); color: var(--skin-text-primary);">
+                            Open ↗
+                        </a>
+                    </div>
+                `;
+            }
+            
+            if (recentTracks && data.tracks && data.tracks.length > 1) {
+                recentTracks.innerHTML = `
+                    <div class="text-xs uppercase tracking-wide mb-2" style="color: var(--skin-text-muted);">Top Tracks - ${data.tag}</div>
+                    ${data.tracks.slice(1, 6).map(track => `
+                        <a href="${track.url}" target="_blank" class="flex items-center gap-2 p-2 rounded hover:opacity-80" style="background-color: var(--skin-bg-tertiary);">
+                            <div class="w-8 h-8 rounded overflow-hidden flex-shrink-0" style="background-color: var(--skin-bg-primary);">
+                                ${track.image ? `<img src="${track.image}" class="w-full h-full object-cover">` : '<div class="w-full h-full flex items-center justify-center text-sm">🎵</div>'}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm truncate" style="color: var(--skin-text-primary);">${track.name}</div>
+                                <div class="text-xs truncate" style="color: var(--skin-text-muted);">${track.artist}</div>
+                            </div>
+                        </a>
+                    `).join('')}
+                `;
+            }
+        }
+        
+        function displayMusicError(error) {
+            const nowPlaying = document.getElementById('now-playing');
+            if (nowPlaying) {
+                nowPlaying.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-16 h-16 rounded flex items-center justify-center text-2xl" style="background-color: var(--skin-bg-tertiary);">⚠️</div>
+                        <div>
+                            <div class="font-semibold" style="color: var(--skin-accent);">Music Unavailable</div>
+                            <div class="text-xs" style="color: var(--skin-text-muted);">${error}</div>
+                            <div class="text-xs mt-1" style="color: var(--skin-text-muted);">Set LASTFM_API_KEY in .env to enable</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        function toggleMusicPlayer() {
+            loadMusicStation();
+        }
+        
+        // Auto-load when station selection changes
+        document.addEventListener('DOMContentLoaded', () => {
+            const stationSelect = document.getElementById('lastfm-station');
+            if (stationSelect) {
+                stationSelect.addEventListener('change', () => loadMusicStation());
+            }
+        });
+        
+        // Art/Music communities loaders (placeholders)
+        function loadArtCommunities() {
+            console.log('Art communities loaded');
+        }
+        
+        function loadMusicCommunities() {
+            console.log('Music communities loaded');
+        }
+        
+        function updateBackgroundOptions(backgrounds) {
+            const bgSelect = document.getElementById('bg-select');
+            if (!bgSelect) return;
+            
+            // Clear existing options
+            bgSelect.innerHTML = '';
+            
+            // Clear and rebuild BACKGROUNDS array from skin config
+            BACKGROUNDS.length = 0;
+            
+            // Add new options from skin
+            backgrounds.forEach((bg, index) => {
+                const option = document.createElement('option');
+                option.value = `bg${index + 1}`;
+                option.textContent = bg.name || `Background ${index + 1}`;
+                bgSelect.appendChild(option);
+                
+                // Add to BACKGROUNDS array
+                BACKGROUNDS.push({
+                    key: `bg${index + 1}`,
+                    type: 'image',
+                    value: `/static/backgrounds/${bg.file}`
+                });
+            });
+            
+            // Add custom URL option
+            const customOption = document.createElement('option');
+            customOption.value = 'custom-url';
+            customOption.textContent = 'Custom URL';
+            bgSelect.appendChild(customOption);
+            
+            console.log('🖼️ Updated backgrounds:', BACKGROUNDS);
+            
+            // Apply first background
+            if (BACKGROUNDS.length > 0) {
+                setBackgroundByKey('bg1');
+            }
+        }
+        
+        function getSkinQuote(category = 'random_quotes') {
+            if (!currentSkin || !currentSkin.quotes) return null;
+            const quotes = currentSkin.quotes[category] || currentSkin.quotes.random_quotes || [];
+            if (quotes.length === 0) return null;
+            return quotes[Math.floor(Math.random() * quotes.length)];
+        }
+        
+        // Get skin-specific greeting
+        function getSkinGreeting() {
+            return getSkinQuote('greetings') || currentSkin?.signature_phrase || 'Hello!';
+        }
 
         // Navigation
         function showSection(sectionName) {
@@ -1494,35 +2049,53 @@
             }
         }
 
-        // Initialize data loaders
+        // Initialize data loaders - MODULAR based on skin config
         function initializeDataLoaders() {
             console.log('🚀 INITIALIZING DATA LOADERS');
             
-            // Just call all the loaders
-            loadJokes();
-            loadQuote();
-            loadRogerHome();
-            reloadComic();
-            loadEbayAuctions();
+            // Always load weather
             loadWeather();
+            
+            // Check which widgets are enabled for current skin
+            const widgets = currentSkin?.dashboard?.widgets || {};
+            
+            // Load data for enabled widgets only
+            if (isWidgetEnabled('jokes')) loadJokes();
+            if (isWidgetEnabled('quote')) loadQuote();
+            if (isWidgetEnabled('comics')) reloadComic();
+            if (isWidgetEnabled('ebay')) loadEbayAuctions();
+            if (isWidgetEnabled('roger_quotes') || isWidgetEnabled('communities') || 
+                isWidgetEnabled('starwars') || isWidgetEnabled('parts_search') || 
+                isWidgetEnabled('history_fact')) {
+                loadRogerHome();
+            }
+            
+            // Load Dracula-specific widgets
+            if (isWidgetEnabled('dark_news')) loadDarkNews();
+            if (isWidgetEnabled('dracula_quotes')) loadDraculaQuote();
+            if (isWidgetEnabled('music_player')) {
+                // Initialize music player with Last.fm data
+                console.log('🎵 Music player widget enabled - loading station');
+                loadMusicStation();
+            }
+            
             loadAnxietyFeed();
             
-            console.log('🚀 ALL DATA LOADERS CALLED');
+            console.log('🚀 ALL RELEVANT DATA LOADERS CALLED');
+        }
+        
+        // Helper to check if widget is enabled
+        function isWidgetEnabled(widgetName) {
+            if (!currentSkin || !currentSkin.dashboard || !currentSkin.dashboard.widgets) {
+                return true; // Default to enabled if no config
+            }
+            const widget = currentSkin.dashboard.widgets[widgetName];
+            return widget && widget.enabled === true;
         }
 
-        // Initialize when page loads
-        if (document.readyState === 'complete' || document.readyState === 'interactive') {
-            // Page is already loaded
-            console.log('📄 Page already loaded, initializing now');
-            setTimeout(initializeDataLoaders, 100);
-        } else {
-            // Wait for page to load
-            console.log('📄 Waiting for page load...');
-            window.addEventListener('load', () => {
-                console.log('📄 Page loaded event fired, initializing...');
-                setTimeout(initializeDataLoaders, 100);
-            });
-        }
+        // Page initialization is handled by initializeSkin() which is called from DOMContentLoaded
+        // initializeSkin -> switchSkin -> applySkin (applies widget visibility) -> initializeDataLoaders
+        // No need for separate load event handler
 
     </script>
 </body>

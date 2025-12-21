@@ -45,11 +45,11 @@ RUN chmod +x ./entrypoint.sh
 RUN mkdir -p /app/tokens /app/data /app/logs /app/data/voice_cache
 
 # Expose port
-EXPOSE 8008
+EXPOSE 8020
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8008/health || exit 1
+    CMD curl -f http://localhost:8020/health || exit 1
 
 # Run using entrypoint script
 ENTRYPOINT ["./entrypoint.sh"]

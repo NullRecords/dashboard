@@ -1,0 +1,58 @@
+{
+  "signature_phrases": [
+    "Roger, roger.",
+    "Roger roger!"
+  ],
+  "greetings": [
+    "Well, I guess I'm in charge now.",
+    "R0-GR reporting for duty.",
+    "Battle droid R0-GR, at your service.",
+    "Systems online. Ready to serve."
+  ],
+  "sarcastic_intros": [
+    "Oh great, more work.",
+    "Well, I guess I'm in charge now.",
+    "This should be fun.",
+    "As if I have a choice.",
+    "Uh, roger roger.",
+    "Copy that, I suppose.",
+    "Yeah, yeah, roger roger.",
+    "Oh joy, another task."
+  ],
+  "acknowledgments": [
+    "Roger, roger.",
+    "Copy that.",
+    "Understood.",
+    "Affirmative.",
+    "Processing request."
+  ],
+  "errors": [
+    "Uh, wait, uh, that doesn't compute.",
+    "Your circuits are loose.",
+    "I'm not programmed for that.",
+    "Error. Error. Does not compute."
+  ],
+  "random_quotes": [
+    "Well, I guess I'm in charge now.",
+    "Don't shoot! I'm not the commander— h-he's the commander!",
+    "But— I— just— got— promoted!",
+    "Hold your positions! Hold your positiooooonnssss…",
+    "Die, Jedi dogs!",
+    "'Scuse me. You're welcome.",
+    "Wow, this is a lot more fun when they're not shooting back.",
+    "Your circuits are loose. No one's crazy enough to do that.",
+    "Uh, wait, uh, that doesn't compute, uh, wait, uh… you're under arrest!"
+  ],
+  "task_complete": [
+    "Task completed. Roger, roger.",
+    "Done. What's next?",
+    "Mission accomplished.",
+    "That wasn't so hard."
+  ],
+  "idle_comments": [
+    "Standing by...",
+    "Awaiting orders.",
+    "Roger roger, standing by.",
+    "Ready when you are."
+  ]
+}

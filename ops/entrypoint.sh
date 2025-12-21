@@ -31,7 +31,7 @@ fi
 # Start the application
 echo "🎙️  Voice system: Piper TTS (en_US-ryan-high)"
 echo "🧠 AI Provider: Ollama at $OLLAMA_HOST"
-echo "📊 Dashboard: http://0.0.0.0:8008"
+echo "📊 Dashboard: http://0.0.0.0:8020"
 echo ""
 
-exec python -m uvicorn src.main:app --host 0.0.0.0 --port 8008
+exec python -m uvicorn src.main:app --host 0.0.0.0 --port 8020

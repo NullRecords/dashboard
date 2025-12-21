@@ -18,7 +18,7 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 VENV_DIR="$PROJECT_ROOT/.venv"
 PYTHON_CMD="python3"
 SERVER_FILE="$PROJECT_ROOT/src/main.py"
-SERVER_PORT="8008"  # Server runs on 0.0.0.0:8008 (accessible from network)
+SERVER_PORT="8020"  # Server runs on 0.0.0.0:8020 (accessible from network)
 PID_FILE="$PROJECT_ROOT/dashboard.pid"
 
 echo -e "${BLUE}🚀 Personal Dashboard Startup${NC}"
