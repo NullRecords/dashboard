@@ -1880,6 +1880,78 @@ async def get_similar_artists(artist_name: str, limit: int = 5):
         return {"success": False, "error": str(e)}
 
 
+# Favorite tracks endpoints
+@app.post("/api/music/favorites")
+async def add_favorite_track(request: Request):
+    """Add a track to favorites"""
+    try:
+        data = await request.json()
+        track_id = db.add_favorite_track(data)
+        return {"success": True, "id": track_id, "message": "Track added to favorites"}
+    except Exception as e:
+        logger.error(f"Error adding favorite track: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.delete("/api/music/favorites")
+async def remove_favorite_track(track_name: str, artist_name: str):
+    """Remove a track from favorites"""
+    try:
+        removed = db.remove_favorite_track(track_name, artist_name)
+        if removed:
+            return {"success": True, "message": "Track removed from favorites"}
+        return {"success": False, "error": "Track not found in favorites"}
+    except Exception as e:
+        logger.error(f"Error removing favorite track: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/music/favorites")
+async def get_favorite_tracks(limit: int = 50, station_id: str = None):
+    """Get favorite tracks"""
+    try:
+        tracks = db.get_favorite_tracks(limit=limit, station_id=station_id)
+        return {"success": True, "tracks": tracks, "count": len(tracks)}
+    except Exception as e:
+        logger.error(f"Error getting favorite tracks: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/music/favorites/check")
+async def check_favorite_track(track_name: str, artist_name: str):
+    """Check if a track is favorited"""
+    try:
+        is_favorite = db.is_track_favorite(track_name, artist_name)
+        return {"success": True, "is_favorite": is_favorite}
+    except Exception as e:
+        logger.error(f"Error checking favorite track: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/music/track/links")
+async def get_track_streaming_links(track_name: str, artist_name: str):
+    """Get streaming service links for a track"""
+    try:
+        # Generate search URLs for various services
+        query = f"{track_name} {artist_name}".replace(' ', '+')
+        query_encoded = f"{track_name} {artist_name}".replace(' ', '%20')
+        
+        links = {
+            "lastfm": f"https://www.last.fm/music/{artist_name.replace(' ', '+')}/_/{track_name.replace(' ', '+')}",
+            "spotify": f"https://open.spotify.com/search/{query_encoded}",
+            "apple_music": f"https://music.apple.com/us/search?term={query_encoded}",
+            "youtube": f"https://www.youtube.com/results?search_query={query}",
+            "youtube_music": f"https://music.youtube.com/search?q={query_encoded}",
+            "soundcloud": f"https://soundcloud.com/search?q={query_encoded}",
+            "deezer": f"https://www.deezer.com/search/{query_encoded}"
+        }
+        
+        return {"success": True, "links": links, "track": track_name, "artist": artist_name}
+    except Exception as e:
+        logger.error(f"Error generating track links: {e}")
+        return {"success": False, "error": str(e)}
+
+
 #############################
 # Wellbeing Feeds (Anxiety) #
 #############################

@@ -261,6 +261,30 @@ class DatabaseManager:
                 )
             """)
             
+            # Favorite tracks table for music discovery
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS favorite_tracks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    track_name TEXT NOT NULL,
+                    artist_name TEXT NOT NULL,
+                    album_name TEXT,
+                    lastfm_url TEXT,
+                    spotify_url TEXT,
+                    apple_music_url TEXT,
+                    youtube_url TEXT,
+                    image_url TEXT,
+                    duration INTEGER,
+                    playcount INTEGER,
+                    station_id TEXT,
+                    tags TEXT,
+                    notes TEXT,
+                    is_favorite INTEGER DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(track_name, artist_name)
+                )
+            """)
+            
             # Dashboard projects table for persisting discovered dashboards
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS dashboard_projects (
@@ -318,6 +342,8 @@ class DatabaseManager:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_news_articles_read ON news_articles(is_read)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_music_content_liked ON music_content(is_liked)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_vanity_alerts_liked ON vanity_alerts(is_liked)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_favorite_tracks_artist ON favorite_tracks(artist_name)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_favorite_tracks_station ON favorite_tracks(station_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_personality_profile_type ON user_personality_profile(content_type)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_personality_profile_content ON user_personality_profile(content_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_news_created_at ON news_articles(created_at)")
@@ -707,6 +733,123 @@ class DatabaseManager:
             cursor = conn.cursor()
             cursor.execute("SELECT service_name FROM credentials")
             return [row['service_name'] for row in cursor.fetchall()]
+    
+    # Favorite tracks management
+    def add_favorite_track(self, track_data: Dict[str, Any]) -> int:
+        """Add a track to favorites. Returns the track ID."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                INSERT OR REPLACE INTO favorite_tracks 
+                (track_name, artist_name, album_name, lastfm_url, spotify_url, 
+                 apple_music_url, youtube_url, image_url, duration, playcount,
+                 station_id, tags, notes, is_favorite, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+            """, (
+                track_data.get('track_name', track_data.get('name', '')),
+                track_data.get('artist_name', track_data.get('artist', '')),
+                track_data.get('album_name', track_data.get('album', '')),
+                track_data.get('lastfm_url', track_data.get('url', '')),
+                track_data.get('spotify_url', ''),
+                track_data.get('apple_music_url', ''),
+                track_data.get('youtube_url', ''),
+                track_data.get('image_url', track_data.get('image', '')),
+                track_data.get('duration', 0),
+                track_data.get('playcount', 0),
+                track_data.get('station_id', ''),
+                json.dumps(track_data.get('tags', [])) if track_data.get('tags') else '',
+                track_data.get('notes', '')
+            ))
+            
+            conn.commit()
+            logger.info(f"Track favorited: {track_data.get('track_name', track_data.get('name', ''))} by {track_data.get('artist_name', track_data.get('artist', ''))}")
+            return cursor.lastrowid
+    
+    def remove_favorite_track(self, track_name: str, artist_name: str) -> bool:
+        """Remove a track from favorites."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                DELETE FROM favorite_tracks 
+                WHERE track_name = ? AND artist_name = ?
+            """, (track_name, artist_name))
+            conn.commit()
+            return cursor.rowcount > 0
+    
+    def get_favorite_tracks(self, limit: int = 50, station_id: str = None) -> List[Dict[str, Any]]:
+        """Get favorite tracks, optionally filtered by station."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            if station_id:
+                cursor.execute("""
+                    SELECT * FROM favorite_tracks 
+                    WHERE is_favorite = 1 AND station_id = ?
+                    ORDER BY updated_at DESC
+                    LIMIT ?
+                """, (station_id, limit))
+            else:
+                cursor.execute("""
+                    SELECT * FROM favorite_tracks 
+                    WHERE is_favorite = 1
+                    ORDER BY updated_at DESC
+                    LIMIT ?
+                """, (limit,))
+            
+            tracks = []
+            for row in cursor.fetchall():
+                track = dict(row)
+                if track.get('tags'):
+                    try:
+                        track['tags'] = json.loads(track['tags'])
+                    except:
+                        track['tags'] = []
+                tracks.append(track)
+            return tracks
+    
+    def is_track_favorite(self, track_name: str, artist_name: str) -> bool:
+        """Check if a track is favorited."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT 1 FROM favorite_tracks 
+                WHERE track_name = ? AND artist_name = ? AND is_favorite = 1
+            """, (track_name, artist_name))
+            return cursor.fetchone() is not None
+    
+    def update_favorite_track_urls(self, track_name: str, artist_name: str, 
+                                    spotify_url: str = None, apple_music_url: str = None,
+                                    youtube_url: str = None) -> bool:
+        """Update streaming service URLs for a favorite track."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            updates = []
+            params = []
+            
+            if spotify_url:
+                updates.append("spotify_url = ?")
+                params.append(spotify_url)
+            if apple_music_url:
+                updates.append("apple_music_url = ?")
+                params.append(apple_music_url)
+            if youtube_url:
+                updates.append("youtube_url = ?")
+                params.append(youtube_url)
+            
+            if not updates:
+                return False
+            
+            updates.append("updated_at = CURRENT_TIMESTAMP")
+            params.extend([track_name, artist_name])
+            
+            cursor.execute(f"""
+                UPDATE favorite_tracks 
+                SET {', '.join(updates)}
+                WHERE track_name = ? AND artist_name = ?
+            """, params)
+            conn.commit()
+            return cursor.rowcount > 0
     
     # Authentication tokens management
     def save_auth_token(self, service_name: str, access_token: str, refresh_token: Optional[str] = None, 
