@@ -652,6 +652,29 @@ class DatabaseManager:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
+            
+            # App configuration table (API keys, service settings)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS app_config (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    config_key TEXT UNIQUE NOT NULL,
+                    config_value TEXT,
+                    config_type TEXT DEFAULT 'string', -- 'string', 'secret', 'boolean', 'number', 'json'
+                    category TEXT DEFAULT 'general',
+                    display_name TEXT,
+                    description TEXT,
+                    is_required INTEGER DEFAULT 0,
+                    is_sensitive INTEGER DEFAULT 0, -- For API keys/secrets (mask in UI)
+                    validation_regex TEXT,
+                    default_value TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Create index for app_config
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_app_config_category ON app_config(category)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_app_config_key ON app_config(config_key)")
 
             # AI Assistant indexes
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_ai_providers_active ON ai_providers(is_active)")
@@ -1059,6 +1082,183 @@ class DatabaseManager:
                     # If it fails, return the raw value (plain string)
                     return row['setting_value']
             return default
+    
+    # App Configuration Management (API keys, service settings)
+    def get_app_config(self, key: str, default: Any = None) -> Any:
+        """Get an app configuration value."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT config_value, config_type FROM app_config WHERE config_key = ?",
+                (key,)
+            )
+            row = cursor.fetchone()
+            if row and row['config_value']:
+                value = row['config_value']
+                config_type = row['config_type'] or 'string'
+                
+                if config_type == 'boolean':
+                    return value.lower() in ('true', '1', 'yes')
+                elif config_type == 'number':
+                    try:
+                        return float(value) if '.' in value else int(value)
+                    except ValueError:
+                        return default
+                elif config_type == 'json':
+                    try:
+                        return json.loads(value)
+                    except json.JSONDecodeError:
+                        return default
+                return value
+            return default
+    
+    def set_app_config(self, key: str, value: Any, **kwargs):
+        """Set an app configuration value."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Convert value to string for storage
+            if isinstance(value, bool):
+                str_value = 'true' if value else 'false'
+            elif isinstance(value, (dict, list)):
+                str_value = json.dumps(value)
+            else:
+                str_value = str(value) if value is not None else None
+            
+            # Check if key exists
+            cursor.execute("SELECT id FROM app_config WHERE config_key = ?", (key,))
+            exists = cursor.fetchone()
+            
+            if exists:
+                cursor.execute("""
+                    UPDATE app_config 
+                    SET config_value = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE config_key = ?
+                """, (str_value, key))
+            else:
+                cursor.execute("""
+                    INSERT INTO app_config (config_key, config_value, config_type, category, 
+                                           display_name, description, is_required, is_sensitive)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    key, str_value,
+                    kwargs.get('config_type', 'string'),
+                    kwargs.get('category', 'general'),
+                    kwargs.get('display_name', key),
+                    kwargs.get('description', ''),
+                    1 if kwargs.get('is_required') else 0,
+                    1 if kwargs.get('is_sensitive') else 0
+                ))
+            
+            conn.commit()
+    
+    def get_all_app_config(self, category: str = None, include_sensitive: bool = False) -> List[Dict[str, Any]]:
+        """Get all app configuration values, optionally filtered by category."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            if category:
+                cursor.execute("""
+                    SELECT config_key, config_value, config_type, category, display_name, 
+                           description, is_required, is_sensitive, updated_at
+                    FROM app_config WHERE category = ?
+                    ORDER BY category, display_name
+                """, (category,))
+            else:
+                cursor.execute("""
+                    SELECT config_key, config_value, config_type, category, display_name, 
+                           description, is_required, is_sensitive, updated_at
+                    FROM app_config 
+                    ORDER BY category, display_name
+                """)
+            
+            rows = cursor.fetchall()
+            result = []
+            for row in rows:
+                config_item = {
+                    'key': row['config_key'],
+                    'value': row['config_value'] if include_sensitive or not row['is_sensitive'] else ('••••••••' if row['config_value'] else ''),
+                    'type': row['config_type'],
+                    'category': row['category'],
+                    'display_name': row['display_name'],
+                    'description': row['description'],
+                    'is_required': bool(row['is_required']),
+                    'is_sensitive': bool(row['is_sensitive']),
+                    'has_value': bool(row['config_value']),
+                    'updated_at': row['updated_at']
+                }
+                result.append(config_item)
+            return result
+    
+    def initialize_default_app_config(self):
+        """Initialize default app configuration keys."""
+        default_configs = [
+            # Server Settings
+            ('server.timezone', 'string', 'server', 'Timezone', 'Server timezone (e.g., America/Chicago)', False, False, 'America/Chicago'),
+            
+            # Ollama AI
+            ('ollama.host', 'string', 'ai', 'Ollama Host', 'Ollama server address', False, False, 'localhost'),
+            ('ollama.port', 'number', 'ai', 'Ollama Port', 'Ollama server port', False, False, '11434'),
+            ('ollama.model', 'string', 'ai', 'Ollama Model', 'Default model name', False, False, 'llama3.2:1b'),
+            
+            # Google OAuth
+            ('google.client_id', 'secret', 'integrations', 'Google Client ID', 'Google OAuth client ID for Gmail/Calendar', False, True, ''),
+            ('google.client_secret', 'secret', 'integrations', 'Google Client Secret', 'Google OAuth client secret', False, True, ''),
+            
+            # GitHub
+            ('github.token', 'secret', 'integrations', 'GitHub Token', 'GitHub personal access token', False, True, ''),
+            ('github.username', 'string', 'integrations', 'GitHub Username', 'Your GitHub username', False, False, ''),
+            
+            # Weather
+            ('weather.api_key', 'secret', 'integrations', 'OpenWeather API Key', 'OpenWeatherMap API key', False, True, ''),
+            ('weather.location', 'string', 'integrations', 'Weather Location', 'Default weather location', False, False, 'Oregon City, OR'),
+            ('weather.units', 'string', 'integrations', 'Weather Units', 'Temperature units (imperial/metric)', False, False, 'imperial'),
+            
+            # Ambient Weather
+            ('ambient_weather.api_key', 'secret', 'integrations', 'Ambient Weather API Key', 'Ambient Weather API key', False, True, ''),
+            ('ambient_weather.app_key', 'secret', 'integrations', 'Ambient Weather App Key', 'Ambient Weather application key', False, True, ''),
+            
+            # News
+            ('news.api_key', 'secret', 'integrations', 'News API Key', 'NewsAPI.org API key', False, True, ''),
+            
+            # Todoist
+            ('todoist.api_token', 'secret', 'integrations', 'Todoist API Token', 'Todoist API token', False, True, ''),
+            
+            # Spotify
+            ('spotify.client_id', 'secret', 'integrations', 'Spotify Client ID', 'Spotify OAuth client ID', False, True, ''),
+            ('spotify.client_secret', 'secret', 'integrations', 'Spotify Client Secret', 'Spotify OAuth client secret', False, True, ''),
+            
+            # Microsoft
+            ('microsoft.client_id', 'secret', 'integrations', 'Microsoft Client ID', 'Microsoft OAuth client ID', False, True, ''),
+            ('microsoft.client_secret', 'secret', 'integrations', 'Microsoft Client Secret', 'Microsoft OAuth client secret', False, True, ''),
+            
+            # Proton
+            ('proton.username', 'string', 'integrations', 'Proton Username', 'ProtonMail email address', False, False, ''),
+            ('proton.bridge_password', 'secret', 'integrations', 'Proton Bridge Password', 'Proton Bridge password', False, True, ''),
+            
+            # Git backup
+            ('git.user_name', 'string', 'backup', 'Git User Name', 'Name for git commits', False, False, ''),
+            ('git.user_email', 'string', 'backup', 'Git User Email', 'Email for git commits', False, False, ''),
+            ('git.enable_nightly_backup', 'boolean', 'backup', 'Enable Nightly Backup', 'Automatically backup data to git nightly', False, False, 'false'),
+        ]
+        
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            for config in default_configs:
+                key, config_type, category, display_name, description, is_required, is_sensitive, default_value = config
+                
+                # Only insert if doesn't exist
+                cursor.execute("SELECT id FROM app_config WHERE config_key = ?", (key,))
+                if not cursor.fetchone():
+                    cursor.execute("""
+                        INSERT INTO app_config (config_key, config_value, config_type, category, 
+                                               display_name, description, is_required, is_sensitive, default_value)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (key, default_value if default_value else None, config_type, category, 
+                          display_name, description, 1 if is_required else 0, 1 if is_sensitive else 0, default_value))
+            
+            conn.commit()
     
     # Dashboard sessions
     def save_dashboard_session(self, session_data: Dict[str, Any], kpis_data: Dict[str, Any], insights_data: List[str]):

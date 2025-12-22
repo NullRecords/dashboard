@@ -1382,6 +1382,126 @@ async def pull_ollama_model(request: Dict[str, Any]):
         return {"success": False, "error": str(e)}
 
 
+# ============================================================================
+# App Configuration Management (API Keys, Service Settings)
+# ============================================================================
+
+@app.get("/api/config")
+async def get_app_config(category: str = None):
+    """Get app configuration values."""
+    try:
+        from database import DatabaseManager
+        db = DatabaseManager()
+        
+        # Initialize default configs if needed
+        db.initialize_default_app_config()
+        
+        # Get configs (sensitive values are masked)
+        configs = db.get_all_app_config(category=category, include_sensitive=False)
+        
+        # Group by category
+        grouped = {}
+        for config in configs:
+            cat = config['category']
+            if cat not in grouped:
+                grouped[cat] = []
+            grouped[cat].append(config)
+        
+        return {
+            "success": True,
+            "config": configs,
+            "grouped": grouped,
+            "categories": list(grouped.keys())
+        }
+    except Exception as e:
+        logger.error(f"Error getting app config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/config/{key}")
+async def get_single_config(key: str):
+    """Get a single config value."""
+    try:
+        from database import DatabaseManager
+        db = DatabaseManager()
+        
+        value = db.get_app_config(key)
+        
+        return {
+            "success": True,
+            "key": key,
+            "value": value
+        }
+    except Exception as e:
+        logger.error(f"Error getting config {key}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/config")
+async def update_app_config(request: Dict[str, Any]):
+    """Update app configuration values."""
+    try:
+        from database import DatabaseManager
+        db = DatabaseManager()
+        
+        configs = request.get('configs', {})
+        updated = []
+        
+        for key, value in configs.items():
+            # Skip empty values unless explicitly clearing
+            if value is not None:
+                db.set_app_config(key, value)
+                updated.append(key)
+        
+        return {
+            "success": True,
+            "message": f"Updated {len(updated)} configuration(s)",
+            "updated": updated
+        }
+    except Exception as e:
+        logger.error(f"Error updating app config: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/config/{key}")
+async def update_single_config(key: str, request: Dict[str, Any]):
+    """Update a single config value."""
+    try:
+        from database import DatabaseManager
+        db = DatabaseManager()
+        
+        value = request.get('value')
+        db.set_app_config(key, value)
+        
+        return {
+            "success": True,
+            "key": key,
+            "message": f"Updated {key}"
+        }
+    except Exception as e:
+        logger.error(f"Error updating config {key}: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.delete("/api/config/{key}")
+async def delete_config(key: str):
+    """Delete/clear a config value."""
+    try:
+        from database import DatabaseManager
+        db = DatabaseManager()
+        
+        db.set_app_config(key, None)
+        
+        return {
+            "success": True,
+            "key": key,
+            "message": f"Cleared {key}"
+        }
+    except Exception as e:
+        logger.error(f"Error deleting config {key}: {e}")
+        return {"success": False, "error": str(e)}
+
+
 @app.post("/api/notes/test-obsidian")
 async def test_obsidian_connection(request: Dict[str, Any]):
     """Test Obsidian vault connection."""
