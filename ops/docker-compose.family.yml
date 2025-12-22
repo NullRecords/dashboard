@@ -11,8 +11,6 @@
 #   cd ops
 #   docker-compose -f docker-compose.family.yml up -d
 
-version: '3.8'
-
 services:
   # ============================================================================
   # Traefik Reverse Proxy - Routes URLs to correct container
