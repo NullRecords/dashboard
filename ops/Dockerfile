@@ -1,10 +1,12 @@
+# syntax=docker/dockerfile:1.4
 FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
 
 # Install system dependencies including voice system requirements
-RUN apt-get update && apt-get install -y \
+RUN --mount=type=cache,target=/var/cache/apt \
+    apt-get update && apt-get install -y \
     gcc \
     git \
     curl \
@@ -27,9 +29,11 @@ RUN curl -fSL "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US
 
 # Copy requirements first for better caching
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt
 
 # Copy all necessary application files and directories
+# These layers rebuild on code changes, but pip install above stays cached
 COPY src/ ./src/
 COPY static/ ./static/
 COPY assets/ ./assets/
