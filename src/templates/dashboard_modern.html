@@ -1339,15 +1339,7 @@
             const el = document.getElementById('dracula-quotes');
             if (!el) return;
             const text = el.innerText;
-            try {
-                await fetch('/api/voice/speak', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text, style: currentSkin?.voice?.style || 'dramatic' })
-                });
-            } catch (e) {
-                console.error('Dracula quote read error:', e);
-            }
+            await speakText(text);
         }
         
         // Dark news loader for Dracula theme - fetches from real news API
@@ -3878,17 +3870,37 @@
             await speakText(text);
         }
         
-        // Helper to speak text
+        // Helper to speak text - plays audio response
         async function speakText(text) {
             const style = currentSkin?.voice?.style || 'droid';
             try {
-                await fetch('/api/voice/speak', {
+                const response = await fetch('/api/voice/speak', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ text, style })
                 });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const audioUrl = URL.createObjectURL(blob);
+                    const audio = new Audio(audioUrl);
+                    audio.onended = () => URL.revokeObjectURL(audioUrl);
+                    await audio.play();
+                } else {
+                    console.error('Voice API error:', response.status);
+                    // Fallback to browser TTS
+                    if ('speechSynthesis' in window) {
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        speechSynthesis.speak(utterance);
+                    }
+                }
             } catch (e) {
                 console.error('Speak error:', e);
+                // Fallback to browser TTS
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    speechSynthesis.speak(utterance);
+                }
             }
         }
         
