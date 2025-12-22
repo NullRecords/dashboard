@@ -34,6 +34,7 @@ class Skin:
         self.backgrounds = config.get("backgrounds", [])
         self.navigation = config.get("navigation", [])
         self.features = config.get("features", {})
+        self.ai_personality = config.get("ai_personality", {})
     
     @property
     def display_name(self) -> str:
@@ -114,7 +115,8 @@ class Skin:
             "backgrounds": self.backgrounds,
             "navigation": self.navigation,
             "features": self.features,
-            "quotes": self.quotes
+            "quotes": self.quotes,
+            "ai_personality": self.ai_personality
         }
 
 
@@ -132,8 +134,8 @@ class SkinLoader:
         
         logger.info(f"SkinLoader initialized with skins directory: {self.skins_dir}")
     
-    def list_available_skins(self) -> List[Dict[str, str]]:
-        """List all available skins with basic info."""
+    def list_available_skins(self) -> List[Dict[str, Any]]:
+        """List all available skins with basic info including voice."""
         skins = []
         
         if not self.skins_dir.exists():
@@ -148,11 +150,13 @@ class SkinLoader:
                         with open(skin_yaml, 'r') as f:
                             config = yaml.safe_load(f)
                         identity = config.get("identity", {})
+                        voice = config.get("voice", {})
                         skins.append({
                             "name": skin_dir.name,
                             "display_name": identity.get("display_name", skin_dir.name.title()),
                             "tagline": identity.get("tagline", ""),
-                            "avatar": identity.get("avatar", "")
+                            "avatar": identity.get("avatar", ""),
+                            "voice": voice
                         })
                     except Exception as e:
                         logger.error(f"Error reading skin {skin_dir.name}: {e}")

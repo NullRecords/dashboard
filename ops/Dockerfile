@@ -36,6 +36,7 @@ COPY assets/ ./assets/
 COPY collectors/ ./collectors/
 COPY scripts/ ./scripts/
 COPY config/ ./config/
+COPY data/skins/ ./data/skins/
 COPY database.py ./
 COPY splash.html ./
 COPY ops/entrypoint.sh ./entrypoint.sh

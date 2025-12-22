@@ -1512,13 +1512,14 @@ async def get_ai_personality():
         # Get current provider info
         provider_info = None
         if AI_ASSISTANT_AVAILABLE and ai_manager.default_provider:
-            provider = ai_manager.default_provider
-            provider_info = {
-                "name": provider.name,
-                "type": provider.provider_type,
-                "model": getattr(provider, 'model_name', 'unknown'),
-                "current_prompt": getattr(provider, 'system_prompt', '')[:200] + '...' if len(getattr(provider, 'system_prompt', '')) > 200 else getattr(provider, 'system_prompt', '')
-            }
+            provider = ai_manager.get_provider()  # Use get_provider() to get the actual provider object
+            if provider:
+                provider_info = {
+                    "name": provider.name,
+                    "type": provider.provider_type,
+                    "model": getattr(provider, 'model_name', 'unknown'),
+                    "current_prompt": getattr(provider, 'system_prompt', '')[:200] + '...' if len(getattr(provider, 'system_prompt', '')) > 200 else getattr(provider, 'system_prompt', '')
+                }
         
         return {
             "success": True,
@@ -1540,8 +1541,9 @@ async def update_ai_personality(request: Dict[str, Any]):
             return {"success": False, "error": "system_prompt is required"}
         
         if AI_ASSISTANT_AVAILABLE and ai_manager.default_provider:
-            if hasattr(ai_manager.default_provider, 'update_system_prompt'):
-                ai_manager.default_provider.update_system_prompt(system_prompt)
+            provider = ai_manager.get_provider()
+            if provider and hasattr(provider, 'update_system_prompt'):
+                provider.update_system_prompt(system_prompt)
                 return {
                     "success": True,
                     "message": "AI personality updated",
@@ -1564,7 +1566,9 @@ async def test_ai_prompt(request: Dict[str, Any]):
         if not AI_ASSISTANT_AVAILABLE or not ai_manager.default_provider:
             return {"success": False, "error": "AI provider not available"}
         
-        provider = ai_manager.default_provider
+        provider = ai_manager.get_provider()
+        if not provider:
+            return {"success": False, "error": "AI provider not found"}
         
         # Build test messages
         messages = [
@@ -2050,8 +2054,9 @@ async def switch_skin(skin_name: str):
                 system_prompt = ai_personality.get('system_prompt', '')
                 
                 if system_prompt and ai_manager.default_provider:
-                    if hasattr(ai_manager.default_provider, 'update_system_prompt'):
-                        ai_manager.default_provider.update_system_prompt(system_prompt)
+                    provider = ai_manager.get_provider()
+                    if provider and hasattr(provider, 'update_system_prompt'):
+                        provider.update_system_prompt(system_prompt)
                         logger.info(f"Updated AI personality for skin: {skin_name}")
             
             return {
@@ -9070,6 +9075,20 @@ async def remove_comic_favorite(request: Request):
 async def startup_event():
     """Initialize services on startup."""
     await initialize_ai_providers()
+    
+    # Apply active skin's AI personality to the provider
+    if SKIN_SYSTEM_AVAILABLE and AI_ASSISTANT_AVAILABLE:
+        try:
+            skin = get_active_skin()
+            if skin and hasattr(skin, 'ai_personality') and skin.ai_personality:
+                system_prompt = skin.ai_personality.get('system_prompt', '')
+                if system_prompt and ai_manager.default_provider:
+                    provider = ai_manager.get_provider()
+                    if provider and hasattr(provider, 'update_system_prompt'):
+                        provider.update_system_prompt(system_prompt)
+                        logger.info(f"Applied AI personality from skin: {skin.name}")
+        except Exception as e:
+            logger.warning(f"Could not apply skin AI personality: {e}")
     
     # Create data directory for lead generation files
     os.makedirs('data', exist_ok=True)
