@@ -1,151 +1,86 @@
 #!/bin/bash
-# Docker entrypoint script for Multi-user Personal Dashboard
-# Handles git sync, cron startup, and application launch
+#
+# Multi-User Dashboard Entrypoint
+# Configures git, starts cron, waits for Ollama, and launches the dashboard
 
 set -e
 
-echo "╔════════════════════════════════════════════════════════════════╗"
-echo "║        🚀 Personal Dashboard - Starting Up                     ║"
-echo "╚════════════════════════════════════════════════════════════════╝"
-echo ""
-echo "  User: ${DASHBOARD_USER:-default}"
-echo "  Port: ${DASHBOARD_PORT:-8020}"
-echo "  Host: ${DASHBOARD_HOSTNAME:-localhost}"
-echo ""
+echo "🚀 Starting ${DASHBOARD_USER:-dashboard}'s Dashboard..."
+echo "   Port: ${DASHBOARD_PORT:-8020}"
+echo "   Hostname: ${DASHBOARD_HOSTNAME:-localhost}"
 
 # ============================================================================
-# Git Configuration
+# Configure Git for nightly backups
 # ============================================================================
-configure_git() {
-    if [ -n "$GIT_USER_NAME" ] && [ -n "$GIT_USER_EMAIL" ]; then
-        echo "⚙️  Configuring git..."
-        git config --global user.name "$GIT_USER_NAME"
-        git config --global user.email "$GIT_USER_EMAIL"
-        git config --global --add safe.directory /app
+if [ -n "$GIT_USER_NAME" ] && [ -n "$GIT_USER_EMAIL" ]; then
+    echo "📝 Configuring git..."
+    git config --global user.name "$GIT_USER_NAME"
+    git config --global user.email "$GIT_USER_EMAIL"
+    git config --global --add safe.directory /app
+fi
+
+# ============================================================================
+# Initialize git repo if needed (for tracking data changes)
+# ============================================================================
+if [ "$ENABLE_NIGHTLY_BACKUP" = "true" ]; then
+    echo "📦 Enabling nightly git backups to branch: ${GIT_BRANCH:-main}"
+    
+    # Initialize data directory as git repo if not already
+    if [ ! -d "/app/data/.git" ]; then
+        cd /app/data
+        git init
+        git checkout -b "${GIT_BRANCH:-main}" 2>/dev/null || git checkout "${GIT_BRANCH:-main}" 2>/dev/null || true
+    fi
+fi
+
+# ============================================================================
+# Start cron daemon for scheduled tasks
+# ============================================================================
+echo "⏰ Starting cron daemon..."
+service cron start || cron
+
+# ============================================================================
+# Wait for Ollama (if configured)
+# ============================================================================
+if [ -n "$OLLAMA_HOST" ]; then
+    echo "🤖 Waiting for Ollama at ${OLLAMA_HOST}..."
+    
+    MAX_RETRIES=30
+    RETRY_COUNT=0
+    
+    while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+        if curl -s "${OLLAMA_HOST}/api/tags" > /dev/null 2>&1; then
+            echo "   ✅ Ollama is ready!"
+            break
+        fi
         
-        # Store credentials if provided
-        if [ -n "$GIT_TOKEN" ]; then
-            git config --global credential.helper store
-            # Create credential file for GitHub
-            if [ -n "$GIT_REPO_URL" ]; then
-                REPO_HOST=$(echo "$GIT_REPO_URL" | sed -n 's|https://\([^/]*\)/.*|\1|p')
-                echo "https://${GIT_USER_NAME}:${GIT_TOKEN}@${REPO_HOST}" > ~/.git-credentials
-                chmod 600 ~/.git-credentials
-            fi
-        fi
-        echo "✅ Git configured for ${GIT_USER_NAME}"
-    else
-        echo "⚠️  Git user not configured (GIT_USER_NAME/GIT_USER_EMAIL not set)"
-    fi
-}
-
-# ============================================================================
-# Initialize Data Directory
-# ============================================================================
-initialize_data() {
-    echo "📁 Initializing data directories..."
-    
-    # Ensure directories exist with proper permissions
-    mkdir -p /app/data/voice_cache
-    mkdir -p /app/data/skins
-    mkdir -p /app/data/personality_profiles
-    mkdir -p /app/tokens
-    mkdir -p /app/logs
-    
-    # Copy default skins if not present
-    if [ ! -d "/app/data/skins/roger" ] && [ -d "/app/data/skins.default/roger" ]; then
-        cp -r /app/data/skins.default/* /app/data/skins/
-        echo "✅ Copied default skin configurations"
-    fi
-    
-    # Initialize database if not exists
-    if [ ! -f "/app/data/dashboard.db" ]; then
-        echo "📊 Database will be initialized on first run"
-    else
-        echo "✅ Database found: /app/data/dashboard.db"
-        # Show database stats
-        if command -v sqlite3 &> /dev/null; then
-            TABLES=$(sqlite3 /app/data/dashboard.db "SELECT count(*) FROM sqlite_master WHERE type='table'")
-            echo "   Tables: ${TABLES}"
-        fi
-    fi
-}
-
-# ============================================================================
-# Wait for Dependencies
-# ============================================================================
-wait_for_ollama() {
-    OLLAMA_URL="${OLLAMA_HOST:-http://localhost:11434}"
-    
-    # Skip if Ollama is disabled
-    if [ "$OLLAMA_DISABLED" = "true" ]; then
-        echo "⚠️  Ollama disabled, skipping wait"
-        return 0
-    fi
-    
-    echo "⏳ Checking Ollama at ${OLLAMA_URL}..."
-    
-    max_attempts=30
-    attempt=0
-    
-    while ! curl -s "${OLLAMA_URL}/api/tags" > /dev/null 2>&1; do
-        attempt=$((attempt + 1))
-        if [ $attempt -ge $max_attempts ]; then
-            echo "⚠️  Ollama not available at ${OLLAMA_URL} - continuing without it"
-            echo "   AI features may be limited"
-            return 0
-        fi
-        echo "   Waiting for Ollama... ($attempt/$max_attempts)"
+        RETRY_COUNT=$((RETRY_COUNT + 1))
+        echo "   ⏳ Waiting... (${RETRY_COUNT}/${MAX_RETRIES})"
         sleep 2
     done
     
-    echo "✅ Ollama is ready at ${OLLAMA_URL}"
-    
-    # List available models
-    MODELS=$(curl -s "${OLLAMA_URL}/api/tags" | python3 -c "import sys,json; d=json.load(sys.stdin); print(', '.join([m['name'] for m in d.get('models',[])]))" 2>/dev/null || echo "unknown")
-    echo "   Models: ${MODELS}"
-}
-
-# ============================================================================
-# Start Cron for Nightly Backups
-# ============================================================================
-start_cron() {
-    if [ "$ENABLE_NIGHTLY_BACKUP" = "true" ]; then
-        echo "⏰ Starting cron for nightly backups..."
-        service cron start || cron
-        echo "✅ Cron started (backups at 2 AM)"
-    else
-        echo "⚠️  Nightly backups disabled (set ENABLE_NIGHTLY_BACKUP=true to enable)"
+    if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+        echo "   ⚠️  Ollama not available, continuing anyway..."
     fi
-}
+fi
 
 # ============================================================================
-# Main Startup
+# Set database path
 # ============================================================================
+export DATABASE_PATH="${DATABASE_PATH:-/app/data/dashboard.db}"
+echo "💾 Database: ${DATABASE_PATH}"
 
-# Configure git for nightly commits
-configure_git
-
-# Initialize data directories
-initialize_data
-
-# Wait for Ollama (if applicable)
-wait_for_ollama
-
-# Start cron daemon for nightly backups
-start_cron
-
-# Display startup info
+# ============================================================================
+# Start the dashboard
+# ============================================================================
 echo ""
-echo "╔════════════════════════════════════════════════════════════════╗"
-echo "║                    Dashboard Ready                             ║"
-echo "╠════════════════════════════════════════════════════════════════╣"
-echo "║  🎙️  Voice: Piper TTS (ryan-high + lessac-medium)              ║"
-echo "║  🧠 AI: Ollama at ${OLLAMA_HOST:-http://localhost:11434}       "
-echo "║  📊 URL: http://0.0.0.0:${DASHBOARD_PORT:-8020}                "
-echo "║  👤 User: ${DASHBOARD_USER:-default}                           "
-echo "╚════════════════════════════════════════════════════════════════╝"
+echo "╔═══════════════════════════════════════════════════════╗"
+echo "║  🏠 ${DASHBOARD_USER:-Dashboard}'s Dashboard Starting         ║"
+echo "║  📍 http://${DASHBOARD_HOSTNAME:-localhost}:${DASHBOARD_PORT:-8020}          ║"
+echo "╚═══════════════════════════════════════════════════════╝"
 echo ""
 
-# Start the application
-exec python -m uvicorn src.main:app --host 0.0.0.0 --port ${DASHBOARD_PORT:-8020}
+exec uvicorn src.main:app \
+    --host 0.0.0.0 \
+    --port "${DASHBOARD_PORT:-8020}" \
+    --workers 1

@@ -1,90 +1,57 @@
 #!/bin/bash
-# Nightly backup script for Personal Dashboard
-# Commits data changes to git and optionally pushes to remote
+#
+# Nightly Backup Script
+# Commits dashboard data to the user's git branch
+# Runs via cron at 2 AM
 
 set -e
 
-LOG_PREFIX="[$(date '+%Y-%m-%d %H:%M:%S')] BACKUP:"
-APP_DIR="/app"
-DATA_DIR="/app/data"
-BRANCH="${GIT_BRANCH:-${DASHBOARD_USER:-main}}"
+TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+BRANCH="${GIT_BRANCH:-main}"
+USER="${DASHBOARD_USER:-dashboard}"
 
-log() {
-    echo "${LOG_PREFIX} $1"
-}
+echo "[$TIMESTAMP] Starting nightly backup for ${USER}..."
 
-log "=========================================="
-log "Starting nightly backup for user: ${DASHBOARD_USER:-unknown}"
-log "=========================================="
+cd /app/data
 
 # Check if git is configured
-if [ -z "$GIT_USER_NAME" ] || [ -z "$GIT_USER_EMAIL" ]; then
-    log "ERROR: Git not configured. Set GIT_USER_NAME and GIT_USER_EMAIL"
-    exit 1
+if [ -z "$(git config user.email 2>/dev/null)" ]; then
+    echo "[$TIMESTAMP] Git not configured, skipping backup"
+    exit 0
 fi
 
-cd "$APP_DIR"
-
-# Ensure we're in a git repo
+# Initialize if needed
 if [ ! -d ".git" ]; then
-    log "ERROR: Not a git repository"
-    exit 1
+    git init
+    git checkout -b "$BRANCH" 2>/dev/null || true
 fi
+
+# Switch to correct branch
+git checkout "$BRANCH" 2>/dev/null || git checkout -b "$BRANCH"
 
 # Check for changes
-if git diff --quiet && git diff --cached --quiet; then
-    log "No changes to commit"
+if git diff --quiet && git diff --staged --quiet; then
+    echo "[$TIMESTAMP] No changes to commit"
     exit 0
 fi
 
-# Create backup of database before commit
-if [ -f "$DATA_DIR/dashboard.db" ]; then
-    BACKUP_FILE="$DATA_DIR/backups/dashboard_$(date +%Y%m%d_%H%M%S).db"
-    mkdir -p "$DATA_DIR/backups"
-    cp "$DATA_DIR/dashboard.db" "$BACKUP_FILE"
-    log "Database backed up to: $BACKUP_FILE"
-    
-    # Keep only last 7 backups
-    ls -t "$DATA_DIR/backups/"*.db 2>/dev/null | tail -n +8 | xargs -r rm
-    log "Cleaned old backups (keeping last 7)"
+# Add and commit changes
+git add -A
+
+# Files to track
+FILES_CHANGED=$(git diff --staged --name-only | wc -l)
+
+git commit -m "🔄 Nightly backup for ${USER} - ${TIMESTAMP}
+
+Files changed: ${FILES_CHANGED}
+Automated backup from dashboard container"
+
+echo "[$TIMESTAMP] ✅ Backup committed successfully (${FILES_CHANGED} files)"
+
+# Push if remote is configured
+if git remote -v | grep -q origin; then
+    echo "[$TIMESTAMP] Pushing to origin/${BRANCH}..."
+    git push origin "$BRANCH" 2>/dev/null && echo "[$TIMESTAMP] ✅ Pushed successfully" || echo "[$TIMESTAMP] ⚠️ Push failed (will retry next backup)"
 fi
 
-# Stage all data changes
-log "Staging changes..."
-git add data/*.json data/*.db data/skins/ data/personality_profiles/ 2>/dev/null || true
-git add tokens/ 2>/dev/null || true
-
-# Check if there are staged changes
-if git diff --cached --quiet; then
-    log "No data changes to commit"
-    exit 0
-fi
-
-# Create commit with timestamp
-COMMIT_MSG="[Auto] Nightly backup for ${DASHBOARD_USER:-unknown} - $(date '+%Y-%m-%d %H:%M')"
-log "Creating commit: $COMMIT_MSG"
-git commit -m "$COMMIT_MSG"
-
-# Push to remote if configured
-if [ -n "$GIT_TOKEN" ] && [ "$GIT_AUTO_PUSH" = "true" ]; then
-    log "Pushing to remote branch: $BRANCH"
-    
-    # Ensure we're on the right branch
-    CURRENT_BRANCH=$(git branch --show-current)
-    if [ "$CURRENT_BRANCH" != "$BRANCH" ]; then
-        log "Switching to branch: $BRANCH"
-        git checkout -B "$BRANCH"
-    fi
-    
-    # Push changes
-    if git push origin "$BRANCH" 2>&1; then
-        log "Successfully pushed to origin/$BRANCH"
-    else
-        log "WARNING: Push failed - changes committed locally only"
-    fi
-else
-    log "Auto-push disabled (set GIT_AUTO_PUSH=true and GIT_TOKEN to enable)"
-fi
-
-log "Backup complete!"
-log "=========================================="
+echo "[$TIMESTAMP] Backup complete!"
