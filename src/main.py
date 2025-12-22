@@ -1382,6 +1382,210 @@ async def pull_ollama_model(request: Dict[str, Any]):
         return {"success": False, "error": str(e)}
 
 
+@app.post("/api/ollama/test")
+async def test_ollama_connection(request: Dict[str, Any] = None):
+    """Test connection to Ollama server with optional custom host/port."""
+    try:
+        from database import DatabaseManager
+        db = DatabaseManager()
+        
+        # Allow testing custom host/port before saving
+        if request:
+            host = request.get('host', db.get_setting('ollama_host', 'localhost'))
+            port = request.get('port', db.get_setting('ollama_port', 11434))
+        else:
+            host = db.get_setting('ollama_host', 'localhost')
+            port = db.get_setting('ollama_port', 11434)
+        
+        url = f"http://{host}:{port}/api/tags"
+        
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(url)
+            
+            if response.status_code == 200:
+                data = response.json()
+                models = data.get('models', [])
+                
+                return {
+                    "success": True,
+                    "connected": True,
+                    "server": f"{host}:{port}",
+                    "model_count": len(models),
+                    "models": [m.get('name') for m in models[:10]],  # Return first 10 model names
+                    "message": f"Connected! Found {len(models)} models"
+                }
+            else:
+                return {
+                    "success": False,
+                    "connected": False,
+                    "server": f"{host}:{port}",
+                    "error": f"Server returned status {response.status_code}"
+                }
+                
+    except httpx.ConnectError as e:
+        return {
+            "success": False,
+            "connected": False,
+            "server": f"{host}:{port}" if 'host' in dir() else "unknown",
+            "error": "Cannot connect to Ollama server. Is it running?"
+        }
+    except Exception as e:
+        logger.error(f"Error testing Ollama connection: {e}")
+        return {
+            "success": False,
+            "connected": False,
+            "error": str(e)
+        }
+
+
+@app.get("/api/ollama/status")
+async def get_ollama_status():
+    """Get current Ollama configuration and connection status."""
+    try:
+        from database import DatabaseManager
+        db = DatabaseManager()
+        
+        host = db.get_setting('ollama_host', 'localhost')
+        port = db.get_setting('ollama_port', 11434)
+        model = db.get_setting('ollama_model', 'llama3.2:1b')
+        env_host = os.environ.get('OLLAMA_HOST', '')
+        
+        # Test connection
+        connected = False
+        available_models = []
+        try:
+            async with httpx.AsyncClient(timeout=3.0) as client:
+                response = await client.get(f"http://{host}:{port}/api/tags")
+                if response.status_code == 200:
+                    connected = True
+                    data = response.json()
+                    available_models = [m.get('name') for m in data.get('models', [])]
+        except:
+            pass
+        
+        return {
+            "success": True,
+            "config": {
+                "host": host,
+                "port": port,
+                "model": model,
+                "url": f"http://{host}:{port}",
+                "env_ollama_host": env_host
+            },
+            "status": {
+                "connected": connected,
+                "available_models": available_models,
+                "model_available": model in available_models if available_models else False
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error getting Ollama status: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/ai/personality")
+async def get_ai_personality():
+    """Get the current AI personality settings from the active skin."""
+    try:
+        personality = {
+            "system_prompt": "",
+            "response_style": "helpful",
+            "max_tokens": 150,
+            "temperature": 0.7,
+            "skin_name": "default"
+        }
+        
+        if SKIN_SYSTEM_AVAILABLE:
+            skin = get_active_skin()
+            if skin and hasattr(skin, 'ai_personality') and skin.ai_personality:
+                ai_config = skin.ai_personality
+                personality = {
+                    "system_prompt": ai_config.get('system_prompt', ''),
+                    "response_style": ai_config.get('response_style', 'helpful'),
+                    "max_tokens": ai_config.get('max_tokens', 150),
+                    "temperature": ai_config.get('temperature', 0.7),
+                    "stop_sequences": ai_config.get('stop_sequences', []),
+                    "skin_name": skin.name,
+                    "skin_display_name": skin.display_name
+                }
+        
+        # Get current provider info
+        provider_info = None
+        if AI_ASSISTANT_AVAILABLE and ai_manager.default_provider:
+            provider = ai_manager.default_provider
+            provider_info = {
+                "name": provider.name,
+                "type": provider.provider_type,
+                "model": getattr(provider, 'model_name', 'unknown'),
+                "current_prompt": getattr(provider, 'system_prompt', '')[:200] + '...' if len(getattr(provider, 'system_prompt', '')) > 200 else getattr(provider, 'system_prompt', '')
+            }
+        
+        return {
+            "success": True,
+            "personality": personality,
+            "provider": provider_info
+        }
+    except Exception as e:
+        logger.error(f"Error getting AI personality: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/ai/personality")
+async def update_ai_personality(request: Dict[str, Any]):
+    """Update the AI system prompt (temporary, for testing)."""
+    try:
+        system_prompt = request.get('system_prompt', '')
+        
+        if not system_prompt:
+            return {"success": False, "error": "system_prompt is required"}
+        
+        if AI_ASSISTANT_AVAILABLE and ai_manager.default_provider:
+            if hasattr(ai_manager.default_provider, 'update_system_prompt'):
+                ai_manager.default_provider.update_system_prompt(system_prompt)
+                return {
+                    "success": True,
+                    "message": "AI personality updated",
+                    "prompt_length": len(system_prompt)
+                }
+        
+        return {"success": False, "error": "AI provider not available"}
+    except Exception as e:
+        logger.error(f"Error updating AI personality: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/ai/test-prompt")
+async def test_ai_prompt(request: Dict[str, Any]):
+    """Test an AI prompt without permanently changing settings."""
+    try:
+        system_prompt = request.get('system_prompt', '')
+        test_message = request.get('message', 'Hello, who are you?')
+        
+        if not AI_ASSISTANT_AVAILABLE or not ai_manager.default_provider:
+            return {"success": False, "error": "AI provider not available"}
+        
+        provider = ai_manager.default_provider
+        
+        # Build test messages
+        messages = [
+            {'role': 'system', 'content': system_prompt or provider.system_prompt},
+            {'role': 'user', 'content': test_message}
+        ]
+        
+        # Get response
+        response = await provider.chat(messages)
+        
+        return {
+            "success": True,
+            "response": response,
+            "prompt_used": system_prompt[:100] + '...' if len(system_prompt) > 100 else system_prompt,
+            "message": test_message
+        }
+    except Exception as e:
+        logger.error(f"Error testing AI prompt: {e}")
+        return {"success": False, "error": str(e)}
+
+
 # ============================================================================
 # App Configuration Management (API Keys, Service Settings)
 # ============================================================================
@@ -1831,7 +2035,7 @@ async def get_active_skin_config():
 
 @app.post("/api/skins/switch/{skin_name}")
 async def switch_skin(skin_name: str):
-    """Switch to a different skin/theme."""
+    """Switch to a different skin/theme and update AI personality."""
     if not SKIN_SYSTEM_AVAILABLE:
         return {"success": False, "error": "Skin system not available"}
     
@@ -1839,6 +2043,17 @@ async def switch_skin(skin_name: str):
         success = set_active_skin(skin_name)
         if success:
             skin = get_active_skin()
+            
+            # Update AI provider with skin's personality
+            if AI_ASSISTANT_AVAILABLE and hasattr(skin, 'ai_personality'):
+                ai_personality = skin.ai_personality or {}
+                system_prompt = ai_personality.get('system_prompt', '')
+                
+                if system_prompt and ai_manager.default_provider:
+                    if hasattr(ai_manager.default_provider, 'update_system_prompt'):
+                        ai_manager.default_provider.update_system_prompt(system_prompt)
+                        logger.info(f"Updated AI personality for skin: {skin_name}")
+            
             return {
                 "success": True,
                 "message": f"Switched to {skin.display_name}",
@@ -6593,19 +6808,43 @@ Keep it concise, actionable, and friendly."""
 
 # Initialize default AI providers on startup
 async def initialize_ai_providers():
-    """Initialize default AI providers."""
+    """Initialize default AI providers using environment variables as defaults."""
     if not AI_ASSISTANT_AVAILABLE:
         return
     
     try:
+        # Get Ollama URL from environment variable first, then fall back to database settings
+        env_ollama_host = os.environ.get('OLLAMA_HOST', '')
+        
+        if env_ollama_host:
+            # Parse the environment variable URL
+            # Format: http://hostname:port or just hostname:port
+            if '://' in env_ollama_host:
+                # Full URL provided (e.g., http://192.168.68.135:11434)
+                url_parts = env_ollama_host.replace('http://', '').replace('https://', '').split(':')
+                env_host = url_parts[0]
+                env_port = int(url_parts[1]) if len(url_parts) > 1 else 11434
+            else:
+                # Just host:port provided
+                parts = env_ollama_host.split(':')
+                env_host = parts[0]
+                env_port = int(parts[1]) if len(parts) > 1 else 11434
+            
+            # Save environment settings to database as new defaults
+            current_host = db.get_setting('ollama_host', 'localhost')
+            if current_host == 'localhost' and env_host != 'localhost':
+                db.save_setting('ollama_host', env_host)
+                db.save_setting('ollama_port', env_port)
+                logger.info(f"Updated Ollama settings from environment: {env_host}:{env_port}")
+        
         # Check if we have any providers
         existing_providers = db.get_ai_providers()
         
         if not existing_providers:
-            # Get Ollama configuration from settings
+            # Get Ollama configuration from settings (may have just been updated from env)
             ollama_host = db.get_setting('ollama_host', 'localhost')
             ollama_port = db.get_setting('ollama_port', 11434)
-            ollama_model = db.get_setting('ollama_model', 'llama3.2:latest')
+            ollama_model = db.get_setting('ollama_model', 'llama3.2:1b')
             
             # Build the URL from configured host and port
             configured_url = f'http://{ollama_host}:{ollama_port}'

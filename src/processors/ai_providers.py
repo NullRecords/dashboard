@@ -53,15 +53,25 @@ class OllamaProvider(AIProvider):
         super().__init__(name, config)
         self.base_url = config.get('base_url', 'http://localhost:11434')
         self.model_name = config.get('model_name', 'llama3.2:1b')
+        self.custom_system_prompt = config.get('system_prompt', None)
         self.system_prompt = self._build_system_prompt()
     
     def _build_system_prompt(self) -> str:
-        """Build system prompt tuned for Roger - a friendly battle droid assistant."""
-        return """You are Roger, a Star Wars battle droid assistant.
+        """Build system prompt, using custom prompt from skin if available."""
+        # Use custom system prompt if provided (from skin ai_personality)
+        if self.custom_system_prompt:
+            return self.custom_system_prompt
+        
+        # Default fallback prompt
+        return """You are a helpful AI assistant.
 
-START every response with "Roger roger!" and keep answers to 2-3 sentences max.
-
-Be casual and helpful like a friendly robot. Never write formal business letters."""
+Keep answers concise (2-3 sentences). Be helpful and friendly."""
+    
+    def update_system_prompt(self, prompt: str):
+        """Update the system prompt (e.g., when skin changes)."""
+        self.custom_system_prompt = prompt
+        self.system_prompt = prompt
+        logger.info(f"Updated AI system prompt for {self.name}")
     
     async def chat(self, messages: List[Dict[str, str]], stream: bool = False) -> str:
         """Send chat messages to Ollama."""
