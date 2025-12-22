@@ -8421,7 +8421,7 @@ async def test_voice(request: Request):
 
 @app.post("/api/voice/speak")
 async def speak_text(request: Request):
-    """Speak arbitrary text using current voice settings."""
+    """Speak arbitrary text using current voice settings. Returns WAV audio."""
     try:
         data = await request.json()
         text = data.get('text', '')
@@ -8436,14 +8436,21 @@ async def speak_text(request: Request):
             skin = get_active_skin()
             style = skin.voice.get('style', 'droid') if hasattr(skin, 'voice') else 'droid'
         
-        # Use voice system to speak
+        # Use voice system to generate audio
         import voice as voice_module
         if voice_module._voice:
-            audio_data = voice_module._voice.speak(text, style=style)
-            if audio_data:
-                return {"success": True, "message": "Speaking"}
+            # Generate the audio file
+            wav_path = voice_module._voice.generate(text, style=style)
+            if wav_path and wav_path.exists():
+                # Return the audio file
+                from fastapi.responses import FileResponse
+                return FileResponse(
+                    path=str(wav_path),
+                    media_type="audio/wav",
+                    filename="speech.wav"
+                )
         
-        return {"success": False, "error": "Voice system not initialized"}
+        return {"success": False, "error": "Voice generation failed"}
         
     except Exception as e:
         logger.error(f"Voice speak error: {e}")
