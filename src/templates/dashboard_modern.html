@@ -1530,6 +1530,14 @@
                         </div>
                     </div>
                     
+                    <!-- API Keys & Integrations -->
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold text-purple-300 mb-4"><i class="fas fa-key mr-2"></i>API Keys & Integrations</h3>
+                        <div id="api-keys-container" class="space-y-4">
+                            <div class="text-gray-400">Loading configuration...</div>
+                        </div>
+                    </div>
+                    
                     <!-- About -->
                     <div>
                         <h3 class="text-lg font-semibold text-purple-300 mb-4"><i class="fas fa-info-circle mr-2"></i>About</h3>
@@ -1540,9 +1548,151 @@
                         </div>
                     </div>
                 `;
+                
+                // Load API keys section
+                loadApiKeysSection();
+                
             } catch (e) {
                 console.error('Settings load error:', e);
                 container.innerHTML = '<div class="text-red-400">Error loading settings</div>';
+            }
+        }
+        
+        // Load API Keys section
+        async function loadApiKeysSection() {
+            const container = document.getElementById('api-keys-container');
+            if (!container) return;
+            
+            try {
+                const resp = await fetch('/api/config');
+                const data = await resp.json();
+                
+                if (!data.success) {
+                    container.innerHTML = '<div class="text-red-400">Error loading configuration</div>';
+                    return;
+                }
+                
+                const grouped = data.grouped || {};
+                
+                // Category icons and display names
+                const categoryMeta = {
+                    'integrations': { icon: 'fa-plug', name: 'Service Integrations' },
+                    'ai': { icon: 'fa-brain', name: 'AI Configuration' },
+                    'server': { icon: 'fa-server', name: 'Server Settings' },
+                    'backup': { icon: 'fa-cloud-upload-alt', name: 'Backup & Git' },
+                    'general': { icon: 'fa-cog', name: 'General' }
+                };
+                
+                let html = '';
+                
+                for (const [category, configs] of Object.entries(grouped)) {
+                    const meta = categoryMeta[category] || { icon: 'fa-cog', name: category };
+                    
+                    html += `
+                        <div class="bg-gray-900 rounded-lg border border-gray-700 p-4 mb-4">
+                            <h4 class="text-sm font-semibold text-purple-300 mb-3">
+                                <i class="fas ${meta.icon} mr-2"></i>${meta.name}
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    `;
+                    
+                    for (const config of configs) {
+                        const inputType = config.is_sensitive ? 'password' : 'text';
+                        const statusIcon = config.has_value ? '✓' : '';
+                        const statusClass = config.has_value ? 'text-green-400' : 'text-gray-500';
+                        
+                        html += `
+                            <div class="flex flex-col">
+                                <label class="text-xs text-gray-400 mb-1 flex items-center justify-between">
+                                    <span>${config.display_name || config.key}</span>
+                                    <span class="${statusClass} text-xs">${statusIcon}</span>
+                                </label>
+                                <div class="flex gap-2">
+                                    <input type="${inputType}" 
+                                           id="config-${config.key.replace(/\./g, '-')}"
+                                           data-config-key="${config.key}"
+                                           placeholder="${config.is_sensitive && config.has_value ? '••••••••' : (config.description || '')}"
+                                           class="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm placeholder-gray-500">
+                                    ${config.is_sensitive ? `
+                                        <button onclick="toggleConfigVisibility('${config.key.replace(/\./g, '-')}')" 
+                                                class="px-2 bg-gray-700 hover:bg-gray-600 rounded text-sm" title="Show/Hide">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    ` : ''}
+                                </div>
+                                ${config.description ? `<div class="text-xs text-gray-500 mt-1">${config.description}</div>` : ''}
+                            </div>
+                        `;
+                    }
+                    
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                html += `
+                    <div class="flex gap-2 mt-4">
+                        <button onclick="saveApiKeys()" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm">
+                            <i class="fas fa-save mr-2"></i>Save API Keys
+                        </button>
+                        <button onclick="loadApiKeysSection()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm">
+                            <i class="fas fa-sync mr-2"></i>Refresh
+                        </button>
+                    </div>
+                `;
+                
+                container.innerHTML = html;
+                
+            } catch (e) {
+                console.error('Error loading API keys:', e);
+                container.innerHTML = '<div class="text-red-400">Error loading API keys configuration</div>';
+            }
+        }
+        
+        function toggleConfigVisibility(keyId) {
+            const input = document.getElementById('config-' + keyId);
+            if (input) {
+                input.type = input.type === 'password' ? 'text' : 'password';
+            }
+        }
+        
+        async function saveApiKeys() {
+            try {
+                const inputs = document.querySelectorAll('[data-config-key]');
+                const configs = {};
+                
+                inputs.forEach(input => {
+                    const key = input.dataset.configKey;
+                    const value = input.value.trim();
+                    // Only include if user entered a value (not just placeholder)
+                    if (value && value !== '••••••••') {
+                        configs[key] = value;
+                    }
+                });
+                
+                if (Object.keys(configs).length === 0) {
+                    alert('No changes to save. Enter values in the fields you want to update.');
+                    return;
+                }
+                
+                const resp = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ configs })
+                });
+                
+                const data = await resp.json();
+                
+                if (data.success) {
+                    alert(`Saved ${data.updated.length} configuration(s) successfully!`);
+                    loadApiKeysSection(); // Refresh to show updated status
+                } else {
+                    alert('Error saving: ' + (data.error || 'Unknown error'));
+                }
+            } catch (e) {
+                console.error('Error saving API keys:', e);
+                alert('Error saving API keys: ' + e.message);
             }
         }
 
