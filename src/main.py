@@ -1048,6 +1048,48 @@ async def get_notes_settings():
         return {"success": False, "error": str(e)}
 
 
+@app.post("/api/settings/avatar")
+async def update_avatar_setting(request: Request):
+    """Update user's avatar preference for a skin."""
+    try:
+        data = await request.json()
+        skin_name = data.get('skin', 'roger')
+        avatar_path = data.get('avatar', '')
+        
+        if not avatar_path:
+            return {"success": False, "error": "No avatar path provided"}
+        
+        from database import DatabaseManager
+        db = DatabaseManager()
+        
+        # Save as a user-specific preference
+        db.save_setting(f'avatar_override_{skin_name}', avatar_path)
+        
+        logger.info(f"Avatar updated for skin {skin_name}: {avatar_path}")
+        
+        return {"success": True, "avatar": avatar_path}
+        
+    except Exception as e:
+        logger.error(f"Error updating avatar: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/settings/avatar")
+async def get_avatar_setting(skin: str = "roger"):
+    """Get user's avatar preference for a skin."""
+    try:
+        from database import DatabaseManager
+        db = DatabaseManager()
+        
+        avatar = db.get_setting(f'avatar_override_{skin}')
+        
+        return {"success": True, "avatar": avatar}
+        
+    except Exception as e:
+        logger.error(f"Error getting avatar: {e}")
+        return {"success": False, "error": str(e)}
+
+
 @app.post("/api/settings/notes")
 async def update_notes_settings(settings: Dict[str, Any]):
     """Update notes configuration settings."""

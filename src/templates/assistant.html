@@ -185,71 +185,6 @@
                 </div>
                 
                 <div>
-                    <label class="block text-sm text-gray-300 mb-2">Voice Style</label>
-                    <select id="voice-style" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2">
-                        <option value="droid">🤖 Battle Droid</option>
-                        <option value="radio">📻 Radio</option>
-                        <option value="pa_system">📢 PA System</option>
-                        <option value="clean">🔊 Clean</option>
-                    </select>
-                </div>
-                
-                <!-- Droid Effect Sliders -->
-                <div class="border-t border-gray-700 pt-4">
-                    <h4 class="text-sm font-medium text-purple-300 mb-3">🔧 Droid Voice Effects</h4>
-                    
-                    <div class="space-y-3">
-                        <div>
-                            <label class="flex justify-between text-xs text-gray-400 mb-1">
-                                <span>Pitch (Lower = Deeper)</span>
-                                <span id="pitch-val">0.80</span>
-                            </label>
-                            <input type="range" id="pitch" min="40" max="150" value="80" class="w-full accent-purple-500">
-                        </div>
-                        
-                        <div>
-                            <label class="flex justify-between text-xs text-gray-400 mb-1">
-                                <span>Speech Speed</span>
-                                <span id="speed-val">0.85</span>
-                            </label>
-                            <input type="range" id="speed" min="50" max="150" value="85" class="w-full accent-purple-500">
-                        </div>
-                        
-                        <div>
-                            <label class="flex justify-between text-xs text-gray-400 mb-1">
-                                <span>Volume</span>
-                                <span id="volume-val">1.0</span>
-                            </label>
-                            <input type="range" id="volume" min="20" max="200" value="100" class="w-full accent-purple-500">
-                        </div>
-                        
-                        <div>
-                            <label class="flex justify-between text-xs text-gray-400 mb-1">
-                                <span>Bit Crush (Robotic)</span>
-                                <span id="bitDepth-val">8</span>
-                            </label>
-                            <input type="range" id="bitDepth" min="4" max="16" value="8" class="w-full accent-purple-500">
-                        </div>
-                        
-                        <div>
-                            <label class="flex justify-between text-xs text-gray-400 mb-1">
-                                <span>Tremolo Speed</span>
-                                <span id="tremoloFreq-val">120</span>
-                            </label>
-                            <input type="range" id="tremoloFreq" min="50" max="200" value="120" class="w-full accent-purple-500">
-                        </div>
-                        
-                        <div>
-                            <label class="flex justify-between text-xs text-gray-400 mb-1">
-                                <span>Echo/Reverb</span>
-                                <span id="echoGain-val">0.4</span>
-                            </label>
-                            <input type="range" id="echoGain" min="0" max="100" value="40" class="w-full accent-purple-500">
-                        </div>
-                    </div>
-                </div>
-                
-                <div>
                     <label class="block text-sm text-gray-300 mb-2">Read responses aloud</label>
                     <label class="flex items-center gap-2">
                         <input type="checkbox" id="auto-speak" checked class="rounded bg-gray-700 border-gray-600">
@@ -257,12 +192,18 @@
                     </label>
                 </div>
                 
+                <div class="border-t border-gray-700 pt-4">
+                    <a href="/#settings" class="block w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-center font-medium">
+                        <i class="fas fa-sliders-h mr-2"></i>Open Full Voice Settings
+                    </a>
+                    <p class="text-xs text-gray-500 mt-2 text-center">
+                        Configure voice style, pitch, speed, and effects in the Dashboard Settings page
+                    </p>
+                </div>
+                
                 <div class="flex gap-2">
-                    <button onclick="testVoice()" class="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg">
+                    <button onclick="testVoice()" class="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg">
                         <i class="fas fa-volume-up mr-2"></i>Test Voice
-                    </button>
-                    <button onclick="saveVoiceSettings()" class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg">
-                        <i class="fas fa-save mr-2"></i>Save
                     </button>
                 </div>
             </div>
@@ -424,7 +365,7 @@
         // Speak response using voice API
         async function speakResponse(text) {
             try {
-                const style = document.getElementById('voice-style').value || currentSkin?.voice?.style || 'droid';
+                const style = currentSkin?.voice?.style || 'droid';
                 // Show stop button
                 document.getElementById('stop-voice-btn').classList.remove('hidden');
                 
@@ -530,36 +471,11 @@
             });
         }
 
-        // Load voice settings from localStorage
+        // Load voice settings from localStorage  
         function loadVoiceSettings() {
             const saved = localStorage.getItem('roger_voice_settings');
             if (saved) {
                 const settings = JSON.parse(saved);
-                if (settings.style) document.getElementById('voice-style').value = settings.style;
-                if (settings.pitch) {
-                    document.getElementById('pitch').value = settings.pitch * 100;
-                    document.getElementById('pitch-val').textContent = settings.pitch.toFixed(2);
-                }
-                if (settings.speed) {
-                    document.getElementById('speed').value = settings.speed * 100;
-                    document.getElementById('speed-val').textContent = settings.speed.toFixed(2);
-                }
-                if (settings.volume) {
-                    document.getElementById('volume').value = settings.volume * 100;
-                    document.getElementById('volume-val').textContent = settings.volume.toFixed(2);
-                }
-                if (settings.bitDepth) {
-                    document.getElementById('bitDepth').value = settings.bitDepth;
-                    document.getElementById('bitDepth-val').textContent = settings.bitDepth;
-                }
-                if (settings.tremoloFreq) {
-                    document.getElementById('tremoloFreq').value = settings.tremoloFreq;
-                    document.getElementById('tremoloFreq-val').textContent = settings.tremoloFreq;
-                }
-                if (settings.echoGain !== undefined) {
-                    document.getElementById('echoGain').value = settings.echoGain * 100;
-                    document.getElementById('echoGain-val').textContent = settings.echoGain.toFixed(2);
-                }
                 if (settings.autoSpeak !== undefined) {
                     document.getElementById('auto-speak').checked = settings.autoSpeak;
                 }
@@ -589,46 +505,6 @@
                 .catch(e => console.warn('Could not load AI models:', e));
         }
 
-        // Save voice settings
-        async function saveVoiceSettings() {
-            const settings = {
-                style: document.getElementById('voice-style').value,
-                pitch: parseInt(document.getElementById('pitch').value) / 100,
-                speed: parseInt(document.getElementById('speed').value) / 100,
-                volume: parseInt(document.getElementById('volume').value) / 100,
-                bitDepth: parseInt(document.getElementById('bitDepth').value),
-                tremoloFreq: parseInt(document.getElementById('tremoloFreq').value),
-                echoGain: parseInt(document.getElementById('echoGain').value) / 100,
-                autoSpeak: document.getElementById('auto-speak').checked
-            };
-            localStorage.setItem('roger_voice_settings', JSON.stringify(settings));
-            
-            // Save AI model
-            const aiModel = document.getElementById('ai-model').value;
-            try {
-                await fetch('/api/roger/models', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ model: aiModel })
-                });
-            } catch (e) {
-                console.warn('Could not save AI model:', e);
-            }
-            
-            // Also save voice settings to server
-            try {
-                await fetch('/api/voice/settings', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(settings)
-                });
-            } catch (e) {
-                console.warn('Could not save to server:', e);
-            }
-            
-            closeVoiceSettings();
-        }
-
         async function stopVoice() {
             try {
                 await fetch('/api/voice/stop', { method: 'POST' });
@@ -640,23 +516,36 @@
 
         async function testVoice() {
             try {
-                const style = document.getElementById('voice-style').value || currentSkin?.voice?.style || 'droid';
-                const settings = {
-                    style: style,
-                    pitch: parseInt(document.getElementById('pitch').value) / 100,
-                    speed: parseInt(document.getElementById('speed').value) / 100,
-                    volume: parseInt(document.getElementById('volume').value) / 100,
-                    bitDepth: parseInt(document.getElementById('bitDepth').value),
-                    tremoloFreq: parseInt(document.getElementById('tremoloFreq').value),
-                    echoGain: parseInt(document.getElementById('echoGain').value) / 100
-                };
+                const style = currentSkin?.voice?.style || 'droid';
                 
                 const testMessage = currentSkin?.name === 'dracula' ? 
-                    'What delicious chaos shall we create? Testing voice configuration.' :
-                    'Roger roger. Testing voice configuration. All systems operational.';
+                    'What delicious chaos shall we create? Testing voice.' :
+                    currentSkin?.name === 'alice' ?
+                    'Curiouser and curiouser! Testing voice.' :
+                    currentSkin?.name === 'jedi' ?
+                    'Hello there. Testing voice configuration.' :
+                    'Roger roger. Testing voice configuration.';
                 
                 // Test actual TTS voice with current settings
-                await fetch('/api/voice/test', {
+                const response = await fetch('/api/voice/speak', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: testMessage, style })
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const audioUrl = URL.createObjectURL(blob);
+                    const audio = new Audio(audioUrl);
+                    audio.onended = () => URL.revokeObjectURL(audioUrl);
+                    await audio.play();
+                }
+            } catch (e) {
+                console.error('Test voice error:', e);
+            }
+        }
+
+        async function speakResponse(text) {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -740,12 +629,6 @@
             const autoSpeakLabel = document.getElementById('auto-speak-label');
             if (autoSpeakLabel) {
                 autoSpeakLabel.textContent = `Auto-speak ${skin.display_name}'s responses`;
-            }
-            
-            // Set default voice style from skin
-            const voiceStyle = document.getElementById('voice-style');
-            if (voiceStyle && skin.voice?.style) {
-                voiceStyle.value = skin.voice.style;
             }
         }
 

@@ -287,6 +287,16 @@
                 themes: ['roger'],  // Technical module
                 isExternalPage: true,
                 url: '/trust'
+            },
+            homeassistant: {
+                id: 'homeassistant',
+                name: 'Home Assistant',
+                icon: '🏠',
+                category: 'smart_home',
+                description: 'Smart home control and automation',
+                defaultEnabled: true,
+                themes: ['roger', 'dracula', 'alice', 'jedi'],
+                isSection: true
             }
         };
         
@@ -298,6 +308,7 @@
             shopping: { name: 'Shopping', icon: '🛒' },
             social: { name: 'Communities', icon: '👥' },
             utility: { name: 'Utilities', icon: '🔧' },
+            smart_home: { name: 'Smart Home', icon: '🏠' },
             productivity: { name: 'Productivity', icon: '📋' },
             wellness: { name: 'Wellness', icon: '🧘' },
             business: { name: 'Business', icon: '💼' }
@@ -463,7 +474,12 @@
         <!-- Sidebar Navigation -->
         <aside class="w-64 border-r overflow-y-auto" style="background-color: var(--skin-bg-secondary); border-color: var(--skin-border-primary);">
             <div class="p-6 border-b space-y-3" style="border-color: var(--skin-border-primary);">
-                <img id="assistant-avatar" src="/assets/images/rogr.gif" alt="Assistant" class="w-full h-auto rounded-lg object-cover" style="border: 2px solid var(--skin-primary);"/>
+                <div class="relative group cursor-pointer" onclick="openAvatarPicker()">
+                    <img id="assistant-avatar" src="/assets/images/rogr.gif" alt="Assistant" class="w-full h-auto rounded-lg object-cover" style="border: 2px solid var(--skin-primary);"/>
+                    <div class="absolute inset-0 bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span class="text-white text-sm"><i class="fas fa-camera mr-1"></i>Change Avatar</span>
+                    </div>
+                </div>
                 <div id="assistant-name" class="text-xl font-bold" style="color: var(--skin-primary-light);">R0-GR</div>
                 <div class="flex gap-2 flex-wrap">
                     <button onclick="toggleWakeWord()" id="wake-word-btn" class="px-3 py-2 rounded text-xs" style="background-color: var(--skin-primary-dark);">🎤 Listen</button>
@@ -510,6 +526,10 @@
                 <a href="http://wiki.hoth.home" target="_blank" class="nav-link w-full text-left px-4 py-3 rounded-lg text-gray-300 transition-colors hover:bg-gray-700 block">
                     <i class="fas fa-book mr-2"></i>Wiki
                 </a>
+                <!-- Home Assistant -->
+                <button onclick="showSection('homeassistant')" data-nav-module="homeassistant" class="nav-link w-full text-left px-4 py-3 rounded-lg text-gray-300 transition-colors hover:bg-gray-700">
+                    <i class="fas fa-home mr-2"></i>Home
+                </button>
                 <button onclick="showSection('settings')" class="nav-link w-full text-left px-4 py-3 rounded-lg text-gray-300 transition-colors hover:bg-gray-700">
                     <i class="fas fa-cog mr-2"></i>Settings
                 </button>
@@ -992,6 +1012,56 @@
                 </div>
             </section>
 
+            <!-- Home Assistant Section -->
+            <section id="section-homeassistant" class="section-content hidden p-8">
+                <div class="mb-4">
+                    <div class="text-3xl font-extrabold text-white drop-shadow">🏠 Home Assistant</div>
+                    <div class="text-xs text-gray-300">Smart home control center</div>
+                </div>
+                <div class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden" style="height: calc(100vh - 200px);">
+                    <div class="flex items-center justify-between p-3 border-b border-gray-700 bg-gray-900/50">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-home text-cyan-400"></i>
+                            <span class="font-semibold">Home Assistant</span>
+                            <span id="ha-connection-status" class="text-xs px-2 py-0.5 rounded bg-gray-700">Connecting...</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="refreshHomeAssistant()" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                            <a href="http://homeassistant.home:8123" target="_blank" class="px-3 py-1 bg-cyan-600 hover:bg-cyan-700 rounded text-sm">
+                                <i class="fas fa-external-link-alt mr-1"></i>Open Full UI
+                            </a>
+                        </div>
+                    </div>
+                    <iframe 
+                        id="ha-iframe" 
+                        src="http://homeassistant.home:8123/lovelace/0" 
+                        class="w-full h-full border-0"
+                        onload="document.getElementById('ha-connection-status').textContent = 'Connected'; document.getElementById('ha-connection-status').className = 'text-xs px-2 py-0.5 rounded bg-green-700';"
+                        onerror="document.getElementById('ha-connection-status').textContent = 'Offline'; document.getElementById('ha-connection-status').className = 'text-xs px-2 py-0.5 rounded bg-red-700';"
+                    ></iframe>
+                </div>
+                <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4" id="ha-quick-controls">
+                    <button onclick="haQuickAction('lights')" class="p-4 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-700 text-center">
+                        <i class="fas fa-lightbulb text-2xl text-yellow-400 mb-2"></i>
+                        <div class="text-sm">Lights</div>
+                    </button>
+                    <button onclick="haQuickAction('climate')" class="p-4 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-700 text-center">
+                        <i class="fas fa-thermometer-half text-2xl text-cyan-400 mb-2"></i>
+                        <div class="text-sm">Climate</div>
+                    </button>
+                    <button onclick="haQuickAction('media')" class="p-4 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-700 text-center">
+                        <i class="fas fa-tv text-2xl text-purple-400 mb-2"></i>
+                        <div class="text-sm">Media</div>
+                    </button>
+                    <button onclick="haQuickAction('security')" class="p-4 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-700 text-center">
+                        <i class="fas fa-shield-alt text-2xl text-green-400 mb-2"></i>
+                        <div class="text-sm">Security</div>
+                    </button>
+                </div>
+            </section>
+
             <!-- Settings Section -->
             <section id="section-settings" class="section-content hidden p-8">
                 <div class="mb-4">
@@ -1028,6 +1098,23 @@
                 <button onclick="closeGarfieldArchive()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
             </div>
             <div id="garfield-archive-content" class="grid grid-cols-1 md:grid-cols-2 gap-6">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Avatar Picker Modal -->
+    <div id="avatar-picker-modal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-800 rounded-lg border border-purple-500/50 p-6 max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold" style="color: var(--skin-primary-light);"><i class="fas fa-user-circle mr-2"></i>Choose Avatar</h2>
+                <button onclick="closeAvatarPicker()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <div class="text-sm text-gray-400 mb-4">Select an avatar for your assistant. This choice is saved for your dashboard.</div>
+            <div id="avatar-picker-grid" class="grid grid-cols-3 md:grid-cols-4 gap-4 overflow-y-auto flex-1">
+                <!-- Avatars will be loaded here -->
+            </div>
+            <div class="mt-4 pt-4 border-t border-gray-700 text-center">
+                <button onclick="closeAvatarPicker()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg">Cancel</button>
+            </div>
         </div>
     </div>
 
@@ -1110,18 +1197,11 @@
             if (prev) prev.addEventListener('click', () => cycleBackground(-1));
             if (next) next.addEventListener('click', () => cycleBackground(1));
             if (urlBtn) urlBtn.addEventListener('click', () => setBackgroundUrl(urlInput.value.trim()));
-            // Initialize background - will be updated when skin loads
-            const stored = localStorage.getItem('dashboard_bg_key');
-            if (stored === 'custom-url') {
-                const cu = localStorage.getItem('dashboard_bg_custom');
-                if (cu) setBackgroundUrl(cu); else setBackgroundByKey('bg1');
-            } else if (stored && BACKGROUNDS.some(b => b.key === stored)) {
-                setBackgroundByKey(stored);
-            } else {
-                setBackgroundByKey('bg1');
-            }
             
-            // Initialize skin system
+            // DON'T set background here - let skin system handle it after load
+            // This prevents the old hardcoded backgrounds from being applied before skin loads
+            
+            // Initialize skin system (this will set backgrounds from skin config)
             initializeSkin();
         });
 
@@ -1233,10 +1313,15 @@
             // Update page title
             document.getElementById('page-title').textContent = `${skin.display_name} - Personal Assistant`;
             
-            // Update assistant avatar
+            // Update assistant avatar - check for user override first
             const avatar = document.getElementById('assistant-avatar');
-            if (avatar && skin.avatar) {
-                avatar.src = skin.avatar;
+            if (avatar) {
+                const avatarOverride = localStorage.getItem('dashboard_avatar_override');
+                if (avatarOverride) {
+                    avatar.src = avatarOverride;
+                } else if (skin.avatar) {
+                    avatar.src = skin.avatar;
+                }
                 avatar.alt = skin.display_name;
             }
             
@@ -1255,7 +1340,9 @@
             const navIcon = document.getElementById('assistant-nav-icon');
             if (navIcon) {
                 // Use skin-specific icon if available
-                const iconClass = skin.name === 'demon' || skin.name === 'dracula' ? 'fas fa-ghost' : 'fas fa-robot';
+                const iconClass = skin.name === 'demon' || skin.name === 'dracula' ? 'fas fa-ghost' : 
+                                  skin.name === 'alice' ? 'fas fa-rabbit' :
+                                  skin.name === 'jedi' ? 'fas fa-jedi' : 'fas fa-robot';
                 navIcon.className = iconClass + ' mr-2';
             }
             
@@ -2386,6 +2473,105 @@
 
         function closeVoiceSettings() {
             document.getElementById('voice-settings-modal').classList.add('hidden');
+        }
+
+        // =====================================================
+        // AVATAR PICKER SYSTEM
+        // =====================================================
+        const AVAILABLE_AVATARS = [
+            { file: 'alice.gif', name: 'Alice (Animated)' },
+            { file: 'alice.svg', name: 'Alice' },
+            { file: 'demon-slayer.gif', name: 'Demon Slayer' },
+            { file: 'demon.jpg', name: 'Demon' },
+            { file: 'demon1.gif', name: 'Demon (Fire)' },
+            { file: 'demon2.gif', name: 'Demon (Dark)' },
+            { file: 'dracula.svg', name: 'Dracula' },
+            { file: 'obi-wan.gif', name: 'Obi-Wan (Animated)' },
+            { file: 'obi-wan2.webp', name: 'Obi-Wan (Alt)' },
+            { file: 'obi-wan3.gif', name: 'Obi-Wan (Classic)' },
+            { file: 'obiwan.svg', name: 'Obi-Wan' },
+            { file: 'rogr.gif', name: 'Roger (Battle Droid)' }
+        ];
+
+        function openAvatarPicker() {
+            const modal = document.getElementById('avatar-picker-modal');
+            const grid = document.getElementById('avatar-picker-grid');
+            
+            // Build avatar grid
+            grid.innerHTML = AVAILABLE_AVATARS.map(avatar => `
+                <div class="cursor-pointer group" onclick="selectAvatar('${avatar.file}')">
+                    <div class="relative rounded-lg overflow-hidden border-2 border-gray-700 hover:border-purple-500 transition-all">
+                        <img src="/assets/images/${avatar.file}" alt="${avatar.name}" 
+                             class="w-full aspect-square object-cover group-hover:scale-110 transition-transform">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end">
+                            <span class="p-2 text-xs text-white font-medium">${avatar.name}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            modal.classList.remove('hidden');
+        }
+
+        function closeAvatarPicker() {
+            document.getElementById('avatar-picker-modal').classList.add('hidden');
+        }
+
+        async function selectAvatar(filename) {
+            const avatarPath = `/assets/images/${filename}`;
+            
+            // Update UI immediately
+            const avatar = document.getElementById('assistant-avatar');
+            if (avatar) {
+                avatar.src = avatarPath;
+            }
+            
+            // Save to server (per-user preference)
+            try {
+                const skinName = localStorage.getItem('dashboard_skin') || 'roger';
+                await fetch('/api/settings/avatar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        skin: skinName,
+                        avatar: avatarPath 
+                    })
+                });
+                console.log(`✅ Avatar changed to ${filename}`);
+            } catch (e) {
+                console.error('Failed to save avatar:', e);
+            }
+            
+            // Also save to localStorage as backup
+            localStorage.setItem('dashboard_avatar_override', avatarPath);
+            
+            closeAvatarPicker();
+        }
+
+        // =====================================================
+        // HOME ASSISTANT INTEGRATION
+        // =====================================================
+        function refreshHomeAssistant() {
+            const iframe = document.getElementById('ha-iframe');
+            if (iframe) {
+                iframe.src = iframe.src;
+            }
+        }
+
+        function haQuickAction(action) {
+            const iframe = document.getElementById('ha-iframe');
+            if (!iframe) return;
+            
+            const routes = {
+                'lights': '/lovelace/lights',
+                'climate': '/lovelace/climate', 
+                'media': '/lovelace/media',
+                'security': '/lovelace/security'
+            };
+            
+            // Try to navigate within the iframe
+            const route = routes[action] || '/lovelace/0';
+            iframe.src = `http://homeassistant.home:8123${route}`;
         }
 
         async function loadVoiceSettings() {
