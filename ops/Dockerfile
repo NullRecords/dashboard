@@ -14,15 +14,15 @@ RUN apt-get update && apt-get install -y \
 # Download and install Piper TTS
 RUN mkdir -p /app/data/voice_models/piper && \
     cd /tmp && \
-    curl -L "https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_x86_64.tar.gz" -o piper.tar.gz && \
+    curl -fSL --retry 3 "https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_x86_64.tar.gz" -o piper.tar.gz && \
     tar -xzf piper.tar.gz -C /app/data/voice_models/piper --strip-components=1 && \
     chmod +x /app/data/voice_models/piper/piper && \
     rm piper.tar.gz
 
 # Download Piper voice model (en_US-ryan-high for Roger)
-RUN curl -L "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/ryan/high/en_US-ryan-high.onnx" \
+RUN curl -fSL "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/ryan/high/en_US-ryan-high.onnx" \
     -o /app/data/voice_models/piper/en_US-ryan-high.onnx && \
-    curl -L "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/ryan/high/en_US-ryan-high.onnx.json" \
+    curl -fSL "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/ryan/high/en_US-ryan-high.onnx.json" \
     -o /app/data/voice_models/piper/en_US-ryan-high.onnx.json
 
 # Copy requirements first for better caching

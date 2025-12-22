@@ -17,16 +17,18 @@ RUN apk add --no-cache curl tar
 
 WORKDIR /downloads
 
-# Download everything in parallel with a single layer
+# Download piper binary first (sequential to ensure it completes)
 RUN mkdir -p piper && \
-    curl -L "https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_x86_64.tar.gz" -o piper.tar.gz & \
-    curl -L "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/ryan/high/en_US-ryan-high.onnx" -o piper/en_US-ryan-high.onnx & \
-    curl -L "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/ryan/high/en_US-ryan-high.onnx.json" -o piper/en_US-ryan-high.onnx.json & \
-    curl -L "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx" -o piper/en_US-lessac-medium.onnx & \
-    curl -L "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json" -o piper/en_US-lessac-medium.onnx.json & \
-    wait && \
+    curl -fSL --retry 3 "https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_x86_64.tar.gz" -o piper.tar.gz && \
     tar -xzf piper.tar.gz -C piper --strip-components=1 && \
     rm piper.tar.gz
+
+# Download voice models in parallel
+RUN curl -fSL "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/ryan/high/en_US-ryan-high.onnx" -o piper/en_US-ryan-high.onnx & \
+    curl -fSL "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/ryan/high/en_US-ryan-high.onnx.json" -o piper/en_US-ryan-high.onnx.json & \
+    curl -fSL "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx" -o piper/en_US-lessac-medium.onnx & \
+    curl -fSL "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json" -o piper/en_US-lessac-medium.onnx.json & \
+    wait
 
 # ============================================
 # Stage 2: Build Python dependencies
