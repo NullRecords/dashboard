@@ -1126,8 +1126,53 @@
         // =====================================================
         
         let currentSkin = null;
+        let availableSkins = [];
+        
+        async function loadAvailableSkins() {
+            // Fetch available skins from API and populate dropdowns
+            try {
+                const response = await fetch('/api/skins');
+                const data = await response.json();
+                if (data.success && data.skins) {
+                    availableSkins = data.skins;
+                    populateSkinDropdowns();
+                }
+            } catch (error) {
+                console.error('Error loading skins:', error);
+            }
+        }
+        
+        function populateSkinDropdowns() {
+            const skinSelectors = ['skin-select', 'skin-select-header'];
+            const skinEmojis = {
+                'roger': '🤖',
+                'dracula': '😈',
+                'alice': '🐰',
+                'jedi': '⚔️'
+            };
+            
+            skinSelectors.forEach(id => {
+                const select = document.getElementById(id);
+                if (!select) return;
+                
+                // Clear existing options
+                select.innerHTML = '';
+                
+                // Add options for each available skin
+                availableSkins.forEach(skin => {
+                    const option = document.createElement('option');
+                    option.value = skin.name;
+                    const emoji = skinEmojis[skin.name] || '🎨';
+                    option.textContent = `${emoji} ${skin.display_name}`;
+                    select.appendChild(option);
+                });
+            });
+        }
         
         async function initializeSkin() {
+            // Load available skins first
+            await loadAvailableSkins();
+            
             // Load saved skin preference or get active from server
             const savedSkin = localStorage.getItem('dashboard_skin') || 'roger';
             await switchSkin(savedSkin, false);
