@@ -1,0 +1,92 @@
+# Personal Dashboard - Standalone Docker Compose
+# Uses host machine's Ollama instance instead of starting its own
+#
+# Usage:
+#   cd ops
+#   docker-compose -f docker-compose.standalone.yml up -d
+
+version: '3.8'
+
+services:
+  dashboard-parker:
+    build:
+      context: ..
+      dockerfile: ops/Dockerfile.multi
+      args:
+        DASHBOARD_USER: parker
+        DASHBOARD_PORT: 8020
+    container_name: dashboard-parker
+    hostname: parker.hoth.home
+    
+    # Use host network mode for full access to host services (Ollama, etc.)
+    # This exposes the dashboard on port 8020 on all host interfaces
+    network_mode: host
+    
+    environment:
+      # Dashboard Identity
+      - DASHBOARD_USER=${DASHBOARD_USER:-parker}
+      - DASHBOARD_HOSTNAME=${DASHBOARD_HOSTNAME:-parker.hoth.home}
+      - DASHBOARD_PORT=${DASHBOARD_PORT:-8020}
+      
+      # Database path (for persistence)
+      - DATABASE_PATH=/app/data/dashboard.db
+      
+      # Timezone
+      - TZ=${TZ:-America/Chicago}
+      
+      # Connect to host machine's Ollama (localhost works with host network mode)
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://localhost:11434}
+      - OLLAMA_DISABLED=${OLLAMA_DISABLED:-false}
+      
+      # Git Configuration for nightly backups
+      - GIT_USER_NAME=${GIT_USER_NAME:-}
+      - GIT_USER_EMAIL=${GIT_USER_EMAIL:-}
+      - GIT_TOKEN=${GIT_TOKEN:-}
+      - GIT_BRANCH=${GIT_BRANCH:-parker}
+      - GIT_AUTO_PUSH=${GIT_AUTO_PUSH:-false}
+      - GIT_REPO_URL=${GIT_REPO_URL:-}
+      - ENABLE_NIGHTLY_BACKUP=${ENABLE_NIGHTLY_BACKUP:-true}
+      
+      # API Keys (from .env)
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - TICKTICK_CLIENT_ID=${TICKTICK_CLIENT_ID:-}
+      - TICKTICK_CLIENT_SECRET=${TICKTICK_CLIENT_SECRET:-}
+      - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY:-}
+      - NEWSAPI_KEY=${NEWSAPI_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      
+      # App Config
+      - APP_ENV=${APP_ENV:-production}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    
+    # Persistent volumes
+    volumes:
+      # User data (SQLite DB, settings, favorites, etc.)
+      - parker_data:/app/data
+      # OAuth tokens
+      - parker_tokens:/app/tokens
+      # Logs
+      - parker_logs:/app/logs
+      # Git repo for nightly commits
+      - ../.git:/app/.git:rw
+    
+    # Auto-restart on failure and system reboot
+    restart: unless-stopped
+    
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  parker_data:
+    name: dashboard_parker_data
+  parker_tokens:
+    name: dashboard_parker_tokens
+  parker_logs:
+    name: dashboard_parker_logs

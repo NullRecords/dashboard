@@ -1,0 +1,193 @@
+# Multi-user Personal Dashboard Docker Compose
+# 
+# This compose file supports running multiple dashboard instances,
+# each with their own identity, data persistence, and git branch.
+#
+# Usage:
+#   1. Copy .env.example to .env and fill in your values
+#   2. Run: docker-compose -f docker-compose.multi.yml up -d
+#   3. Access at: http://parker.hoth.home:8020 (or configured hostname)
+#
+# For multiple users, create separate compose files or use profiles
+
+version: '3.8'
+
+services:
+  # ============================================================================
+  # Parker's Dashboard Instance
+  # ============================================================================
+  dashboard-parker:
+    build:
+      context: ..
+      dockerfile: ops/Dockerfile.multi
+      args:
+        DASHBOARD_USER: parker
+        DASHBOARD_PORT: 8020
+    container_name: dashboard-parker
+    hostname: parker.hoth.home
+    
+    # Expose to local network
+    ports:
+      - "8020:8020"
+    
+    # Network mode for local network access
+    # Use 'host' for direct network access, or create a custom network
+    # network_mode: host  # Uncomment for direct host networking
+    
+    environment:
+      # Dashboard Identity
+      - DASHBOARD_USER=parker
+      - DASHBOARD_HOSTNAME=parker.hoth.home
+      - DASHBOARD_PORT=8020
+      
+      # Database path (for persistence)
+      - DATABASE_PATH=/app/data/dashboard.db
+      
+      # Timezone
+      - TZ=${TZ:-America/Chicago}
+      
+      # Ollama Configuration
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama:11434}
+      - OLLAMA_DISABLED=${OLLAMA_DISABLED:-false}
+      
+      # Git Configuration for nightly backups
+      - GIT_USER_NAME=${GIT_USER_NAME}
+      - GIT_USER_EMAIL=${GIT_USER_EMAIL}
+      - GIT_TOKEN=${GIT_TOKEN}
+      - GIT_BRANCH=parker
+      - GIT_AUTO_PUSH=${GIT_AUTO_PUSH:-true}
+      - GIT_REPO_URL=${GIT_REPO_URL}
+      - ENABLE_NIGHTLY_BACKUP=${ENABLE_NIGHTLY_BACKUP:-true}
+      
+      # Google OAuth
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      
+      # GitHub
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      
+      # TickTick
+      - TICKTICK_CLIENT_ID=${TICKTICK_CLIENT_ID}
+      - TICKTICK_CLIENT_SECRET=${TICKTICK_CLIENT_SECRET}
+      
+      # APIs
+      - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
+      - NEWSAPI_KEY=${NEWSAPI_KEY}
+      
+      # AI Providers (optional)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      
+      # App Config
+      - APP_ENV=${APP_ENV:-production}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    
+    # Persistent volumes - data survives container restarts
+    volumes:
+      # SQLite database and user data (CRITICAL - persist this!)
+      - parker_data:/app/data
+      # OAuth tokens
+      - parker_tokens:/app/tokens
+      # Logs
+      - parker_logs:/app/logs
+      # Config overrides (optional)
+      - ./config:/app/config:ro
+      # Git repo for nightly commits (mount the actual repo)
+      - ../.git:/app/.git
+    
+    # Restart policy - survives system reboots
+    restart: unless-stopped
+    
+    # Resource limits (optional)
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8020/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    # Dependencies
+    depends_on:
+      ollama:
+        condition: service_healthy
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================================================
+  # Ollama AI Service (shared across all dashboard instances)
+  # ============================================================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-shared
+    hostname: ollama
+    
+    ports:
+      - "11434:11434"
+    
+    volumes:
+      - ollama_data:/root/.ollama
+    
+    environment:
+      - OLLAMA_MODELS=/root/.ollama/models
+      - OLLAMA_HOST=0.0.0.0
+    
+    restart: unless-stopped
+    
+    # GPU support (uncomment if you have NVIDIA GPU)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ============================================================================
+# Named Volumes for Data Persistence
+# ============================================================================
+volumes:
+  # Parker's data
+  parker_data:
+    name: dashboard_parker_data
+  parker_tokens:
+    name: dashboard_parker_tokens
+  parker_logs:
+    name: dashboard_parker_logs
+  
+  # Shared Ollama models
+  ollama_data:
+    name: ollama_shared_data
+
+# ============================================================================
+# Custom Network (optional - for multi-host setups)
+# ============================================================================
+networks:
+  default:
+    name: dashboard_network
+    driver: bridge

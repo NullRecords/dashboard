@@ -1,0 +1,17 @@
+[Unit]
+Description=Personal Dashboard Docker Container
+Documentation=https://github.com/buildly-release-management/dashboard
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/glind/Projects/ramona/dashboard/ops
+ExecStart=/usr/bin/docker-compose -f docker-compose.multi.yml up -d
+ExecStop=/usr/bin/docker-compose -f docker-compose.multi.yml down
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target

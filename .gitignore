@@ -57,6 +57,7 @@ tokens/
 .env.local
 .env.production
 .env.staging
+ops/.env
 
 # API keys and secrets
 *_credentials.json

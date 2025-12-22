@@ -34,6 +34,7 @@ class AppleSettings(BaseSettings):
     """Apple APIs configuration."""
     # Apple doesn't have a public API for Reminders, we'll use alternative approaches
     reminders_export_path: Optional[str] = Field(default=None, description="Path to exported reminders")
+    icloud_calendar_url: Optional[str] = Field(default=None, description="iCloud public calendar URL")
 
 
 class TodoistSettings(BaseSettings):

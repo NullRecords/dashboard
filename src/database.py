@@ -17,6 +17,11 @@ logger = logging.getLogger(__name__)
 # Database path - handle bundled apps properly
 def get_database_path():
     """Get the appropriate database path for bundled vs script mode."""
+    # Check for explicit DATABASE_PATH environment variable (Docker/production)
+    env_path = os.environ.get('DATABASE_PATH')
+    if env_path:
+        return env_path
+    
     # Check if running as a PyInstaller bundle
     if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
         # Running as bundle - store database in user's home directory

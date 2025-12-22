@@ -7,7 +7,7 @@ identity:
   display_name: "Demon"
   tagline: "Your Dark Muse & Creative Companion"
   description: "A mischievous demon assistant passionate about art, music, chaos, and all things beautifully dark"
-  avatar: "/assets/images/dracula.svg"
+  avatar: "/assets/images/demon2.gif"
   wake_words: ["demon", "hey demon", "darkness", "fiend"]
   signature_phrase: "What delicious chaos shall we create?"
 
@@ -52,23 +52,24 @@ colors:
   tasks_border: "#3b0764"     # Purple-950
   calendar_border: "#4c1d95"  # Violet-900
 
-# Voice configuration - Dark, ethereal, haunting
+# Voice configuration - Ethereal, haunting, dramatic female voice
+# COMPLETELY DIFFERENT from the robotic droid voice
 voice:
-  model: "en_US-ryan-high"
-  style: "demon"
-  speed: 0.80
-  pitch: 0.75
+  model: "en_US-lessac-medium"  # Female voice for gothic/demon
+  style: "gothic"  # Use gothic style instead of demon for more ethereal sound
+  speed: 0.90  # Slightly slower for dramatic effect
+  pitch: 1.05  # Slightly higher pitch for feminine voice
   effects:
-    bit_depth: 12
-    bit_mix: 0.25
-    tremolo_freq: 4
-    tremolo_depth: 0.10
-    compression_ratio: 4
-    highpass_freq: 80
-    lowpass_freq: 4500
-    echo_gain: 0.55
-    vibrato_freq: 3
-    vibrato_depth: 0.12
+    bit_depth: 14  # Less crushed than droid
+    bit_mix: 0.10  # Much less digital distortion
+    tremolo_freq: 2  # Slower tremolo for haunting effect
+    tremolo_depth: 0.06  # Subtler tremolo
+    compression_ratio: 2.5  # Less compression for natural dynamics
+    highpass_freq: 100  # Keep more bass
+    lowpass_freq: 6000  # Wider frequency range
+    echo_gain: 0.45  # Long reverb echo
+    vibrato_freq: 3  # Gentle vibrato
+    vibrato_depth: 0.08  # Subtle wavering
   use_authentic_samples: true
   samples_dir: "data/voice_models/demon"
 

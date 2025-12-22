@@ -1952,6 +1952,40 @@ async def get_track_streaming_links(track_name: str, artist_name: str):
         return {"success": False, "error": str(e)}
 
 
+@app.get("/api/music/youtube/search")
+async def search_youtube_video(track_name: str, artist_name: str):
+    """Search YouTube and return the first video ID for embedding"""
+    try:
+        from youtubesearchpython import VideosSearch
+        
+        query = f"{artist_name} {track_name} official"
+        videos_search = VideosSearch(query, limit=1)
+        results = videos_search.result()
+        
+        if results and results.get('result') and len(results['result']) > 0:
+            video = results['result'][0]
+            video_id = video.get('id')
+            title = video.get('title', '')
+            channel = video.get('channel', {}).get('name', '')
+            duration = video.get('duration', '')
+            thumbnail = video.get('thumbnails', [{}])[0].get('url', '') if video.get('thumbnails') else ''
+            
+            return {
+                "success": True,
+                "video_id": video_id,
+                "title": title,
+                "channel": channel,
+                "duration": duration,
+                "thumbnail": thumbnail,
+                "embed_url": f"https://www.youtube.com/embed/{video_id}?autoplay=1"
+            }
+        else:
+            return {"success": False, "error": "No videos found"}
+    except Exception as e:
+        logger.error(f"YouTube search error: {e}")
+        return {"success": False, "error": str(e)}
+
+
 #############################
 # Wellbeing Feeds (Anxiety) #
 #############################
@@ -2045,19 +2079,105 @@ async def get_anxiety_feed():
 async def get_family_calendar():
     """Get iCloud Family Calendar events"""
     try:
-        # Return sample calendar data since iCloud calendar is not configured
         from datetime import datetime, timedelta
-        today = datetime.now()
-        sample_events = [
-            {"id": "1", "title": "⚙️ Configure iCloud Calendar", "start_time": today.strftime("%Y-%m-%d %H:%M"), "end_time": "", "location": "Settings", "description": "Add your iCloud calendar URL in config/config.yaml under 'icloud_calendar_url'"},
-            {"id": "2", "title": "📅 Family Movie Night", "start_time": (today + timedelta(days=2)).strftime("%Y-%m-%d 19:00"), "end_time": (today + timedelta(days=2)).strftime("%Y-%m-%d 21:00"), "location": "Home", "description": "Popcorn and blankets ready!"},
-            {"id": "3", "title": "🎄 Holiday Gathering", "start_time": (today + timedelta(days=5)).strftime("%Y-%m-%d 14:00"), "end_time": (today + timedelta(days=5)).strftime("%Y-%m-%d 18:00"), "location": "Grandma's House", "description": "Bring the dessert"},
-            {"id": "4", "title": "🏥 Doctor Appointment", "start_time": (today + timedelta(days=7)).strftime("%Y-%m-%d 10:30"), "end_time": (today + timedelta(days=7)).strftime("%Y-%m-%d 11:30"), "location": "Medical Center", "description": "Annual checkup"}
-        ]
-        return {"success": True, "events": sample_events, "sample_data": True, "setup_note": "Add icloud_calendar_url to config/config.yaml for real calendar data"}
+        from config.settings import settings
+        from database import get_credentials
+        
+        # Check database first for stored URL, then fall back to config
+        stored_creds = get_credentials('icloud_calendar')
+        icloud_url = ''
+        
+        if stored_creds and stored_creds.get('url'):
+            icloud_url = stored_creds.get('url')
+        elif hasattr(settings, 'apple') and hasattr(settings.apple, 'icloud_calendar_url'):
+            icloud_url = settings.apple.icloud_calendar_url or ''
+        
+        if icloud_url:
+            # Use the real iCloud calendar collector
+            try:
+                from collectors.icloud_calendar_collector import ICloudCalendarCollector
+                collector = ICloudCalendarCollector(icloud_url)
+                events = await collector.get_events(days_ahead=30)
+                
+                if events:
+                    # Format events for display
+                    formatted_events = []
+                    for i, event in enumerate(events):
+                        formatted_events.append({
+                            "id": str(i + 1),
+                            "title": event.get('title', 'Untitled'),
+                            "start_time": event.get('start_time', ''),
+                            "end_time": event.get('end_time', ''),
+                            "location": event.get('location', ''),
+                            "description": event.get('description', '')
+                        })
+                    return {"success": True, "events": formatted_events, "sample_data": False}
+                else:
+                    return {"success": True, "events": [], "message": "No upcoming events found"}
+            except Exception as e:
+                logger.error(f"Error loading iCloud calendar: {e}")
+                return {"success": False, "events": [], "error": f"Calendar error: {str(e)}"}
+        else:
+            # Return sample calendar data since iCloud calendar is not configured
+            today = datetime.now()
+            sample_events = [
+                {"id": "1", "title": "⚙️ Configure iCloud Calendar", "start_time": today.strftime("%Y-%m-%d %H:%M"), "end_time": "", "location": "Settings", "description": "Add your iCloud calendar URL in config/config.yaml under 'apple.icloud_calendar_url'"},
+                {"id": "2", "title": "📅 Family Movie Night", "start_time": (today + timedelta(days=2)).strftime("%Y-%m-%d 19:00"), "end_time": (today + timedelta(days=2)).strftime("%Y-%m-%d 21:00"), "location": "Home", "description": "Popcorn and blankets ready!"},
+                {"id": "3", "title": "🎄 Holiday Gathering", "start_time": (today + timedelta(days=5)).strftime("%Y-%m-%d 14:00"), "end_time": (today + timedelta(days=5)).strftime("%Y-%m-%d 18:00"), "location": "Grandma's House", "description": "Bring the dessert"},
+                {"id": "4", "title": "🏥 Doctor Appointment", "start_time": (today + timedelta(days=7)).strftime("%Y-%m-%d 10:30"), "end_time": (today + timedelta(days=7)).strftime("%Y-%m-%d 11:30"), "location": "Medical Center", "description": "Annual checkup"}
+            ]
+            return {"success": True, "events": sample_events, "sample_data": True, "setup_note": "Add icloud_calendar_url to config/config.yaml under 'apple' section for real calendar data"}
     except Exception as e:
         logger.error(f"Error fetching family calendar: {e}")
         return {"success": False, "events": [], "error": str(e)}
+
+
+@app.post("/api/settings/icloud-calendar")
+async def save_icloud_calendar_url(request: Request):
+    """Save iCloud calendar URL to database"""
+    try:
+        data = await request.json()
+        url = data.get('url', '').strip()
+        
+        if not url:
+            return {"success": False, "error": "No URL provided"}
+        
+        # Convert webcal:// to https://
+        if url.startswith('webcal://'):
+            url = url.replace('webcal://', 'https://')
+        
+        # Save to database
+        from src.database import save_credentials
+        save_credentials('icloud_calendar', {'url': url})
+        
+        return {"success": True, "message": "Calendar URL saved"}
+    except Exception as e:
+        logger.error(f"Error saving iCloud calendar URL: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/calendar/family/test")
+async def test_icloud_calendar(request: Request):
+    """Test iCloud calendar connection"""
+    try:
+        data = await request.json()
+        url = data.get('url', '').strip()
+        
+        if not url:
+            return {"success": False, "error": "No URL provided"}
+        
+        # Convert webcal:// to https://
+        if url.startswith('webcal://'):
+            url = url.replace('webcal://', 'https://')
+        
+        from collectors.icloud_calendar_collector import ICloudCalendarCollector
+        collector = ICloudCalendarCollector(url)
+        events = await collector.get_events(days_ahead=30)
+        
+        return {"success": True, "event_count": len(events), "message": f"Found {len(events)} upcoming events"}
+    except Exception as e:
+        logger.error(f"Error testing iCloud calendar: {e}")
+        return {"success": False, "error": str(e)}
 
 
 @app.get("/api/ebay/auctions")
@@ -3118,6 +3238,15 @@ async def get_news(filter: str = "all", include_read: bool = False):
                 articles.append(article_data)
             elif filter == "startrek" and any('star trek' in topic.lower() for topic in topics):
                 articles.append(article_data)
+            # Dark/Gothic theme news categories
+            elif filter == "horror" and any(kw in (article_data['title'].lower() + ' ' + article_data['description'].lower()) for kw in ['horror', 'dracula', 'vampire', 'zombie', 'haunted', 'scary', 'nightmare', 'ghost', 'supernatural', 'dark', 'sinister']):
+                articles.append(article_data)
+            elif filter == "gothic" and any(kw in (article_data['title'].lower() + ' ' + article_data['description'].lower()) for kw in ['gothic', 'dark', 'cathedral', 'medieval', 'raven', 'noir', 'the cure', 'bauhaus', 'sisters of mercy', 'siouxsie', 'post-punk']):
+                articles.append(article_data)
+            elif filter == "fantasy" and any(kw in (article_data['title'].lower() + ' ' + article_data['description'].lower()) for kw in ['fantasy', 'dragon', 'wizard', 'magic', 'throne', 'elf', 'elven', 'd&d', 'dungeons', 'tolkien', 'lord of the rings', 'game of thrones', 'witcher']):
+                articles.append(article_data)
+            elif filter == "90s_music" and any(kw in (article_data['title'].lower() + ' ' + article_data['description'].lower()) for kw in ['90s', 'grunge', 'nirvana', 'soundgarden', 'pearl jam', 'smashing pumpkins', 'radiohead', 'portishead', 'massive attack', 'trip-hop', 'alternative', 'trent reznor', 'nine inch nails', 'oasis', 'blur']):
+                articles.append(article_data)
         
         # If no articles from database, fall back to Hacker News
         if not articles:
@@ -3933,10 +4062,23 @@ async def update_voice_settings(request: Request):
     try:
         import voice as voice_module
         if voice_module._voice:
+            # Update all voice settings
             voice_module._voice.sarcasm_enabled = current.get('sarcasm_enabled', False)
             voice_module._voice.sarcasm_chance = current.get('sarcasm_chance', 0.4)
             voice_module._voice.signature_chance = current.get('signature_chance', 0.3)
             voice_module._voice.use_authentic_samples = current.get('use_authentic_samples', True)
+            
+            # Update speed and pitch (these affect audio processing)
+            if 'speed' in current:
+                voice_module._voice.speed = current['speed']
+            if 'pitch' in current:
+                voice_module._voice.pitch = current['pitch']
+            if 'default_style' in current:
+                voice_module._voice.style = current['default_style']
+            
+            # Clear cache so new settings take effect
+            voice_module._voice.clear_cache()
+            logger.info(f"Voice settings updated: speed={voice_module._voice.speed}, pitch={voice_module._voice.pitch}, style={voice_module._voice.style}")
     except Exception as e:
         logger.warning(f"Could not update voice instance: {e}")
     
@@ -7910,6 +8052,37 @@ async def test_voice(request: Request):
         }
     except Exception as e:
         logger.error(f"Voice test error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/voice/speak")
+async def speak_text(request: Request):
+    """Speak arbitrary text using current voice settings."""
+    try:
+        data = await request.json()
+        text = data.get('text', '')
+        style = data.get('style')
+        
+        if not text:
+            return {"success": False, "error": "No text provided"}
+        
+        # Get voice style from skin if not provided
+        if not style:
+            from config.skin_loader import get_active_skin
+            skin = get_active_skin()
+            style = skin.voice.get('style', 'droid') if hasattr(skin, 'voice') else 'droid'
+        
+        # Use voice system to speak
+        import voice as voice_module
+        if voice_module._voice:
+            audio_data = voice_module._voice.speak(text, style=style)
+            if audio_data:
+                return {"success": True, "message": "Speaking"}
+        
+        return {"success": False, "error": "Voice system not initialized"}
+        
+    except Exception as e:
+        logger.error(f"Voice speak error: {e}")
         return {"success": False, "error": str(e)}
 
 
