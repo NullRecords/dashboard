@@ -51,7 +51,7 @@
                 category: 'environment',
                 description: 'Current weather, forecast, and ambient weather station',
                 defaultEnabled: true,
-                themes: ['roger', 'dracula']
+                themes: ['roger', 'dracula', 'alice', 'jedi']
             },
             
             // Entertainment - Both Themes
@@ -62,7 +62,7 @@
                 category: 'entertainment',
                 description: 'Programming and dad jokes',
                 defaultEnabled: true,
-                themes: ['roger', 'dracula']
+                themes: ['roger', 'dracula', 'alice', 'jedi']
             },
             quote: {
                 id: 'quote',
@@ -71,7 +71,7 @@
                 category: 'entertainment',
                 description: 'Inspirational and motivational quotes',
                 defaultEnabled: true,
-                themes: ['roger', 'dracula']
+                themes: ['roger', 'dracula', 'alice', 'jedi']
             },
             
             // Entertainment - Roger Theme
@@ -82,7 +82,7 @@
                 category: 'entertainment',
                 description: 'Garfield and other daily comics',
                 defaultEnabled: true,
-                themes: ['roger']
+                themes: ['roger', 'alice', 'jedi']
             },
             ebay: {
                 id: 'ebay',
@@ -91,7 +91,7 @@
                 category: 'shopping',
                 description: 'Retro tech and collectible auctions',
                 defaultEnabled: true,
-                themes: ['roger']
+                themes: ['roger', 'jedi']
             },
             parts_search: {
                 id: 'parts_search',
@@ -117,8 +117,8 @@
                 icon: '⭐',
                 category: 'entertainment',
                 description: 'Star Wars trivia and facts',
-                defaultEnabled: false,
-                themes: ['roger']
+                defaultEnabled: true,
+                themes: ['roger', 'jedi']
             },
             communities: {
                 id: 'communities',
@@ -147,7 +147,7 @@
                 category: 'entertainment',
                 description: 'Last.fm radio with YouTube playback',
                 defaultEnabled: true,
-                themes: ['dracula']
+                themes: ['dracula', 'alice']
             },
             dark_news: {
                 id: 'dark_news',
@@ -165,7 +165,7 @@
                 category: 'social',
                 description: 'Art and creative communities',
                 defaultEnabled: true,
-                themes: ['dracula']
+                themes: ['dracula', 'alice']
             },
             music_communities: {
                 id: 'music_communities',
@@ -198,7 +198,7 @@
                 category: 'productivity',
                 description: 'AI-generated tasks from calendar and email',
                 defaultEnabled: true,
-                themes: ['roger', 'dracula'],
+                themes: ['roger', 'dracula', 'alice', 'jedi'],
                 isSection: true
             },
             calendar: {
@@ -208,7 +208,7 @@
                 category: 'productivity',
                 description: 'Family schedule and upcoming events',
                 defaultEnabled: true,
-                themes: ['roger', 'dracula'],
+                themes: ['roger', 'dracula', 'alice', 'jedi'],
                 isSection: true
             },
             news: {
@@ -218,7 +218,7 @@
                 category: 'news',
                 description: 'Curated news with calm tips',
                 defaultEnabled: true,
-                themes: ['roger', 'dracula'],
+                themes: ['roger', 'dracula', 'alice', 'jedi'],
                 isSection: true
             },
             
@@ -230,7 +230,7 @@
                 category: 'entertainment',
                 description: 'Your saved favorite tracks',
                 defaultEnabled: true,
-                themes: ['dracula']
+                themes: ['dracula', 'alice']
             },
             calm_tips: {
                 id: 'calm_tips',
@@ -239,7 +239,7 @@
                 category: 'wellness',
                 description: 'Anxiety-calming tips and reminders',
                 defaultEnabled: true,
-                themes: ['roger', 'dracula']
+                themes: ['roger', 'dracula', 'alice', 'jedi']
             },
             ambient_weather: {
                 id: 'ambient_weather',
@@ -248,7 +248,7 @@
                 category: 'environment',
                 description: 'Data from personal weather station',
                 defaultEnabled: false,
-                themes: ['roger', 'dracula']
+                themes: ['roger', 'dracula', 'alice', 'jedi']
             },
             
             // ================================
@@ -505,6 +505,10 @@
                 </a>
                 <a href="/trust" data-nav-module="trust_layer" class="nav-link w-full text-left px-4 py-3 rounded-lg text-gray-300 transition-colors hover:bg-gray-700 block">
                     <i class="fas fa-shield-alt mr-2"></i>Trust Layer
+                </a>
+                <!-- External Wiki Link (Kiwix) -->
+                <a href="http://wiki.hoth.home" target="_blank" class="nav-link w-full text-left px-4 py-3 rounded-lg text-gray-300 transition-colors hover:bg-gray-700 block">
+                    <i class="fas fa-book mr-2"></i>Wiki
                 </a>
                 <button onclick="showSection('settings')" class="nav-link w-full text-left px-4 py-3 rounded-lg text-gray-300 transition-colors hover:bg-gray-700">
                     <i class="fas fa-cog mr-2"></i>Settings

@@ -18,6 +18,60 @@ logger = logging.getLogger(__name__)
 # Voice styles available
 VoiceStyle = Literal["clean", "droid", "radio", "pa_system", "demon", "gothic", "alice", "jedi"]
 
+def _find_piper_binary() -> str:
+    """Find the Piper TTS binary in common locations."""
+    # Check common locations
+    locations = [
+        "piper",  # On PATH
+        "/app/data/voice_models/piper/piper",  # Docker location
+        "data/voice_models/piper/piper",  # Local development
+        "/usr/local/bin/piper",
+        "/usr/bin/piper",
+        str(Path.home() / ".local/bin/piper"),
+    ]
+    
+    for loc in locations:
+        try:
+            path = Path(loc)
+            if path.exists() and path.is_file():
+                logger.info(f"Found Piper binary at: {loc}")
+                return str(path)
+        except Exception:
+            pass
+    
+    # Check if piper is on PATH
+    import shutil
+    piper_path = shutil.which("piper")
+    if piper_path:
+        logger.info(f"Found Piper on PATH: {piper_path}")
+        return piper_path
+    
+    logger.warning("Piper binary not found - voice synthesis will not work")
+    return "piper"  # Return default, will fail gracefully
+
+def _find_voice_model(model_name: str = "en_US-ryan-high") -> Optional[str]:
+    """Find a voice model in common locations."""
+    # Check common locations
+    locations = [
+        f"/app/data/voice_models/piper/{model_name}.onnx",  # Docker
+        f"data/voice_models/piper/{model_name}.onnx",  # Local
+    ]
+    
+    for loc in locations:
+        path = Path(loc)
+        if path.exists():
+            logger.info(f"Found voice model at: {loc}")
+            return str(path)
+    
+    # Try without .onnx extension
+    for loc in locations:
+        path = Path(loc.replace('.onnx', ''))
+        if path.exists():
+            return str(path)
+    
+    logger.warning(f"Voice model {model_name} not found")
+    return None
+
 class VoiceSystem:
     """
     Battle-droid-style voice assistant for dashboard
@@ -25,7 +79,7 @@ class VoiceSystem:
     
     def __init__(
         self,
-        piper_bin: str = "piper",
+        piper_bin: str = None,
         model_path: Optional[str] = None,
         cache_dir: str = "data/voice_cache",
         default_style: VoiceStyle = "droid",
@@ -46,8 +100,10 @@ class VoiceSystem:
         vibrato_depth: float = 0.2,
         always_use_signature: bool = True
     ):
-        self.piper_bin = piper_bin
-        self.model_path = model_path
+        # Auto-detect piper binary location if not specified
+        self.piper_bin = piper_bin if piper_bin else _find_piper_binary()
+        # Auto-detect model if not specified
+        self.model_path = model_path if model_path else _find_voice_model()
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.default_style = default_style
@@ -135,13 +191,13 @@ class VoiceSystem:
         voice_config = skin.voice if hasattr(skin, 'voice') else {}
         effects = voice_config.get('effects', {})
         
-        # Get the voice model path based on skin
-        model_name = voice_config.get('model', 'en_US-lessac-medium')
-        model_path = f"data/voice_models/piper/{model_name}.onnx"
+        # Get the voice model path based on skin - auto-detect if not found
+        model_name = voice_config.get('model', 'en_US-ryan-high')
+        model_path = _find_voice_model(model_name)
         
         # Create VoiceSystem with skin's voice settings
         voice_system = cls(
-            model_path=model_path if Path(model_path).exists() else None,
+            model_path=model_path,
             default_style=voice_config.get('style', 'droid'),
             speed=voice_config.get('speed', 0.85),
             pitch=voice_config.get('pitch', 0.80),

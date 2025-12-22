@@ -205,6 +205,26 @@ services:
     networks:
       - dashboard_net
 
+  # ============================================================================
+  # Kiwix Offline Wiki - Wikipedia & Gutenberg
+  # ============================================================================
+  kiwix-wiki:
+    image: ghcr.io/kiwix/kiwix-serve:latest
+    container_name: kiwix-wiki
+    hostname: wiki.hoth.home
+    command: 
+      - "*.zim"
+    volumes:
+      - /home/glind/zims:/data:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wiki.rule=Host(`wiki.hoth.home`)"
+      - "traefik.http.routers.wiki.entrypoints=web"
+      - "traefik.http.services.wiki.loadbalancer.server.port=8080"
+    restart: unless-stopped
+    networks:
+      - dashboard_net
+
 # ============================================================================
 # Persistent Volumes - Each user gets their own data
 # ============================================================================
