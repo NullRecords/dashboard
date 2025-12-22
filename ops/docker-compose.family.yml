@@ -1,0 +1,248 @@
+# Multi-User Dashboard Deployment
+# Runs multiple dashboard instances with unique URLs on one server
+#
+# URLs:
+#   - http://parker.hoth.home → Parker's dashboard (port 8020)
+#   - http://sarah.hoth.home  → Sarah's dashboard (port 8021)
+#   - http://greg.hoth.home   → Greg's dashboard (port 8022)
+#   - http://ramona.hoth.home → Ramona's dashboard (port 8023)
+#
+# Usage:
+#   cd ops
+#   docker-compose -f docker-compose.family.yml up -d
+
+version: '3.8'
+
+services:
+  # ============================================================================
+  # Traefik Reverse Proxy - Routes URLs to correct container
+  # ============================================================================
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"  # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    networks:
+      - dashboard_net
+
+  # ============================================================================
+  # Parker's Dashboard
+  # ============================================================================
+  dashboard-parker:
+    build:
+      context: ..
+      dockerfile: ops/Dockerfile.multi
+      args:
+        DASHBOARD_USER: parker
+        DASHBOARD_PORT: 8020
+    container_name: dashboard-parker
+    hostname: parker.hoth.home
+    environment:
+      - DASHBOARD_USER=parker
+      - DASHBOARD_HOSTNAME=parker.hoth.home
+      - DASHBOARD_PORT=8020
+      - DATABASE_PATH=/app/data/dashboard.db
+      - TZ=${TZ:-America/Chicago}
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://host.docker.internal:11434}
+      - GIT_USER_NAME=${GIT_USER_NAME:-}
+      - GIT_USER_EMAIL=${GIT_USER_EMAIL:-}
+      - GIT_BRANCH=parker
+      - ENABLE_NIGHTLY_BACKUP=true
+      # Shared API keys
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY:-}
+      - NEWSAPI_KEY=${NEWSAPI_KEY:-}
+    volumes:
+      - parker_data:/app/data
+      - parker_tokens:/app/tokens
+      - parker_logs:/app/logs
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.parker.rule=Host(`parker.hoth.home`)"
+      - "traefik.http.routers.parker.entrypoints=web"
+      - "traefik.http.services.parker.loadbalancer.server.port=8020"
+    restart: unless-stopped
+    networks:
+      - dashboard_net
+
+  # ============================================================================
+  # Sarah's Dashboard
+  # ============================================================================
+  dashboard-sarah:
+    build:
+      context: ..
+      dockerfile: ops/Dockerfile.multi
+      args:
+        DASHBOARD_USER: sarah
+        DASHBOARD_PORT: 8021
+    container_name: dashboard-sarah
+    hostname: sarah.hoth.home
+    environment:
+      - DASHBOARD_USER=sarah
+      - DASHBOARD_HOSTNAME=sarah.hoth.home
+      - DASHBOARD_PORT=8021
+      - DATABASE_PATH=/app/data/dashboard.db
+      - TZ=${TZ:-America/Chicago}
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://host.docker.internal:11434}
+      - GIT_USER_NAME=${GIT_USER_NAME:-}
+      - GIT_USER_EMAIL=${GIT_USER_EMAIL:-}
+      - GIT_BRANCH=sarah
+      - ENABLE_NIGHTLY_BACKUP=true
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY:-}
+      - NEWSAPI_KEY=${NEWSAPI_KEY:-}
+    volumes:
+      - sarah_data:/app/data
+      - sarah_tokens:/app/tokens
+      - sarah_logs:/app/logs
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sarah.rule=Host(`sarah.hoth.home`)"
+      - "traefik.http.routers.sarah.entrypoints=web"
+      - "traefik.http.services.sarah.loadbalancer.server.port=8021"
+    restart: unless-stopped
+    networks:
+      - dashboard_net
+
+  # ============================================================================
+  # Greg's Dashboard
+  # ============================================================================
+  dashboard-greg:
+    build:
+      context: ..
+      dockerfile: ops/Dockerfile.multi
+      args:
+        DASHBOARD_USER: greg
+        DASHBOARD_PORT: 8022
+    container_name: dashboard-greg
+    hostname: greg.hoth.home
+    environment:
+      - DASHBOARD_USER=greg
+      - DASHBOARD_HOSTNAME=greg.hoth.home
+      - DASHBOARD_PORT=8022
+      - DATABASE_PATH=/app/data/dashboard.db
+      - TZ=${TZ:-America/Chicago}
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://host.docker.internal:11434}
+      - GIT_USER_NAME=${GIT_USER_NAME:-}
+      - GIT_USER_EMAIL=${GIT_USER_EMAIL:-}
+      - GIT_BRANCH=greg
+      - ENABLE_NIGHTLY_BACKUP=true
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY:-}
+      - NEWSAPI_KEY=${NEWSAPI_KEY:-}
+    volumes:
+      - greg_data:/app/data
+      - greg_tokens:/app/tokens
+      - greg_logs:/app/logs
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.greg.rule=Host(`greg.hoth.home`)"
+      - "traefik.http.routers.greg.entrypoints=web"
+      - "traefik.http.services.greg.loadbalancer.server.port=8022"
+    restart: unless-stopped
+    networks:
+      - dashboard_net
+
+  # ============================================================================
+  # Ramona's Dashboard
+  # ============================================================================
+  dashboard-ramona:
+    build:
+      context: ..
+      dockerfile: ops/Dockerfile.multi
+      args:
+        DASHBOARD_USER: ramona
+        DASHBOARD_PORT: 8023
+    container_name: dashboard-ramona
+    hostname: ramona.hoth.home
+    environment:
+      - DASHBOARD_USER=ramona
+      - DASHBOARD_HOSTNAME=ramona.hoth.home
+      - DASHBOARD_PORT=8023
+      - DATABASE_PATH=/app/data/dashboard.db
+      - TZ=${TZ:-America/Chicago}
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://host.docker.internal:11434}
+      - GIT_USER_NAME=${GIT_USER_NAME:-}
+      - GIT_USER_EMAIL=${GIT_USER_EMAIL:-}
+      - GIT_BRANCH=ramona
+      - ENABLE_NIGHTLY_BACKUP=true
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY:-}
+      - NEWSAPI_KEY=${NEWSAPI_KEY:-}
+    volumes:
+      - ramona_data:/app/data
+      - ramona_tokens:/app/tokens
+      - ramona_logs:/app/logs
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ramona.rule=Host(`ramona.hoth.home`)"
+      - "traefik.http.routers.ramona.entrypoints=web"
+      - "traefik.http.services.ramona.loadbalancer.server.port=8023"
+    restart: unless-stopped
+    networks:
+      - dashboard_net
+
+# ============================================================================
+# Persistent Volumes - Each user gets their own data
+# ============================================================================
+volumes:
+  parker_data:
+    name: dashboard_parker_data
+  parker_tokens:
+    name: dashboard_parker_tokens
+  parker_logs:
+    name: dashboard_parker_logs
+  
+  sarah_data:
+    name: dashboard_sarah_data
+  sarah_tokens:
+    name: dashboard_sarah_tokens
+  sarah_logs:
+    name: dashboard_sarah_logs
+  
+  greg_data:
+    name: dashboard_greg_data
+  greg_tokens:
+    name: dashboard_greg_tokens
+  greg_logs:
+    name: dashboard_greg_logs
+  
+  ramona_data:
+    name: dashboard_ramona_data
+  ramona_tokens:
+    name: dashboard_ramona_tokens
+  ramona_logs:
+    name: dashboard_ramona_logs
+
+# ============================================================================
+# Shared Network
+# ============================================================================
+networks:
+  dashboard_net:
+    name: dashboard_family_network
+    driver: bridge
