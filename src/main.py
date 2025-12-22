@@ -59,6 +59,39 @@ COMIC_RSS_HIDDEN = {
     "peanuts",
 }
 
+# ============== Comics Settings ==============
+# Default comics configuration
+DEFAULT_COMICS = {
+    "garfield": {
+        "name": "Garfield",
+        "source": "archive",
+        "enabled": True,
+        "archive_enabled": True,
+        "gocomics_slug": None
+    },
+    "bloomcounty": {
+        "name": "Bloom County",
+        "source": "gocomics",
+        "gocomics_slug": "bloomcounty",
+        "enabled": True,
+        "archive_enabled": True
+    },
+    "calvin": {
+        "name": "Calvin & Hobbes",
+        "source": "gocomics",
+        "gocomics_slug": "calvinandhobbes",
+        "enabled": True,
+        "archive_enabled": True
+    },
+    "peanuts": {
+        "name": "Peanuts",
+        "source": "gocomics",
+        "gocomics_slug": "peanuts",
+        "enabled": True,
+        "archive_enabled": True
+    }
+}
+
 # Add the src directory to path for imports
 src_dir = Path(__file__).parent
 project_root = src_dir.parent  # One level up from src/
@@ -8863,6 +8896,243 @@ def _build_garfield_archive_sample(max_items: int = 400) -> list:
     except Exception as e:
         logger.error(f"Error building Garfield archive sample: {e}")
         return []
+
+
+# ============== Comics Settings API ==============
+
+@app.get("/api/settings/comics")
+async def get_comics_settings():
+    """Get comics configuration settings with archive counts."""
+    try:
+        from database import DatabaseManager
+        db_manager = DatabaseManager()
+        
+        # Get saved comics config or use defaults
+        saved_config = db_manager.get_setting('comics_config')
+        if saved_config:
+            try:
+                comics = json.loads(saved_config)
+            except:
+                comics = DEFAULT_COMICS.copy()
+        else:
+            comics = DEFAULT_COMICS.copy()
+        
+        # Ensure all default comics exist in config
+        for comic_id, comic_data in DEFAULT_COMICS.items():
+            if comic_id not in comics:
+                comics[comic_id] = comic_data.copy()
+        
+        # Add archive counts for each comic
+        data_dir = project_root / "data"
+        for comic_id in comics:
+            archive_count = 0
+            
+            # Check for Garfield's special archive format
+            if comic_id == "garfield":
+                garfield_archive = data_dir / "garfield_archive_images.json"
+                if garfield_archive.exists():
+                    try:
+                        with open(garfield_archive) as f:
+                            archive_data = json.load(f)
+                            archive_count = len(archive_data) if isinstance(archive_data, list) else len(archive_data.get('comics', []))
+                    except:
+                        pass
+            else:
+                # Check standard archive JSON
+                archive_file = data_dir / f"{comic_id}_archive.json"
+                if archive_file.exists():
+                    try:
+                        with open(archive_file) as f:
+                            archive_data = json.load(f)
+                            archive_count = len(archive_data.get('comics', []))
+                    except:
+                        pass
+                
+                # Also check comic image files
+                comic_dir = data_dir / "comics" / comic_id
+                if comic_dir.exists():
+                    try:
+                        file_count = len(list(comic_dir.glob("*")))
+                        archive_count = max(archive_count, file_count)
+                    except:
+                        pass
+            
+            comics[comic_id]['archive_count'] = archive_count
+        
+        return {
+            "success": True,
+            "comics": comics
+        }
+    except Exception as e:
+        logger.error(f"Error getting comics settings: {e}")
+        return {"success": False, "error": str(e), "comics": DEFAULT_COMICS}
+
+
+@app.post("/api/settings/comics")
+async def update_comics_settings(request: Dict[str, Any]):
+    """Update comics configuration settings."""
+    try:
+        from database import DatabaseManager
+        db_manager = DatabaseManager()
+        
+        # Get current config
+        saved_config = db_manager.get_setting('comics_config')
+        if saved_config:
+            try:
+                comics = json.loads(saved_config)
+            except:
+                comics = DEFAULT_COMICS.copy()
+        else:
+            comics = DEFAULT_COMICS.copy()
+        
+        # Update with new values
+        if 'comics' in request:
+            for comic_id, comic_data in request['comics'].items():
+                if comic_id in comics:
+                    comics[comic_id].update(comic_data)
+                else:
+                    comics[comic_id] = comic_data
+        
+        # Save back to database
+        db_manager.save_setting('comics_config', json.dumps(comics))
+        
+        return {
+            "success": True,
+            "message": "Comics settings updated",
+            "comics": comics
+        }
+    except Exception as e:
+        logger.error(f"Error updating comics settings: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/settings/comics/add")
+async def add_comic_from_url(request: Dict[str, Any]):
+    """Add a new comic from a GoComics URL."""
+    try:
+        from database import DatabaseManager
+        db_manager = DatabaseManager()
+        
+        url = request.get('url', '').strip()
+        if not url:
+            return {"success": False, "error": "URL is required"}
+        
+        # Parse GoComics URL to extract slug
+        match = re.search(r'gocomics\.com/([a-z0-9-]+)', url.lower())
+        if not match:
+            return {"success": False, "error": "Invalid GoComics URL. Expected format: https://www.gocomics.com/comic-name"}
+        
+        slug = match.group(1)
+        
+        # Fetch the GoComics page to get the comic name
+        try:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+                "Accept": "text/html,application/xhtml+xml",
+                "Accept-Language": "en-US,en;q=0.9",
+            }
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+                resp = await client.get(f"https://www.gocomics.com/{slug}", headers=headers)
+                if resp.status_code != 200:
+                    return {"success": False, "error": f"Could not access comic page (status {resp.status_code})"}
+                
+                # Parse page to get comic title
+                soup = BeautifulSoup(resp.text, 'html.parser')
+                
+                # Try to find the comic title
+                title_tag = soup.find('h1') or soup.find('title')
+                if title_tag:
+                    title = title_tag.get_text().strip()
+                    # Clean up title
+                    title = re.sub(r'\s*[\|\-].*$', '', title).strip()
+                    title = re.sub(r'GoComics.*$', '', title).strip()
+                    if not title:
+                        title = slug.replace('-', ' ').title()
+                else:
+                    title = slug.replace('-', ' ').title()
+                
+        except Exception as e:
+            logger.warning(f"Could not fetch comic page for {slug}: {e}")
+            title = slug.replace('-', ' ').title()
+        
+        # Generate unique ID from slug
+        comic_id = slug.replace('-', '')
+        
+        # Get current comics config
+        saved_config = db_manager.get_setting('comics_config')
+        if saved_config:
+            try:
+                comics = json.loads(saved_config)
+            except:
+                comics = DEFAULT_COMICS.copy()
+        else:
+            comics = DEFAULT_COMICS.copy()
+        
+        # Check if already exists
+        if comic_id in comics:
+            return {"success": False, "error": f"Comic '{title}' already exists"}
+        
+        # Add new comic
+        comics[comic_id] = {
+            "name": title,
+            "source": "gocomics",
+            "gocomics_slug": slug,
+            "enabled": True,
+            "archive_enabled": True,
+            "custom": True
+        }
+        
+        # Save config
+        db_manager.save_setting('comics_config', json.dumps(comics))
+        
+        return {
+            "success": True,
+            "message": f"Added '{title}' to comics",
+            "comic_id": comic_id,
+            "comic": comics[comic_id]
+        }
+    except Exception as e:
+        logger.error(f"Error adding comic from URL: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.delete("/api/settings/comics/{comic_id}")
+async def remove_comic(comic_id: str):
+    """Remove a custom comic (built-in comics cannot be removed)."""
+    try:
+        from database import DatabaseManager
+        db_manager = DatabaseManager()
+        
+        # Get current config
+        saved_config = db_manager.get_setting('comics_config')
+        if saved_config:
+            try:
+                comics = json.loads(saved_config)
+            except:
+                comics = DEFAULT_COMICS.copy()
+        else:
+            comics = DEFAULT_COMICS.copy()
+        
+        if comic_id not in comics:
+            return {"success": False, "error": "Comic not found"}
+        
+        # Check if it's a built-in comic
+        if comic_id in DEFAULT_COMICS and not comics[comic_id].get('custom', False):
+            return {"success": False, "error": "Cannot remove built-in comics. You can disable them instead."}
+        
+        # Remove the comic
+        del comics[comic_id]
+        
+        # Save config
+        db_manager.save_setting('comics_config', json.dumps(comics))
+        
+        return {
+            "success": True,
+            "message": f"Removed comic '{comic_id}'"
+        }
+    except Exception as e:
+        logger.error(f"Error removing comic: {e}")
+        return {"success": False, "error": str(e)}
 
 
 @app.post("/api/comics/garfield/prefetch")

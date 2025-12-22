@@ -2875,6 +2875,172 @@
                         </div>
                     </div>
                     
+                    <!-- Module Preferences -->
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold text-purple-300 mb-4"><i class="fas fa-sliders-h mr-2"></i>Module Preferences</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            
+                            <!-- Comics Preferences -->
+                            <div class="bg-gray-900 rounded-lg border border-gray-700 p-4">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <span class="text-lg">📰</span>
+                                    <span class="font-semibold">Comics</span>
+                                </div>
+                                <label class="block text-sm mb-2">Default Comic Strip</label>
+                                <select id="pref-default-comic" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm" onchange="saveModulePref('default_comic', this.value)">
+                                    <option value="garfield" ${localStorage.getItem('default_comic') === 'garfield' || !localStorage.getItem('default_comic') ? 'selected' : ''}>🐱 Garfield</option>
+                                    <option value="calvin" ${localStorage.getItem('default_comic') === 'calvin' ? 'selected' : ''}>📚 Calvin & Hobbes</option>
+                                    <option value="peanuts" ${localStorage.getItem('default_comic') === 'peanuts' ? 'selected' : ''}>🐕 Peanuts</option>
+                                </select>
+                                <div class="mt-3 flex items-center justify-between">
+                                    <span class="text-sm">Auto-rotate daily</span>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="pref-comic-rotate" ${localStorage.getItem('comic_auto_rotate') === 'true' ? 'checked' : ''} onchange="saveModulePref('comic_auto_rotate', this.checked)" class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Music Preferences -->
+                            <div class="bg-gray-900 rounded-lg border border-gray-700 p-4">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <span class="text-lg">🎵</span>
+                                    <span class="font-semibold">Music Player</span>
+                                </div>
+                                <label class="block text-sm mb-2">Last.fm Username</label>
+                                <input type="text" id="pref-lastfm-user" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm mb-2" 
+                                    value="${localStorage.getItem('lastfm_username') || ''}" 
+                                    placeholder="Your Last.fm username"
+                                    onchange="saveModulePref('lastfm_username', this.value)">
+                                <label class="block text-sm mb-2">Default Genre</label>
+                                <select id="pref-music-genre" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm" onchange="saveModulePref('default_genre', this.value)">
+                                    <option value="alternative" ${localStorage.getItem('default_genre') === 'alternative' || !localStorage.getItem('default_genre') ? 'selected' : ''}>🎸 Alternative</option>
+                                    <option value="rock" ${localStorage.getItem('default_genre') === 'rock' ? 'selected' : ''}>🤘 Rock</option>
+                                    <option value="electronic" ${localStorage.getItem('default_genre') === 'electronic' ? 'selected' : ''}>🎹 Electronic</option>
+                                    <option value="metal" ${localStorage.getItem('default_genre') === 'metal' ? 'selected' : ''}>🎸 Metal</option>
+                                    <option value="goth" ${localStorage.getItem('default_genre') === 'goth' ? 'selected' : ''}>🦇 Goth/Darkwave</option>
+                                    <option value="90s" ${localStorage.getItem('default_genre') === '90s' ? 'selected' : ''}>📼 90s Hits</option>
+                                </select>
+                                <div class="mt-3 flex items-center justify-between">
+                                    <span class="text-sm">Autoplay on load</span>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="pref-music-autoplay" ${localStorage.getItem('music_autoplay') === 'true' ? 'checked' : ''} onchange="saveModulePref('music_autoplay', this.checked)" class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Weather Preferences -->
+                            <div class="bg-gray-900 rounded-lg border border-gray-700 p-4">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <span class="text-lg">🌡️</span>
+                                    <span class="font-semibold">Weather</span>
+                                </div>
+                                <label class="block text-sm mb-2">Temperature Units</label>
+                                <select id="pref-weather-units" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm" onchange="saveModulePref('weather_units', this.value)">
+                                    <option value="imperial" ${localStorage.getItem('weather_units') === 'imperial' || !localStorage.getItem('weather_units') ? 'selected' : ''}>🇺🇸 Fahrenheit</option>
+                                    <option value="metric" ${localStorage.getItem('weather_units') === 'metric' ? 'selected' : ''}>🌍 Celsius</option>
+                                </select>
+                                <label class="block text-sm mt-3 mb-2">Default Location</label>
+                                <input type="text" id="pref-weather-location" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm" 
+                                    value="${localStorage.getItem('weather_location') || ''}" 
+                                    placeholder="City, State or ZIP code"
+                                    onchange="saveModulePref('weather_location', this.value)">
+                                <div class="mt-3 flex items-center justify-between">
+                                    <span class="text-sm">Show humidity</span>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="pref-weather-humidity" ${localStorage.getItem('weather_show_humidity') !== 'false' ? 'checked' : ''} onchange="saveModulePref('weather_show_humidity', this.checked)" class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- News Preferences -->
+                            <div class="bg-gray-900 rounded-lg border border-gray-700 p-4">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <span class="text-lg">📰</span>
+                                    <span class="font-semibold">News Feed</span>
+                                </div>
+                                <label class="block text-sm mb-2">Default Category</label>
+                                <select id="pref-news-category" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm" onchange="saveModulePref('news_category', this.value)">
+                                    <option value="all" ${localStorage.getItem('news_category') === 'all' || !localStorage.getItem('news_category') ? 'selected' : ''}>📰 All News</option>
+                                    <option value="tech" ${localStorage.getItem('news_category') === 'tech' ? 'selected' : ''}>💻 Technology</option>
+                                    <option value="gaming" ${localStorage.getItem('news_category') === 'gaming' ? 'selected' : ''}>🎮 Gaming</option>
+                                    <option value="science" ${localStorage.getItem('news_category') === 'science' ? 'selected' : ''}>🔬 Science</option>
+                                    <option value="music" ${localStorage.getItem('news_category') === 'music' ? 'selected' : ''}>🎵 Music</option>
+                                </select>
+                                <label class="block text-sm mt-3 mb-2">Articles per page</label>
+                                <select id="pref-news-count" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm" onchange="saveModulePref('news_count', this.value)">
+                                    <option value="5" ${localStorage.getItem('news_count') === '5' ? 'selected' : ''}>5 articles</option>
+                                    <option value="10" ${localStorage.getItem('news_count') === '10' || !localStorage.getItem('news_count') ? 'selected' : ''}>10 articles</option>
+                                    <option value="20" ${localStorage.getItem('news_count') === '20' ? 'selected' : ''}>20 articles</option>
+                                </select>
+                                <div class="mt-3 flex items-center justify-between">
+                                    <span class="text-sm">Show calm tips</span>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="pref-news-calm" ${localStorage.getItem('news_show_calm') !== 'false' ? 'checked' : ''} onchange="saveModulePref('news_show_calm', this.checked)" class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- eBay Preferences -->
+                            <div class="bg-gray-900 rounded-lg border border-gray-700 p-4">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <span class="text-lg">🛒</span>
+                                    <span class="font-semibold">eBay Auctions</span>
+                                </div>
+                                <label class="block text-sm mb-2">Search Keywords</label>
+                                <input type="text" id="pref-ebay-keywords" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm mb-2" 
+                                    value="${localStorage.getItem('ebay_keywords') || 'vintage electronics, retro computers'}" 
+                                    placeholder="vintage electronics, retro computers"
+                                    onchange="saveModulePref('ebay_keywords', this.value)">
+                                <label class="block text-sm mb-2">Max Price ($)</label>
+                                <input type="number" id="pref-ebay-maxprice" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm" 
+                                    value="${localStorage.getItem('ebay_maxprice') || '100'}" 
+                                    placeholder="100"
+                                    onchange="saveModulePref('ebay_maxprice', this.value)">
+                            </div>
+                            
+                            <!-- Calendar Preferences -->
+                            <div class="bg-gray-900 rounded-lg border border-gray-700 p-4">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <span class="text-lg">📅</span>
+                                    <span class="font-semibold">Calendar</span>
+                                </div>
+                                <label class="block text-sm mb-2">Default View</label>
+                                <select id="pref-calendar-view" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm" onchange="saveModulePref('calendar_view', this.value)">
+                                    <option value="week" ${localStorage.getItem('calendar_view') === 'week' || !localStorage.getItem('calendar_view') ? 'selected' : ''}>📅 Week View</option>
+                                    <option value="month" ${localStorage.getItem('calendar_view') === 'month' ? 'selected' : ''}>📆 Month View</option>
+                                    <option value="list" ${localStorage.getItem('calendar_view') === 'list' ? 'selected' : ''}>📋 List View</option>
+                                </select>
+                                <div class="mt-3 flex items-center justify-between">
+                                    <span class="text-sm">Show week numbers</span>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="pref-calendar-weeknums" ${localStorage.getItem('calendar_show_weeknums') === 'true' ? 'checked' : ''} onchange="saveModulePref('calendar_show_weeknums', this.checked)" class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                                    </label>
+                                </div>
+                                <div class="mt-3 flex items-center justify-between">
+                                    <span class="text-sm">24-hour time</span>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="pref-calendar-24h" ${localStorage.getItem('calendar_24h') === 'true' ? 'checked' : ''} onchange="saveModulePref('calendar_24h', this.checked)" class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                        </div>
+                    </div>
+                    
+                    <!-- Comics Settings -->
+                    <div class="mb-8" id="comics-settings-section">
+                        <h3 class="text-lg font-semibold text-orange-300 mb-4"><i class="fas fa-book-open mr-2"></i>Comics Management</h3>
+                        <div id="comics-settings-content" class="bg-gray-900 rounded-lg border border-gray-700 p-4">
+                            <div class="text-gray-400">Loading comics settings...</div>
+                        </div>
+                    </div>
+                    
                     <!-- Voice Settings -->
                     <div class="mb-8">
                         <h3 class="text-lg font-semibold text-purple-300 mb-4"><i class="fas fa-microphone mr-2"></i>${currentSkin?.identity?.display_name || 'Assistant'} Voice Settings</h3>
@@ -2957,6 +3123,9 @@
                 
                 // Load API keys section
                 loadApiKeysSection();
+                
+                // Load comics settings section
+                loadComicsSettings();
                 
             } catch (e) {
                 console.error('Settings load error:', e);
@@ -3099,6 +3268,191 @@
             } catch (e) {
                 console.error('Error saving API keys:', e);
                 alert('Error saving API keys: ' + e.message);
+            }
+        }
+
+        // Save module preference to localStorage
+        function saveModulePref(key, value) {
+            try {
+                if (typeof value === 'boolean') {
+                    localStorage.setItem(key, value.toString());
+                } else {
+                    localStorage.setItem(key, value);
+                }
+                console.log('Saved preference:', key, '=', value);
+            } catch (e) {
+                console.error('Error saving preference:', e);
+            }
+        }
+
+        // Comics Settings Functions
+        async function loadComicsSettings() {
+            const content = document.getElementById('comics-settings-content');
+            if (!content) return;
+            
+            try {
+                const resp = await fetch('/api/settings/comics');
+                const data = await resp.json();
+                
+                if (!data.success) {
+                    content.innerHTML = '<div class="text-red-400">Error loading comics settings</div>';
+                    return;
+                }
+                
+                const comics = data.comics || {};
+                
+                let comicsHtml = '';
+                Object.entries(comics).forEach(([id, comic]) => {
+                    const borderClass = comic.archive_count > 0 ? 'border-gray-700' : 'border-yellow-700/50';
+                    const sourceIcon = comic.source === 'archive' ? '📂' : '🌐';
+                    const sourceText = comic.source === 'gocomics' ? 'GoComics' : 'Local Archive';
+                    const customText = comic.custom ? ' • Custom' : '';
+                    const archiveCountClass = comic.archive_count > 0 ? 'text-green-400' : 'text-yellow-400';
+                    const archiveCount = comic.archive_count || 0;
+                    const noArchiveBadge = comic.archive_count === 0 ? '<span class="text-xs text-yellow-400 bg-yellow-900/30 px-2 py-1 rounded">No archive</span>' : '';
+                    const archiveChecked = comic.archive_enabled !== false ? 'checked' : '';
+                    const enabledChecked = comic.enabled !== false ? 'checked' : '';
+                    const removeBtn = comic.custom ? '<button data-comic-id="'+id+'" onclick="removeComic(this.dataset.comicId)" class="px-2 py-1 bg-red-700 hover:bg-red-600 rounded text-xs" title="Remove comic"><i class="fas fa-trash"></i></button>' : '';
+                    
+                    comicsHtml += '<div class="flex items-center justify-between p-3 bg-gray-800 rounded-lg border '+borderClass+' hover:border-gray-600">' +
+                        '<div class="flex items-center gap-3">' +
+                            '<span class="text-lg">'+sourceIcon+'</span>' +
+                            '<div>' +
+                                '<div class="font-semibold text-gray-200">'+comic.name+'</div>' +
+                                '<div class="text-xs text-gray-500">'+sourceText+customText+' • <span class="'+archiveCountClass+'">'+archiveCount+' archived</span></div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="flex items-center gap-4">' +
+                            noArchiveBadge +
+                            '<div class="flex items-center gap-2">' +
+                                '<span class="text-xs text-gray-400">Archive</span>' +
+                                '<label class="relative inline-flex items-center cursor-pointer">' +
+                                    '<input type="checkbox" id="archive-'+id+'" '+archiveChecked+' onchange="updateComicSetting(this.id.replace(\'archive-\',\'\'), \'archive_enabled\', this.checked)" class="sr-only peer">' +
+                                    '<div class="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-600"></div>' +
+                                '</label>' +
+                            '</div>' +
+                            '<div class="flex items-center gap-2">' +
+                                '<span class="text-xs text-gray-400">Show</span>' +
+                                '<label class="relative inline-flex items-center cursor-pointer">' +
+                                    '<input type="checkbox" id="enabled-'+id+'" '+enabledChecked+' onchange="updateComicSetting(this.id.replace(\'enabled-\',\'\'), \'enabled\', this.checked)" class="sr-only peer">' +
+                                    '<div class="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-600"></div>' +
+                                '</label>' +
+                            '</div>' +
+                            removeBtn +
+                        '</div>' +
+                    '</div>';
+                });
+                
+                content.innerHTML = 
+                    '<div class="mb-6 p-4 bg-gray-800 rounded-lg border border-orange-600">' +
+                        '<h4 class="text-sm font-semibold text-orange-300 mb-3"><i class="fas fa-plus-circle mr-2"></i>Add Comic from GoComics</h4>' +
+                        '<div class="flex gap-2">' +
+                            '<input type="url" id="new-comic-url" placeholder="https://www.gocomics.com/comic-name" class="flex-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded text-sm text-gray-200 placeholder-gray-500">' +
+                            '<button onclick="addComicFromUrl()" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded text-sm whitespace-nowrap"><i class="fas fa-plus mr-1"></i>Add</button>' +
+                        '</div>' +
+                        '<div class="text-xs text-gray-500 mt-2">Paste a GoComics URL to add a new comic strip</div>' +
+                        '<div id="add-comic-status" class="text-xs mt-2 hidden"></div>' +
+                    '</div>' +
+                    '<div class="space-y-3">' +
+                        '<div class="text-sm font-semibold text-gray-300 mb-2">Manage Comics</div>' +
+                        comicsHtml +
+                    '</div>' +
+                    '<div class="mt-4 text-xs text-gray-500">' +
+                        '<i class="fas fa-info-circle mr-1"></i>' +
+                        '<strong>Show:</strong> Display comic in the dropdown. ' +
+                        '<strong>Archive:</strong> Save comics to your local archive as they are viewed.' +
+                    '</div>';
+            } catch (e) {
+                console.error('Error loading comics settings:', e);
+                content.innerHTML = '<div class="text-red-400">Error loading comics settings</div>';
+            }
+        }
+
+        async function updateComicSetting(comicId, field, value) {
+            try {
+                const resp = await fetch('/api/settings/comics', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        comics: {
+                            [comicId]: { [field]: value }
+                        }
+                    })
+                });
+                const data = await resp.json();
+                if (!data.success) {
+                    console.error('Failed to update comic setting:', data.error);
+                }
+                // Refresh the comic dropdown
+                updateComicDropdown();
+            } catch (e) {
+                console.error('Error updating comic setting:', e);
+            }
+        }
+
+        async function addComicFromUrl() {
+            const input = document.getElementById('new-comic-url');
+            const status = document.getElementById('add-comic-status');
+            const url = input?.value?.trim();
+            
+            if (!url) {
+                status.innerHTML = '<span class="text-red-400">Please enter a URL</span>';
+                status.classList.remove('hidden');
+                return;
+            }
+            
+            status.innerHTML = '<span class="text-gray-400">Adding comic...</span>';
+            status.classList.remove('hidden');
+            
+            try {
+                const resp = await fetch('/api/settings/comics/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+                const data = await resp.json();
+                
+                if (data.success) {
+                    status.innerHTML = '<span class="text-green-400">✓ ' + data.message + '</span>';
+                    input.value = '';
+                    loadComicsSettings();  // Refresh the list
+                    updateComicDropdown();  // Update dropdown
+                } else {
+                    status.innerHTML = '<span class="text-red-400">✗ ' + data.error + '</span>';
+                }
+            } catch (e) {
+                console.error('Error adding comic:', e);
+                status.innerHTML = '<span class="text-red-400">Error adding comic</span>';
+            }
+        }
+
+        async function removeComic(comicId) {
+            if (!confirm('Remove this comic from your list?')) return;
+            
+            try {
+                const resp = await fetch('/api/settings/comics/' + comicId, {
+                    method: 'DELETE'
+                });
+                const data = await resp.json();
+                
+                if (data.success) {
+                    loadComicsSettings();  // Refresh the list
+                    updateComicDropdown();  // Update dropdown
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (e) {
+                console.error('Error removing comic:', e);
+                alert('Error removing comic');
+            }
+        }
+
+        function updateComicDropdown() {
+            // Refresh the comic dropdown on the main page
+            const select = document.getElementById('comic-select');
+            if (select) {
+                // Trigger a refresh by simulating the widget is enabled
+                reloadComic();
             }
         }
 
