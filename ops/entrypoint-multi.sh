@@ -40,27 +40,38 @@ echo "⏰ Starting cron daemon..."
 service cron start || cron
 
 # ============================================================================
-# Wait for Ollama (if configured)
+# Check Ollama connectivity with auto-fallback
 # ============================================================================
+check_ollama() {
+    local host=$1
+    curl -s --connect-timeout 2 "${host}/api/tags" > /dev/null 2>&1
+}
+
 if [ -n "$OLLAMA_HOST" ]; then
-    echo "🤖 Waiting for Ollama at ${OLLAMA_HOST}..."
+    echo "🤖 Checking Ollama connectivity..."
     
-    MAX_RETRIES=30
-    RETRY_COUNT=0
+    OLLAMA_FOUND=false
     
-    while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-        if curl -s "${OLLAMA_HOST}/api/tags" > /dev/null 2>&1; then
-            echo "   ✅ Ollama is ready!"
-            break
-        fi
-        
-        RETRY_COUNT=$((RETRY_COUNT + 1))
-        echo "   ⏳ Waiting... (${RETRY_COUNT}/${MAX_RETRIES})"
-        sleep 2
-    done
+    # Try the configured host first
+    if check_ollama "$OLLAMA_HOST"; then
+        echo "   ✅ Ollama ready at ${OLLAMA_HOST}"
+        OLLAMA_FOUND=true
+    else
+        # Try common fallbacks for Linux Docker
+        for fallback_host in "http://172.17.0.1:11434" "http://host.docker.internal:11434"; do
+            if check_ollama "$fallback_host"; then
+                echo "   ✅ Ollama found at ${fallback_host} (fallback)"
+                export OLLAMA_HOST="$fallback_host"
+                OLLAMA_FOUND=true
+                break
+            fi
+        done
+    fi
     
-    if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
-        echo "   ⚠️  Ollama not available, continuing anyway..."
+    if [ "$OLLAMA_FOUND" = "false" ]; then
+        echo "   ⚠️  Ollama not available"
+        echo "   💡 AI features will use fallback. Dashboard still works!"
+        echo "   💡 Tip: Set OLLAMA_HOST to your host IP (e.g., http://192.168.68.135:11434)"
     fi
 fi
 
