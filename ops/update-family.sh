@@ -13,6 +13,15 @@ REPO_DIR="$(dirname "$SCRIPT_DIR")"
 # Family members and their branches
 FAMILY_MEMBERS=("parker" "sarah" "greg" "ramona")
 
+# Check if we need sudo for docker
+DOCKER_CMD="docker"
+COMPOSE_CMD="docker-compose"
+if ! docker info &>/dev/null; then
+    echo "⚠️  Docker requires elevated permissions, using sudo..."
+    DOCKER_CMD="sudo docker"
+    COMPOSE_CMD="sudo docker-compose"
+fi
+
 cd "$REPO_DIR"
 
 echo "📍 Working directory: $REPO_DIR"
@@ -83,21 +92,21 @@ cd "$SCRIPT_DIR"
 
 echo ""
 echo "🐳 Stopping existing containers..."
-docker-compose -f docker-compose.family.yml down 2>/dev/null || true
+$COMPOSE_CMD -f docker-compose.family.yml down 2>/dev/null || true
 
 echo ""
 echo "🔨 Rebuilding containers (this may take a few minutes)..."
-docker-compose -f docker-compose.family.yml build --no-cache
+$COMPOSE_CMD -f docker-compose.family.yml build --no-cache
 
 echo ""
 echo "🚀 Starting containers..."
-docker-compose -f docker-compose.family.yml up -d
+$COMPOSE_CMD -f docker-compose.family.yml up -d
 
 echo ""
 echo "✅ Update complete!"
 echo ""
 echo "📊 Container status:"
-docker-compose -f docker-compose.family.yml ps
+$COMPOSE_CMD -f docker-compose.family.yml ps
 
 echo ""
 echo "🌐 Dashboards available at:"
@@ -106,5 +115,5 @@ echo "   - http://sarah.hoth.home"
 echo "   - http://greg.hoth.home"
 echo "   - http://ramona.hoth.home"
 echo ""
-echo "📝 View logs: docker-compose -f $SCRIPT_DIR/docker-compose.family.yml logs -f"
-echo "🔁 Quick restart: docker-compose -f $SCRIPT_DIR/docker-compose.family.yml restart"
+echo "📝 View logs: $COMPOSE_CMD -f $SCRIPT_DIR/docker-compose.family.yml logs -f"
+echo "🔁 Quick restart: $COMPOSE_CMD -f $SCRIPT_DIR/docker-compose.family.yml restart"
