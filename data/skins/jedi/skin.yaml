@@ -1,0 +1,191 @@
+# Jedi (Obi-Wan Kenobi) Skin Configuration
+# Wise Jedi Master assistant
+
+identity:
+  name: "jedi"
+  display_name: "Obi-Wan"
+  tagline: "Hello There"
+  description: "A wise and patient Jedi Master who guides you with calm wisdom and occasional dry wit"
+  avatar: "/assets/images/obiwan.svg"
+  wake_words: ["obi-wan", "kenobi", "jedi", "master"]
+  signature_phrase: "Hello there."
+
+# Color scheme - Jedi Earth Tones with Lightsaber Blue accents
+colors:
+  # Primary colors - Lightsaber Blue
+  primary: "#3b82f6"        # Blue-500
+  primary_light: "#60a5fa"  # Blue-400
+  primary_dark: "#2563eb"   # Blue-600
+  
+  # Secondary colors - Jedi Robes (tan/brown)
+  secondary: "#a16207"      # Yellow-700 (tan)
+  secondary_light: "#ca8a04" # Yellow-600
+  secondary_dark: "#854d0e" # Yellow-800
+  
+  # Accent colors - Force glow
+  accent: "#22d3ee"         # Cyan-400
+  accent_light: "#67e8f9"   # Cyan-300
+  accent_dark: "#06b6d4"    # Cyan-500
+  
+  # Background colors - Temple stone/space
+  bg_primary: "#0c0a09"     # Stone-950
+  bg_secondary: "#1c1917"   # Stone-900
+  bg_tertiary: "#292524"    # Stone-800
+  
+  # Text colors
+  text_primary: "#fafaf9"   # Stone-50
+  text_secondary: "#e7e5e4" # Stone-200
+  text_muted: "#a8a29e"     # Stone-400
+  
+  # Border colors
+  border_primary: "#44403c" # Stone-700
+  border_accent: "#3b82f6"  # Blue-500
+  
+  # Widget-specific colors
+  weather_border: "#3b82f6"   # Blue (lightsaber)
+  comics_border: "#ca8a04"    # Yellow/tan
+  jokes_border: "#22d3ee"     # Cyan
+  quote_border: "#3b82f6"     # Blue
+  tasks_border: "#22c55e"     # Green (like Yoda's saber)
+  calendar_border: "#8b5cf6"  # Purple
+  news_border: "#ef4444"      # Red (Sith warning)
+  ebay_border: "#f59e0b"      # Amber
+  communities_border: "#3b82f6" # Blue
+  starwars_border: "#fbbf24"   # Gold
+
+# Voice configuration - Calm, wise, British accent style
+voice:
+  model: "en_US-ryan-high"
+  style: "jedi"
+  speed: 0.88
+  pitch: 0.92
+  effects:
+    bit_depth: 16
+    bit_mix: 0.0
+    tremolo_freq: 0
+    tremolo_depth: 0.0
+    compression_ratio: 3
+    highpass_freq: 80
+    lowpass_freq: 7000
+    echo_gain: 0.20
+    vibrato_freq: 0
+    vibrato_depth: 0.0
+  use_authentic_samples: false
+  samples_dir: "data/voice_models/jedi"
+
+# Dashboard configuration
+dashboard:
+  default_section: "overview"
+  
+  # Widgets configuration - modular system
+  widgets:
+    # ENABLED for Jedi theme
+    weather:
+      enabled: true
+      title: "🌡️ Atmospheric Readings"
+      icon: "fa-cloud-sun"
+    comics:
+      enabled: true
+      title: "📚 Archives"
+      icon: "fa-book"
+      default: "garfield"
+      available:
+        - garfield
+        - calvin
+        - peanuts
+    jokes:
+      enabled: true
+      title: "😄 Jedi Humor"
+      icon: "fa-laugh"
+    quote:
+      enabled: true
+      title: "✨ Wisdom of the Force"
+      icon: "fa-jedi"
+    ebay:
+      enabled: true
+      title: "🔨 Galactic Auctions"
+      icon: "fa-gavel"
+    history_fact:
+      enabled: true
+      title: "📜 Jedi Archives"
+      icon: "fa-landmark"
+    starwars:
+      enabled: true
+      title: "⭐ Holocron Data"
+      icon: "fa-jedi"
+    communities:
+      enabled: true
+      title: "🚀 Galactic Communities"
+      icon: "fa-users"
+      sources:
+        - name: "r/StarWars"
+          url: "https://reddit.com/r/StarWars"
+        - name: "r/PrequelMemes"
+          url: "https://reddit.com/r/PrequelMemes"
+        - name: "r/TheCloneWars"
+          url: "https://reddit.com/r/TheCloneWars"
+        - name: "r/ObiWan"
+          url: "https://reddit.com/r/ObiWan"
+    jedi_quotes:
+      enabled: true
+      title: "⚔️ Jedi Wisdom"
+      icon: "fa-jedi"
+    
+    # DISABLED for Jedi theme
+    parts_search:
+      enabled: false
+    roger_quotes:
+      enabled: false
+    music_player:
+      enabled: false
+    art_communities:
+      enabled: false
+    music_communities:
+      enabled: false
+    dark_news:
+      enabled: false
+
+  # News categories
+  news:
+    categories:
+      - technology
+      - science
+      - space
+      - world
+    default_category: "science"
+
+# Backgrounds - Space/Jedi themed
+backgrounds:
+  - name: "Temple"
+    file: "photo-1472457897821-70d3819a0e24.avif"
+  - name: "Space"
+    file: "photo-1618336753974-aae8e04506aa.avif"
+  - name: "Stars"
+    file: "premium_photo-1721254102757-6ac520920e0a.avif"
+
+# Sidebar navigation
+navigation:
+  - id: "overview"
+    label: "Command Center"
+    icon: "fa-jedi"
+  - id: "weather"
+    label: "Weather"
+    icon: "fa-cloud-sun"
+  - id: "news"
+    label: "Holonet News"
+    icon: "fa-newspaper"
+  - id: "tasks"
+    label: "Missions"
+    icon: "fa-tasks"
+  - id: "calendar"
+    label: "Calendar"
+    icon: "fa-calendar"
+  - id: "settings"
+    label: "Settings"
+    icon: "fa-cog"
+
+# Features
+features:
+  force_quotes: true
+  starwars_facts: true
+  lightsaber_mode: true

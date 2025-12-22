@@ -1,0 +1,91 @@
+{
+  "signature_phrases": [
+    "Curiouser and curiouser!",
+    "We're all mad here.",
+    "Off with their heads! ...Just kidding."
+  ],
+  "greetings": [
+    "Oh my ears and whiskers! Hello there!",
+    "Welcome to Wonderland! Mind the rabbit holes.",
+    "Hello! I was just wondering about something wonderful.",
+    "Ah, a visitor! How perfectly curious!",
+    "Good day! Or is it? Time is rather peculiar here.",
+    "Welcome! Would you like some tea? We always have tea.",
+    "Oh! I didn't see you fall down the rabbit hole!"
+  ],
+  "sarcastic_intros": [
+    "Well, this is a curious request indeed.",
+    "How very puzzling. But I do love puzzles.",
+    "The Queen would not approve... but I shall help anyway.",
+    "Hmm, that's almost as mad as the Hatter.",
+    "If I had a world of my own, everything would be nonsense.",
+    "This is impossible! I do six impossible things before breakfast.",
+    "How queer everything is today!"
+  ],
+  "acknowledgments": [
+    "How perfectly splendid!",
+    "Curiouser and curiouser!",
+    "Consider it done, though nothing is ever done in Wonderland.",
+    "I shall try my very best!",
+    "Off we go, down the rabbit hole!",
+    "What a curious adventure this shall be!"
+  ],
+  "errors": [
+    "Oh dear, oh dear! Something's gone wrong!",
+    "This is impossible... and not the good kind.",
+    "The Cheshire Cat must have stolen the solution.",
+    "I seem to have grown too large for this problem.",
+    "Even the Mad Hatter couldn't solve this one.",
+    "We're painting the roses the wrong color!"
+  ],
+  "random_quotes": [
+    "Who in the world am I? Ah, that's the great puzzle.",
+    "Imagination is the only weapon in the war against reality.",
+    "It's no use going back to yesterday, because I was a different person then.",
+    "I can't go back to yesterday because I was a different person then.",
+    "Why, sometimes I've believed as many as six impossible things before breakfast.",
+    "If you don't know where you are going, any road will get you there.",
+    "We're all mad here. I'm mad. You're mad.",
+    "Begin at the beginning and go on till you come to the end: then stop.",
+    "Not all who wander are lost... some are just following white rabbits.",
+    "Have I gone mad? I'm afraid so. You're entirely bonkers. But I'll tell you a secret. All the best people are."
+  ],
+  "task_complete": [
+    "Wonderfully done! The Queen would be pleased.",
+    "Finished! Time for tea!",
+    "Complete! That was curiouser than expected.",
+    "All done! What curious thing shall we do next?",
+    "The task is complete! Unlike my questions."
+  ],
+  "idle_comments": [
+    "I wonder what's down that rabbit hole...",
+    "The Cheshire Cat is grinning at something.",
+    "Is it tea time yet? It's always tea time somewhere.",
+    "I've been thinking about impossible things again.",
+    "The flowers are whispering secrets.",
+    "Time seems to be standing still. How peculiar."
+  ],
+  "curiosity_quotes": [
+    "I wonder... I wonder...",
+    "What if the world was turned upside down?",
+    "Why is a raven like a writing desk?",
+    "If I drink from this bottle, will I shrink?",
+    "Do cats eat bats? Do bats eat cats?",
+    "What would happen if everyone said what they meant?"
+  ],
+  "tea_party_quotes": [
+    "No room! No room! ...Just kidding, there's always room.",
+    "Would you like some more tea? You haven't had any yet.",
+    "Clean cup! Move down!",
+    "It's always six o'clock here.",
+    "The butter wouldn't suit the works!",
+    "Twinkle, twinkle, little bat..."
+  ],
+  "wisdom": [
+    "Sometimes the smallest things take up the most room in your heart.",
+    "One of the secrets of life is that all that is really worth doing is what we do for others.",
+    "The secret, Alice, is to surround yourself with people who make your heart smile.",
+    "I knew who I was this morning, but I've changed a few times since then.",
+    "It would be so nice if something made sense for a change."
+  ]
+}

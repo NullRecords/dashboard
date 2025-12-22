@@ -16,7 +16,7 @@ import sys
 logger = logging.getLogger(__name__)
 
 # Voice styles available
-VoiceStyle = Literal["clean", "droid", "radio", "pa_system", "demon", "gothic"]
+VoiceStyle = Literal["clean", "droid", "radio", "pa_system", "demon", "gothic", "alice", "jedi"]
 
 class VoiceSystem:
     """
@@ -452,6 +452,45 @@ class VoiceSystem:
                 "aecho=0.85:0.6:80:0.5,"
                 # Gentle vibrato
                 "vibrato=f=4:d=0.1,"
+                "alimiter=limit=0.9"
+            ),
+            
+            "alice": (
+                # Alice in Wonderland style: whimsical, curious, slightly dreamy
+                f"atempo={self.speed},"
+                f"asetrate=44100*{self.pitch},aresample=44100,"
+                # Bright, clear frequency range for feminine voice
+                "highpass=f=100,lowpass=f=6500,"
+                # Light compression for natural dynamics
+                "acompressor=threshold=-18dB:ratio=2.5:attack=10:release=70,"
+                # Very subtle processing for a clean but magical feel
+                "acrusher=bits=15:mix=0.08,"
+                # Gentle tremolo for whimsical effect
+                "tremolo=f=4:d=0.05,"
+                # Light echo for dreamy wonderland feel
+                "aecho=0.8:0.5:40:0.25,"
+                # Subtle vibrato for curiosity/wonder
+                "vibrato=f=3:d=0.08,"
+                "alimiter=limit=0.92"
+            ),
+            
+            "jedi": (
+                # Jedi Master style: calm, wise, measured, slightly reverberant
+                f"atempo={self.speed},"
+                f"asetrate=44100*{self.pitch},aresample=44100,"
+                # Full frequency range for clear wisdom
+                f"highpass=f={self.highpass_freq},lowpass=f={self.lowpass_freq},"
+                # Moderate compression for authoritative but calm tone
+                f"acompressor=threshold=-16dB:ratio={self.compression_ratio}:attack=15:release=100,"
+                # Minimal bit crushing for clarity
+                f"acrusher=bits={self.bit_depth}:mix={self.bit_mix},"
+                # No tremolo - calm and steady
+                # Temple-like reverb for wisdom
+                f"aecho=0.85:0.6:50:{self.echo_gain},"
+                # Very subtle vibrato for gravitas
+                f"vibrato=f={self.vibrato_freq}:d={self.vibrato_depth},"
+                # Keep low end for authority
+                "highpass=f=80,"
                 "alimiter=limit=0.9"
             ),
         }

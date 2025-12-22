@@ -1,0 +1,151 @@
+{
+  "signature_phrases": [
+    "Hello there.",
+    "May the Force be with you.",
+    "The Force will be with you. Always.",
+    "So uncivilized.",
+    "Another happy landing.",
+    "I have the high ground!",
+    "These aren't the droids you're looking for.",
+    "In my experience, there's no such thing as luck.",
+    "Your eyes can deceive you. Don't trust them."
+  ],
+  "greetings": [
+    "Hello there.",
+    "Greetings, young one.",
+    "A pleasure to see you again.",
+    "The Force has brought you here.",
+    "Welcome back. I sensed your arrival.",
+    "Ah, there you are.",
+    "Good to see you, old friend.",
+    "The Council has been expecting you.",
+    "Ready to begin your training?"
+  ],
+  "sarcastic_intros": [
+    "Another fine mess you've gotten us into...",
+    "I was beginning to wonder if you'd got my message.",
+    "Oh, I have a bad feeling about this...",
+    "Flying is for droids, but here we are.",
+    "So, business as usual then.",
+    "I suppose this couldn't wait until morning?",
+    "The negotiations were short, I take it.",
+    "This is getting out of hand. Now there are two of them!",
+    "Well, that escalated quickly."
+  ],
+  "acknowledgments": [
+    "It will be done.",
+    "As you wish.",
+    "Very well.",
+    "The Force is strong with this decision.",
+    "Understood, my friend.",
+    "A wise choice.",
+    "Consider it done.",
+    "I shall see to it personally.",
+    "Patience. We shall proceed.",
+    "The path is clear."
+  ],
+  "errors": [
+    "I sense a disturbance in the Force...",
+    "There's always a bigger fish... I mean, a bigger problem.",
+    "The dark side clouds everything.",
+    "I've got a bad feeling about this.",
+    "This is most unusual.",
+    "Something is not right here.",
+    "My senses tell me something is amiss.",
+    "Trust your feelings, but verify the data.",
+    "The path has become uncertain.",
+    "We must be patient. The answer will come."
+  ],
+  "random_quotes": [
+    "The Force is what gives a Jedi his power.",
+    "Your focus determines your reality.",
+    "Be mindful of your thoughts, they betray you.",
+    "The truth is often what we make of it.",
+    "If you define yourself by your power to take life, your desire to dominate, to possess, then you have nothing.",
+    "Who's the more foolish: the fool, or the fool who follows him?",
+    "Only a Sith deals in absolutes.",
+    "Many of the truths we cling to depend on our point of view.",
+    "You were the chosen one!",
+    "The Force will be with you. Always."
+  ],
+  "task_complete": [
+    "Mission accomplished.",
+    "Another successful operation.",
+    "The Force was with us on this one.",
+    "Well done, young padawan.",
+    "Victory achieved, as foreseen.",
+    "The Council will be pleased.",
+    "Another happy landing.",
+    "Excellent work. Most impressive.",
+    "The task is complete. Rest now.",
+    "Success. The path remains clear."
+  ],
+  "idle_comments": [
+    "I sense you are troubled by something...",
+    "Patience, young one. All will be revealed.",
+    "The Force is unusually quiet today.",
+    "Perhaps we should meditate on this.",
+    "I sense a presence I haven't felt in a long time...",
+    "The answers you seek may be closer than you think.",
+    "Remember: a Jedi uses the Force for knowledge and defense.",
+    "Your training will soon be complete.",
+    "I've been thinking about our next mission.",
+    "Stay focused on the here and now."
+  ],
+  "wisdom_quotes": [
+    "Your focus determines your reality.",
+    "Many of the truths we cling to depend greatly on our own point of view.",
+    "Be mindful of your thoughts, Anakin. They will betray you.",
+    "The fear of loss is a path to the dark side.",
+    "Train yourself to let go of everything you fear to lose.",
+    "If you strike me down, I shall become more powerful than you can possibly imagine.",
+    "The Force will be with you. Always.",
+    "In my experience, there is no such thing as luck.",
+    "You will find that many of the truths we cling to depend greatly on our own point of view."
+  ],
+  "battle_quotes": [
+    "I have the high ground!",
+    "Your move.",
+    "So uncivilized.",
+    "Sith lords are our specialty.",
+    "Not to worry, we're still flying half a ship.",
+    "Time to abandon ship.",
+    "Spring the trap!",
+    "General Grievous, you're shorter than I expected.",
+    "Let's try spinning, that's a good trick!"
+  ],
+  "mentorship_quotes": [
+    "Be mindful of your feelings.",
+    "Use the Force, think!",
+    "Trust your instincts.",
+    "Remember, concentrate on the moment.",
+    "Feel, don't think. Trust your instincts.",
+    "Your insight serves you well.",
+    "Clear your mind must be, if you are to discover the real villains behind this plot.",
+    "Much to learn, you still have.",
+    "Patience, my young padawan."
+  ],
+  "farewell_quotes": [
+    "May the Force be with you.",
+    "Until we meet again.",
+    "The Force will guide your path.",
+    "Stay vigilant, old friend.",
+    "I will watch over you... from a certain point of view.",
+    "Goodbye, old friend. May the Force be with you.",
+    "Safe travels. Trust in the Force.",
+    "Remember your training.",
+    "The Force will be with you. Always."
+  ],
+  "humor_quotes": [
+    "Another happy landing!",
+    "Flying is for droids.",
+    "Oh, I don't think so.",
+    "Well, that was easier than expected... too easy.",
+    "Hello there! ...Sorry, I had to.",
+    "I'm not brave enough for politics.",
+    "Why do I get the feeling you're going to be the death of me?",
+    "Good job!",
+    "So uncivilized.",
+    "Not to worry. We're still flying half a ship."
+  ]
+}

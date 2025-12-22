@@ -1,0 +1,182 @@
+# Alice in Wonderland Skin Configuration
+# Whimsical assistant inspired by Alice's adventures
+
+identity:
+  name: "alice"
+  display_name: "Alice"
+  tagline: "Curiouser and Curiouser"
+  description: "A curious and whimsical assistant who sees wonder in the everyday and isn't afraid to question everything"
+  avatar: "/assets/images/alice.svg"
+  wake_words: ["alice", "hey alice", "wonderland"]
+  signature_phrase: "Curiouser and curiouser!"
+
+# Color scheme - Whimsical Blue/Purple/Gold (Alice's dress & Wonderland vibes)
+colors:
+  # Primary colors - Alice Blue
+  primary: "#5b9bd5"        # Alice Blue
+  primary_light: "#7db8e8"  # Light Alice Blue
+  primary_dark: "#3a7bb8"   # Dark Alice Blue
+  
+  # Secondary colors - Royal Purple (Queen's Court)
+  secondary: "#8b5cf6"      # Purple-500
+  secondary_light: "#a78bfa" # Purple-400
+  secondary_dark: "#7c3aed" # Purple-600
+  
+  # Accent colors - Gold (pocket watch, keys)
+  accent: "#f59e0b"         # Amber-500
+  accent_light: "#fbbf24"   # Amber-400
+  accent_dark: "#d97706"    # Amber-600
+  
+  # Background colors - Deep Wonderland
+  bg_primary: "#0f172a"     # Slate-900
+  bg_secondary: "#1e293b"   # Slate-800
+  bg_tertiary: "#334155"    # Slate-700
+  
+  # Text colors
+  text_primary: "#f8fafc"   # Slate-50
+  text_secondary: "#e2e8f0" # Slate-200
+  text_muted: "#94a3b8"     # Slate-400
+  
+  # Border colors
+  border_primary: "#475569" # Slate-600
+  border_accent: "#5b9bd5"  # Alice Blue
+  
+  # Widget-specific colors
+  weather_border: "#8b5cf6"   # Purple
+  comics_border: "#f59e0b"    # Gold
+  jokes_border: "#ec4899"     # Pink (Cheshire Cat)
+  quote_border: "#5b9bd5"     # Alice Blue
+  tasks_border: "#10b981"     # Emerald
+  calendar_border: "#8b5cf6"  # Purple
+  news_border: "#ef4444"      # Red (Queen of Hearts)
+  communities_border: "#14b8a6" # Teal
+
+# Voice configuration - Whimsical, curious, British-ish
+voice:
+  model: "en_US-lessac-medium"
+  style: "alice"
+  speed: 0.92
+  pitch: 1.05
+  effects:
+    bit_depth: 16
+    bit_mix: 0.0
+    tremolo_freq: 0
+    tremolo_depth: 0.0
+    compression_ratio: 2
+    highpass_freq: 100
+    lowpass_freq: 8000
+    echo_gain: 0.15
+    vibrato_freq: 0
+    vibrato_depth: 0.0
+  use_authentic_samples: false
+  samples_dir: "data/voice_models/alice"
+
+# Dashboard configuration
+dashboard:
+  default_section: "overview"
+  
+  # Widgets configuration - modular system
+  widgets:
+    # ENABLED for Alice theme
+    weather:
+      enabled: true
+      title: "🌤️ Weather in Wonderland"
+      icon: "fa-cloud-sun"
+    comics:
+      enabled: true
+      title: "📖 Curious Comics"
+      icon: "fa-book-open"
+      default: "garfield"
+      available:
+        - garfield
+        - calvin
+        - peanuts
+    jokes:
+      enabled: true
+      title: "😸 Cheshire Chuckles"
+      icon: "fa-cat"
+    quote:
+      enabled: true
+      title: "🎩 Mad Quotes"
+      icon: "fa-hat-wizard"
+    history_fact:
+      enabled: true
+      title: "📜 Down the Rabbit Hole"
+      icon: "fa-scroll"
+    communities:
+      enabled: true
+      title: "🫖 Tea Party Communities"
+      icon: "fa-users"
+      sources:
+        - name: "r/books"
+          url: "https://reddit.com/r/books"
+        - name: "r/Fantasy"
+          url: "https://reddit.com/r/Fantasy"
+        - name: "r/whimsical"
+          url: "https://reddit.com/r/whimsical"
+    alice_quotes:
+      enabled: true
+      title: "🐰 Wonderland Wisdom"
+      icon: "fa-rabbit"
+    
+    # DISABLED for Alice theme
+    ebay:
+      enabled: false
+    parts_search:
+      enabled: false
+    starwars:
+      enabled: false
+    roger_quotes:
+      enabled: false
+    music_player:
+      enabled: false
+    art_communities:
+      enabled: false
+    music_communities:
+      enabled: false
+    dark_news:
+      enabled: false
+
+  # News categories
+  news:
+    categories:
+      - entertainment
+      - science
+      - books
+      - art
+    default_category: "entertainment"
+
+# Backgrounds - Wonderland themed
+backgrounds:
+  - name: "Rabbit Hole"
+    file: "photo-1472457897821-70d3819a0e24.avif"
+  - name: "Tea Party"
+    file: "photo-1618336753974-aae8e04506aa.avif"
+  - name: "Enchanted Forest"
+    file: "premium_photo-1721254102757-6ac520920e0a.avif"
+
+# Sidebar navigation
+navigation:
+  - id: "overview"
+    label: "Wonderland"
+    icon: "fa-rabbit"
+  - id: "weather"
+    label: "Weather"
+    icon: "fa-cloud-sun"
+  - id: "news"
+    label: "News"
+    icon: "fa-newspaper"
+  - id: "tasks"
+    label: "To-Do List"
+    icon: "fa-list-check"
+  - id: "calendar"
+    label: "Calendar"
+    icon: "fa-calendar"
+  - id: "settings"
+    label: "Settings"
+    icon: "fa-cog"
+
+# Features
+features:
+  tea_time_reminders: true
+  curious_facts: true
