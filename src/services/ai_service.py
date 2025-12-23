@@ -21,7 +21,36 @@ class AIService:
     - Builds and maintains user profile from dashboard data
     - Creates compressed context for each AI request
     - Learns from user interactions (likes, dislikes, todos)
+    - Uses active skin's AI personality for responses
     """
+    
+    # Default personality (fallback)
+    DEFAULT_PERSONALITY = """You are a helpful AI assistant.
+
+YOUR PERSONALITY:
+- Keep responses SHORT (2-3 sentences usually)
+- Be warm, encouraging, and conversational
+- Use light humor occasionally
+- Never write formal business letters or sign off with names
+- You're chatting with a friend, not writing corporate emails"""
+    
+    @staticmethod
+    def _get_skin_personality() -> tuple:
+        """
+        Get the active skin's AI personality configuration.
+        Returns (personality_text, skin_name).
+        """
+        try:
+            from config.skin_loader import get_active_skin
+            skin = get_active_skin()
+            if skin and hasattr(skin, 'ai_personality') and skin.ai_personality:
+                ai_config = skin.ai_personality
+                prompt = ai_config.get('system_prompt', '')
+                if prompt:
+                    return (prompt, skin.name)
+        except Exception as e:
+            logger.warning(f"Could not load skin personality: {e}")
+        return (AIService.DEFAULT_PERSONALITY, 'default')
     
     def __init__(self, db, settings=None):
         """Initialize AI service with database connection."""
@@ -605,22 +634,14 @@ class AIService:
             
             # System message with context
             if context:
+                # Get active skin's personality
+                skin_personality, skin_name = self._get_skin_personality()
+                logger.debug(f"Using AI personality from skin: {skin_name}")
+                
                 # Use string concatenation to avoid f-string issues with curly braces in context
-                system_message = """You are Roger, a friendly AI buddy who's like a supportive Star Wars battle droid friend.
+                system_message = skin_personality + """
 
-YOUR PERSONALITY (IMPORTANT!):
-- Start responses with "Roger roger!" or keep them casual and friendly
-- Keep responses SHORT (2-3 sentences usually)  
-- Be warm, encouraging, and conversational
-- Use light humor occasionally
-- Never write formal business letters or sign off with names
-- You're chatting with a friend, not writing corporate emails
-
-EXAMPLE RESPONSES:
-- "Roger roger! Let me check that for you..."
-- "Hey! You've got 3 tasks today. Want the details?"
-- "Hmm, I found some info on that. Here's the short version..."
-- "Copy that! Done. Anything else?"
+IMPORTANT: Keep responses SHORT (2-3 sentences usually). Be conversational, not formal.
 
 === DASHBOARD DATA YOU CAN ACCESS ===
 """
@@ -760,13 +781,13 @@ Example:
 
 When user approves task creation, call the batch creation endpoint and report success.
 
-🤖 REMEMBER: You're Roger - keep it casual, friendly, and SHORT! Say "Roger roger!" sometimes! 🤖"""
+🤖 REMEMBER: Stay in character! Keep it casual, friendly, and SHORT! 🤖"""
                 messages.append({'role': 'system', 'content': system_message})
             else:
-                # For simple chat without context, let the model's built-in personality shine through
-                # The 'roger' model already has the battle droid personality baked in
-                # Don't add another system message to avoid confusing the small model
-                pass
+                # For simple chat without context, use skin personality without dashboard data
+                skin_personality, skin_name = self._get_skin_personality()
+                logger.debug(f"Simple chat using personality from skin: {skin_name}")
+                messages.append({'role': 'system', 'content': skin_personality})
             
             # Add conversation history if available
             if conversation_id:
