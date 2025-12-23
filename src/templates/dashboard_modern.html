@@ -4541,13 +4541,27 @@
             console.log('🚀 ALL RELEVANT DATA LOADERS CALLED');
         }
         
-        // Helper to check if widget is enabled
+        // Helper to check if widget is enabled - integrates with MODULE_REGISTRY
         function isWidgetEnabled(widgetName) {
-            if (!currentSkin || !currentSkin.dashboard || !currentSkin.dashboard.widgets) {
-                return true; // Default to enabled if no config
+            // First check the skin config from API
+            if (currentSkin && currentSkin.dashboard && currentSkin.dashboard.widgets) {
+                const widget = currentSkin.dashboard.widgets[widgetName];
+                if (widget !== undefined) {
+                    return widget.enabled === true;
+                }
             }
-            const widget = currentSkin.dashboard.widgets[widgetName];
-            return widget && widget.enabled === true;
+            
+            // Fall back to MODULE_REGISTRY + localStorage settings (isModuleEnabled from head script)
+            if (typeof isModuleEnabled === 'function') {
+                return isModuleEnabled(widgetName);
+            }
+            
+            // Final fallback: check MODULE_REGISTRY directly
+            if (typeof MODULE_REGISTRY !== 'undefined' && MODULE_REGISTRY[widgetName]) {
+                return MODULE_REGISTRY[widgetName].defaultEnabled !== false;
+            }
+            
+            return true; // Default to enabled if no config found
         }
 
         // Page initialization is handled by initializeSkin() which is called from DOMContentLoaded
