@@ -30,6 +30,15 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
+# Check if we need sudo for docker
+DOCKER_CMD="docker"
+COMPOSE_CMD="docker-compose"
+if ! docker info &>/dev/null 2>&1; then
+    echo -e "${YELLOW}⚠️  Docker requires elevated permissions, using sudo...${NC}"
+    DOCKER_CMD="sudo docker"
+    COMPOSE_CMD="sudo docker-compose"
+fi
+
 print_header() {
     echo ""
     echo -e "${BLUE}╔═══════════════════════════════════════════════════════╗${NC}"
@@ -52,13 +61,14 @@ status() {
     print_header
     echo -e "${GREEN}📊 Dashboard Status:${NC}"
     echo ""
-    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "dashboard-|traefik|NAMES"
+    $DOCKER_CMD ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "dashboard-|traefik|kiwix|NAMES"
     echo ""
     echo -e "${GREEN}🌐 Access URLs:${NC}"
     echo "   • http://parker.hoth.home"
     echo "   • http://sarah.hoth.home"
     echo "   • http://greg.hoth.home"
     echo "   • http://ramona.hoth.home"
+    echo "   • http://wiki.hoth.home (Offline Wiki)"
     echo "   • http://localhost:8080 (Traefik Dashboard)"
     echo ""
 }
@@ -67,11 +77,11 @@ start() {
     print_header
     check_env
     
-    echo -e "${GREEN}� Starting all dashboards...${NC}"
+    echo -e "${GREEN}🚀 Starting all dashboards...${NC}"
     echo -e "${CYAN}   (Using existing images - run 'build' first if needed)${NC}"
     echo ""
     
-    docker-compose -f docker-compose.family.yml up -d
+    $COMPOSE_CMD -f docker-compose.family.yml up -d
     
     echo ""
     echo -e "${GREEN}✅ All dashboards started!${NC}"
@@ -91,7 +101,7 @@ build() {
     export DOCKER_BUILDKIT=1
     export COMPOSE_DOCKER_CLI_BUILD=1
     
-    docker-compose -f docker-compose.family.yml build
+    $COMPOSE_CMD -f docker-compose.family.yml build
     
     echo ""
     echo -e "${GREEN}✅ Images built successfully!${NC}"
@@ -110,7 +120,7 @@ build_start() {
     export DOCKER_BUILDKIT=1
     export COMPOSE_DOCKER_CLI_BUILD=1
     
-    docker-compose -f docker-compose.family.yml up -d --build
+    $COMPOSE_CMD -f docker-compose.family.yml up -d --build
     
     echo ""
     echo -e "${GREEN}✅ All dashboards built and started!${NC}"
@@ -128,7 +138,7 @@ update() {
     
     echo ""
     echo -e "${GREEN}🔄 Restarting containers to pick up changes...${NC}"
-    docker-compose -f docker-compose.family.yml restart
+    $COMPOSE_CMD -f docker-compose.family.yml restart
     
     echo ""
     echo -e "${GREEN}✅ Code updated and containers restarted!${NC}"
@@ -148,7 +158,7 @@ update_user() {
     
     echo ""
     echo -e "${GREEN}🔄 Restarting $user's container...${NC}"
-    docker-compose -f docker-compose.family.yml restart "dashboard-$user"
+    $COMPOSE_CMD -f docker-compose.family.yml restart "dashboard-$user"
     
     echo ""
     echo -e "${GREEN}✅ $user's dashboard updated!${NC}"
@@ -157,27 +167,27 @@ update_user() {
 stop() {
     print_header
     echo -e "${YELLOW}🛑 Stopping all dashboards...${NC}"
-    docker-compose -f docker-compose.family.yml down
+    $COMPOSE_CMD -f docker-compose.family.yml down
     echo -e "${GREEN}✅ All dashboards stopped.${NC}"
 }
 
 restart() {
     print_header
     echo -e "${YELLOW}🔄 Restarting all dashboards...${NC}"
-    docker-compose -f docker-compose.family.yml restart
+    $COMPOSE_CMD -f docker-compose.family.yml restart
     echo -e "${GREEN}✅ All dashboards restarted.${NC}"
     status
 }
 
 logs() {
     echo -e "${GREEN}📜 Showing logs (Ctrl+C to exit)...${NC}"
-    docker-compose -f docker-compose.family.yml logs -f
+    $COMPOSE_CMD -f docker-compose.family.yml logs -f
 }
 
 logs_user() {
     local user=$1
     echo -e "${GREEN}📜 Showing logs for $user (Ctrl+C to exit)...${NC}"
-    docker logs -f "dashboard-$user"
+    $DOCKER_CMD logs -f "dashboard-$user"
 }
 
 rebuild_user() {
@@ -185,7 +195,7 @@ rebuild_user() {
     echo -e "${GREEN}🔨 Rebuilding $user's dashboard...${NC}"
     export DOCKER_BUILDKIT=1
     export COMPOSE_DOCKER_CLI_BUILD=1
-    docker-compose -f docker-compose.family.yml up -d --build "dashboard-$user"
+    $COMPOSE_CMD -f docker-compose.family.yml up -d --build "dashboard-$user"
     echo -e "${GREEN}✅ $user's dashboard rebuilt and restarted.${NC}"
 }
 
@@ -194,7 +204,7 @@ build_user() {
     echo -e "${GREEN}🔨 Building $user's dashboard image...${NC}"
     export DOCKER_BUILDKIT=1
     export COMPOSE_DOCKER_CLI_BUILD=1
-    docker-compose -f docker-compose.family.yml build "dashboard-$user"
+    $COMPOSE_CMD -f docker-compose.family.yml build "dashboard-$user"
     echo -e "${GREEN}✅ $user's image built. Run 'start' to use it.${NC}"
 }
 
@@ -209,6 +219,7 @@ setup_dns() {
     echo "   $SERVER_IP   sarah.hoth.home"
     echo "   $SERVER_IP   greg.hoth.home"
     echo "   $SERVER_IP   ramona.hoth.home"
+    echo "   $SERVER_IP   wiki.hoth.home"
     echo ""
     echo "For testing on this machine, add to /etc/hosts:"
     echo "   sudo nano /etc/hosts"
