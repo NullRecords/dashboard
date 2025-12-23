@@ -23,7 +23,8 @@ def _find_piper_binary() -> str:
     # Check common locations
     locations = [
         "piper",  # On PATH
-        "/app/data/voice_models/piper/piper",  # Docker location
+        "/app/shared/voice_models/piper/piper",  # Docker shared mount
+        "/app/data/voice_models/piper/piper",  # Docker data location
         "data/voice_models/piper/piper",  # Local development
         "/usr/local/bin/piper",
         "/usr/bin/piper",
@@ -53,7 +54,8 @@ def _find_voice_model(model_name: str = "en_US-ryan-high") -> Optional[str]:
     """Find a voice model in common locations."""
     # Check common locations
     locations = [
-        f"/app/data/voice_models/piper/{model_name}.onnx",  # Docker
+        f"/app/shared/voice_models/piper/{model_name}.onnx",  # Docker shared mount
+        f"/app/data/voice_models/piper/{model_name}.onnx",  # Docker data
         f"data/voice_models/piper/{model_name}.onnx",  # Local
     ]
     

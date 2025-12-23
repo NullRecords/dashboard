@@ -87,8 +87,10 @@ services:
       - ../assets:/app/assets:ro
       - ../collectors:/app/collectors:ro
       - ../config:/app/config:ro
-      - ../data/skins:/app/data/skins:ro
       - ../database.py:/app/database.py:ro
+      # === SHARED DATA (skins, voice models - shared across all users) ===
+      - ../data/skins:/app/shared/skins:ro
+      - ../data/voice_models:/app/shared/voice_models:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     labels:
@@ -139,8 +141,10 @@ services:
       - ../assets:/app/assets:ro
       - ../collectors:/app/collectors:ro
       - ../config:/app/config:ro
-      - ../data/skins:/app/data/skins:ro
       - ../database.py:/app/database.py:ro
+      # === SHARED DATA (skins, voice models - shared across all users) ===
+      - ../data/skins:/app/shared/skins:ro
+      - ../data/voice_models:/app/shared/voice_models:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     labels:
@@ -191,8 +195,10 @@ services:
       - ../assets:/app/assets:ro
       - ../collectors:/app/collectors:ro
       - ../config:/app/config:ro
-      - ../data/skins:/app/data/skins:ro
       - ../database.py:/app/database.py:ro
+      # === SHARED DATA (skins, voice models - shared across all users) ===
+      - ../data/skins:/app/shared/skins:ro
+      - ../data/voice_models:/app/shared/voice_models:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     labels:
@@ -243,8 +249,10 @@ services:
       - ../assets:/app/assets:ro
       - ../collectors:/app/collectors:ro
       - ../config:/app/config:ro
-      - ../data/skins:/app/data/skins:ro
       - ../database.py:/app/database.py:ro
+      # === SHARED DATA (skins, voice models - shared across all users) ===
+      - ../data/skins:/app/shared/skins:ro
+      - ../data/voice_models:/app/shared/voice_models:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     labels:

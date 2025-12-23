@@ -5,6 +5,7 @@ Manages dashboard skins/themes with runtime switching support.
 
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 import yaml
@@ -14,8 +15,12 @@ logger = logging.getLogger(__name__)
 # Default skin if none specified
 DEFAULT_SKIN = "roger"
 
-# Base path for skins
-SKINS_DIR = Path(__file__).parent.parent.parent / "data" / "skins"
+# Base path for skins - check Docker shared mount first, then local dev path
+_DOCKER_SKINS_PATH = Path("/app/shared/skins")
+_LOCAL_SKINS_PATH = Path(__file__).parent.parent.parent / "data" / "skins"
+
+# Use Docker path if it exists (running in container), otherwise use local
+SKINS_DIR = _DOCKER_SKINS_PATH if _DOCKER_SKINS_PATH.exists() else _LOCAL_SKINS_PATH
 
 
 class Skin:

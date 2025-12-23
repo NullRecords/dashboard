@@ -9470,13 +9470,30 @@ async def startup_event():
             voice_module._voice = voice
             
             # Configure voice system with Piper path
-            # Check both possible locations for piper binary
-            piper_bin = project_root / "data" / "voice_models" / "piper" / "piper" / "piper"
-            if not piper_bin.exists():
-                piper_bin = project_root / "data" / "voice_models" / "piper" / "piper"
-            model_path = project_root / "data" / "voice_models" / "piper" / f"{model_name}.onnx"
+            # Check Docker shared mount first, then local paths
+            piper_locations = [
+                Path("/app/shared/voice_models/piper/piper"),  # Docker shared mount
+                project_root / "data" / "voice_models" / "piper" / "piper" / "piper",
+                project_root / "data" / "voice_models" / "piper" / "piper",
+            ]
+            model_locations = [
+                Path(f"/app/shared/voice_models/piper/{model_name}.onnx"),  # Docker shared
+                project_root / "data" / "voice_models" / "piper" / f"{model_name}.onnx",
+            ]
             
-            if piper_bin.exists() and model_path.exists():
+            piper_bin = None
+            for loc in piper_locations:
+                if loc.exists():
+                    piper_bin = loc
+                    break
+            
+            model_path = None
+            for loc in model_locations:
+                if loc.exists():
+                    model_path = loc
+                    break
+            
+            if piper_bin and model_path:
                 voice.piper_bin = str(piper_bin)
                 voice.model_path = str(model_path)
                 
