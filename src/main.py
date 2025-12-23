@@ -1785,6 +1785,27 @@ async def delete_config(key: str):
         return {"success": False, "error": str(e)}
 
 
+@app.post("/api/config/migrate-credentials")
+async def migrate_credentials():
+    """Migrate data from legacy credentials table to app_config."""
+    try:
+        from database import DatabaseManager
+        db = DatabaseManager()
+        
+        result = db.migrate_credentials_to_app_config()
+        
+        return {
+            "success": True,
+            "migrated": result['migrated'],
+            "skipped": result['skipped'],
+            "total_migrated": result['total_migrated'],
+            "message": f"Migrated {result['total_migrated']} credentials to app_config"
+        }
+    except Exception as e:
+        logger.error(f"Error migrating credentials: {e}")
+        return {"success": False, "error": str(e)}
+
+
 @app.post("/api/notes/test-obsidian")
 async def test_obsidian_connection(request: Dict[str, Any]):
     """Test Obsidian vault connection."""

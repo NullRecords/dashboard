@@ -762,6 +762,87 @@ class DatabaseManager:
             cursor.execute("SELECT service_name FROM credentials")
             return [row['service_name'] for row in cursor.fetchall()]
     
+    def migrate_credentials_to_app_config(self) -> Dict[str, Any]:
+        """Migrate data from credentials table to app_config.
+        
+        Maps credentials table entries to the new app_config format.
+        Returns summary of migrated items.
+        """
+        # Mapping of credentials service names to app_config keys
+        migration_map = {
+            'lastfm': {
+                'api_key': 'lastfm.api_key',
+                'shared_secret': 'lastfm.shared_secret',
+                'username': 'lastfm.username'
+            },
+            'icloud_calendar': {
+                'url': 'icloud.calendar_url'
+            },
+            'github': {
+                'token': 'github.token',
+                'username': 'github.username'
+            },
+            'openai': {
+                'api_key': 'openai.api_key'
+            },
+            'ticktick': {
+                'username': 'ticktick.username',
+                'password': 'ticktick.password'
+            },
+            'notes': {
+                'enabled': 'notes.enabled',
+                'folder': 'notes.folder'
+            },
+            'weather': {
+                'api_key': 'weather.api_key',
+                'location': 'weather.location'
+            },
+            'todoist': {
+                'api_token': 'todoist.api_token'
+            },
+            'spotify': {
+                'client_id': 'spotify.client_id',
+                'client_secret': 'spotify.client_secret'
+            }
+        }
+        
+        migrated = []
+        skipped = []
+        
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Get all credentials
+            cursor.execute("SELECT service_name, credentials_data FROM credentials")
+            rows = cursor.fetchall()
+            
+            for row in rows:
+                service_name = row['service_name']
+                try:
+                    creds_data = json.loads(row['credentials_data'])
+                except:
+                    skipped.append(f"{service_name}: invalid JSON")
+                    continue
+                
+                if service_name in migration_map:
+                    for old_key, new_key in migration_map[service_name].items():
+                        if old_key in creds_data and creds_data[old_key]:
+                            # Check if app_config already has a value
+                            existing = self.get_app_config(new_key)
+                            if not existing:  # Only migrate if empty
+                                self.set_app_config(new_key, str(creds_data[old_key]))
+                                migrated.append(f"{service_name}.{old_key} -> {new_key}")
+                            else:
+                                skipped.append(f"{new_key}: already has value")
+                else:
+                    skipped.append(f"{service_name}: no migration mapping")
+        
+        return {
+            'migrated': migrated,
+            'skipped': skipped,
+            'total_migrated': len(migrated)
+        }
+    
     # Favorite tracks management
     def add_favorite_track(self, track_data: Dict[str, Any]) -> int:
         """Add a track to favorites. Returns the track ID."""
@@ -1201,6 +1282,10 @@ class DatabaseManager:
             ('ollama.port', 'number', 'ai', 'Ollama Port', 'Ollama server port', False, False, '11434'),
             ('ollama.model', 'string', 'ai', 'Ollama Model', 'Default model name', False, False, 'llama3.2:1b'),
             
+            # OpenAI
+            ('openai.api_key', 'secret', 'ai', 'OpenAI API Key', 'OpenAI API key for GPT models', False, True, ''),
+            ('openai.model', 'string', 'ai', 'OpenAI Model', 'Default OpenAI model (e.g., gpt-4)', False, False, 'gpt-4'),
+            
             # Google OAuth
             ('google.client_id', 'secret', 'integrations', 'Google Client ID', 'Google OAuth client ID for Gmail/Calendar', False, True, ''),
             ('google.client_secret', 'secret', 'integrations', 'Google Client Secret', 'Google OAuth client secret', False, True, ''),
@@ -1208,6 +1293,18 @@ class DatabaseManager:
             # GitHub
             ('github.token', 'secret', 'integrations', 'GitHub Token', 'GitHub personal access token', False, True, ''),
             ('github.username', 'string', 'integrations', 'GitHub Username', 'Your GitHub username', False, False, ''),
+            
+            # Last.fm
+            ('lastfm.api_key', 'secret', 'integrations', 'Last.fm API Key', 'Last.fm API key for music data', False, True, ''),
+            ('lastfm.shared_secret', 'secret', 'integrations', 'Last.fm Shared Secret', 'Last.fm shared secret for authenticated requests', False, True, ''),
+            ('lastfm.username', 'string', 'integrations', 'Last.fm Username', 'Your Last.fm username', False, False, ''),
+            
+            # iCloud Calendar
+            ('icloud.calendar_url', 'secret', 'integrations', 'iCloud Calendar URL', 'Public iCloud calendar URL (caldav URL)', False, True, ''),
+            
+            # TickTick
+            ('ticktick.username', 'string', 'integrations', 'TickTick Username', 'TickTick account email', False, False, ''),
+            ('ticktick.password', 'secret', 'integrations', 'TickTick Password', 'TickTick account password', False, True, ''),
             
             # Weather
             ('weather.api_key', 'secret', 'integrations', 'OpenWeather API Key', 'OpenWeatherMap API key', False, True, ''),
@@ -1235,6 +1332,10 @@ class DatabaseManager:
             # Proton
             ('proton.username', 'string', 'integrations', 'Proton Username', 'ProtonMail email address', False, False, ''),
             ('proton.bridge_password', 'secret', 'integrations', 'Proton Bridge Password', 'Proton Bridge password', False, True, ''),
+            
+            # Apple Notes (for notes syncing)
+            ('notes.enabled', 'boolean', 'integrations', 'Apple Notes Enabled', 'Enable Apple Notes integration', False, False, 'false'),
+            ('notes.folder', 'string', 'integrations', 'Notes Folder', 'Default notes folder name', False, False, 'Dashboard'),
             
             # Git backup
             ('git.user_name', 'string', 'backup', 'Git User Name', 'Name for git commits', False, False, ''),

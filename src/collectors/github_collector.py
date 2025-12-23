@@ -12,12 +12,38 @@ import httpx
 
 # Import database functions
 try:
-    from database import get_credentials
+    from database import get_credentials, DatabaseManager
     DATABASE_AVAILABLE = True
 except ImportError:
     DATABASE_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
+
+
+def _get_github_credentials() -> Dict[str, str]:
+    """Get GitHub credentials from app_config, falling back to credentials table."""
+    if not DATABASE_AVAILABLE:
+        return {'token': '', 'username': ''}
+    
+    try:
+        db = DatabaseManager()
+        
+        # Try app_config first (new location)
+        token = db.get_app_config('github.token')
+        if token:
+            return {
+                'token': token,
+                'username': db.get_app_config('github.username') or ''
+            }
+        
+        # Fallback to credentials table (legacy)
+        creds = get_credentials("github")
+        if creds:
+            return creds
+    except Exception as e:
+        logger.debug(f"Could not load GitHub credentials: {e}")
+    
+    return {'token': '', 'username': ''}
 
 
 class GitHubCollector:
@@ -31,14 +57,9 @@ class GitHubCollector:
     async def collect_issues(self, start_date: datetime, end_date: datetime) -> List[Dict[str, Any]]:
         """Collect GitHub issues within the specified date range."""
         # Get credentials from database first, then settings
-        token = None
-        username = None
-        
-        if DATABASE_AVAILABLE:
-            creds = get_credentials("github")
-            if creds:
-                token = creds.get("token")
-                username = creds.get("username")
+        creds = _get_github_credentials()
+        token = creds.get('token')
+        username = creds.get('username')
         
         if not token:
             token = getattr(self.settings.github, 'token', None)
@@ -108,14 +129,9 @@ class GitHubCollector:
     async def collect_commits(self, start_date: datetime, end_date: datetime) -> List[Dict[str, Any]]:
         """Collect GitHub commits within the specified date range."""
         # Get credentials from database first, then settings
-        token = None
-        username = None
-        
-        if DATABASE_AVAILABLE:
-            creds = get_credentials("github")
-            if creds:
-                token = creds.get("token")
-                username = creds.get("username")
+        creds = _get_github_credentials()
+        token = creds.get('token')
+        username = creds.get('username')
         
         if not token:
             token = getattr(self.settings.github, 'token', None)

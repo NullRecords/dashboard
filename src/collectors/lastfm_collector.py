@@ -29,10 +29,21 @@ STATION_TAGS = {
 
 
 def _get_lastfm_credentials() -> Dict[str, str]:
-    """Get Last.fm credentials from database or environment."""
+    """Get Last.fm credentials from app_config, falling back to credentials table or environment."""
     try:
         from database import DatabaseManager
         db = DatabaseManager()
+        
+        # Try app_config first (new location)
+        api_key = db.get_app_config('lastfm.api_key')
+        if api_key:
+            return {
+                'api_key': api_key,
+                'shared_secret': db.get_app_config('lastfm.shared_secret') or '',
+                'username': db.get_app_config('lastfm.username') or ''
+            }
+        
+        # Fallback to credentials table (legacy)
         creds = db.get_credentials('lastfm')
         if creds and creds.get('api_key'):
             return creds

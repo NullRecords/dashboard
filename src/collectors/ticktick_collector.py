@@ -14,12 +14,39 @@ import httpx
 
 # Import database functions
 try:
-    from database import get_credentials, save_credentials, get_auth_token, save_auth_token
+    from database import get_credentials, save_credentials, get_auth_token, save_auth_token, DatabaseManager
     DATABASE_AVAILABLE = True
 except ImportError:
     DATABASE_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
+
+
+def _get_ticktick_credentials() -> Dict[str, str]:
+    """Get TickTick credentials from app_config, falling back to credentials table."""
+    if not DATABASE_AVAILABLE:
+        return {}
+    
+    try:
+        db = DatabaseManager()
+        
+        # Try app_config first (new location)
+        username = db.get_app_config('ticktick.username')
+        password = db.get_app_config('ticktick.password')
+        if username or password:
+            return {
+                'username': username or '',
+                'password': password or ''
+            }
+        
+        # Fallback to credentials table (legacy)
+        creds = get_credentials("ticktick")
+        if creds:
+            return creds
+    except Exception as e:
+        logger.debug(f"Could not load TickTick credentials: {e}")
+    
+    return {}
 
 
 class TickTickCollector:
@@ -36,11 +63,10 @@ class TickTickCollector:
         self.client_secret = None
         self.redirect_uri = "http://localhost:8008"
         
-        if DATABASE_AVAILABLE:
-            creds = get_credentials('ticktick')
-            if creds:
-                self.client_id = creds.get('client_id')
-                self.client_secret = creds.get('client_secret')
+        creds = _get_ticktick_credentials()
+        if creds:
+            self.client_id = creds.get('client_id')
+            self.client_secret = creds.get('client_secret')
         
         # Fallback to environment variables if not in database
         if not self.client_id:
@@ -50,10 +76,8 @@ class TickTickCollector:
         
         # Check for direct API token
         self.api_token = os.getenv("TICKTICK_API_TOKEN")
-        if DATABASE_AVAILABLE:
-            creds = get_credentials('ticktick')
-            if creds and creds.get('api_token'):
-                self.api_token = creds.get('api_token')
+        if creds and creds.get('api_token'):
+            self.api_token = creds.get('api_token')
         
         # If no API token and no client_secret, warn user
         if not self.api_token and not self.client_secret:
