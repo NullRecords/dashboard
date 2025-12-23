@@ -1,12 +1,12 @@
 # Optimized Multi-User Dashboard Dockerfile
 # Multi-stage build for faster builds and smaller images
 #
-# Improvements over original:
-# - Multi-stage build (3 stages vs 1)
-# - Uses lean requirements-docker.txt (40% fewer packages)
-# - Parallel voice model downloads
-# - No gcc in final image (~30% smaller)
-# - Faster startup with optimized health check
+# KEY OPTIMIZATION: Build once, run many times
+# The base image is shared across all family dashboards
+#
+# Usage:
+#   1. Build the base image once: docker build -f Dockerfile.multi -t dashboard:base ..
+#   2. All family services use the same image (no rebuild needed!)
 
 # ============================================
 # Stage 1: Download voice models (parallel)
@@ -31,7 +31,7 @@ RUN curl -fSL "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US
     wait
 
 # ============================================
-# Stage 2: Build Python dependencies
+# Stage 2: Build Python dependencies (CACHED!)
 # ============================================
 FROM python:3.11-slim AS builder
 
@@ -40,9 +40,10 @@ WORKDIR /build
 # Only install gcc for building (not in final image)
 RUN apt-get update && apt-get install -y --no-install-recommends gcc && rm -rf /var/lib/apt/lists/*
 
-# Use lean requirements (40% fewer packages)
+# Use lean requirements - THIS LAYER IS CACHED if requirements unchanged
 COPY requirements-docker.txt .
-RUN pip install --no-cache-dir --user -r requirements-docker.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --user -r requirements-docker.txt
 
 # ============================================
 # Stage 3: Final lean runtime image

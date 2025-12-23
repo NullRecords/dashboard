@@ -1,15 +1,18 @@
 # Multi-User Dashboard Deployment
 # Runs multiple dashboard instances with unique URLs on one server
 #
+# CODE UPDATES WITHOUT REBUILD:
+# Source code is mounted as volumes - just restart container for changes!
+#   docker-compose -f docker-compose.family.yml restart dashboard-parker
+#
+# FULL REBUILD (only needed for dependency changes):
+#   docker-compose -f docker-compose.family.yml build --no-cache dashboard-parker
+#
 # URLs:
 #   - http://parker.hoth.home → Parker's dashboard (port 8020)
 #   - http://sarah.hoth.home  → Sarah's dashboard (port 8021)
 #   - http://greg.hoth.home   → Greg's dashboard (port 8022)
 #   - http://ramona.hoth.home → Ramona's dashboard (port 8023)
-#
-# Usage:
-#   cd ops
-#   docker-compose -f docker-compose.family.yml up -d
 
 services:
   # ============================================================================
@@ -39,6 +42,12 @@ services:
     build:
       context: ..
       dockerfile: ops/Dockerfile.multi
+      cache_from:
+        - type=registry,ref=dashboard:buildcache
+        - dashboard-parker:latest
+        - dashboard-sarah:latest
+        - dashboard-greg:latest
+        - dashboard-ramona:latest
       args:
         DASHBOARD_USER: parker
         DASHBOARD_PORT: 8020
@@ -62,9 +71,18 @@ services:
       - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY:-}
       - NEWSAPI_KEY=${NEWSAPI_KEY:-}
     volumes:
+      # === USER DATA (persistent, per-user) ===
       - parker_data:/app/data
       - parker_tokens:/app/tokens
       - parker_logs:/app/logs
+      # === SOURCE CODE (mounted, shared - no rebuild needed!) ===
+      - ../src:/app/src:ro
+      - ../static:/app/static:ro
+      - ../assets:/app/assets:ro
+      - ../collectors:/app/collectors:ro
+      - ../config:/app/config:ro
+      - ../data/skins:/app/data/skins:ro
+      - ../database.py:/app/database.py:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     labels:
@@ -105,9 +123,18 @@ services:
       - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY:-}
       - NEWSAPI_KEY=${NEWSAPI_KEY:-}
     volumes:
+      # === USER DATA (persistent, per-user) ===
       - sarah_data:/app/data
       - sarah_tokens:/app/tokens
       - sarah_logs:/app/logs
+      # === SOURCE CODE (mounted, shared - no rebuild needed!) ===
+      - ../src:/app/src:ro
+      - ../static:/app/static:ro
+      - ../assets:/app/assets:ro
+      - ../collectors:/app/collectors:ro
+      - ../config:/app/config:ro
+      - ../data/skins:/app/data/skins:ro
+      - ../database.py:/app/database.py:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     labels:
@@ -148,9 +175,18 @@ services:
       - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY:-}
       - NEWSAPI_KEY=${NEWSAPI_KEY:-}
     volumes:
+      # === USER DATA (persistent, per-user) ===
       - greg_data:/app/data
       - greg_tokens:/app/tokens
       - greg_logs:/app/logs
+      # === SOURCE CODE (mounted, shared - no rebuild needed!) ===
+      - ../src:/app/src:ro
+      - ../static:/app/static:ro
+      - ../assets:/app/assets:ro
+      - ../collectors:/app/collectors:ro
+      - ../config:/app/config:ro
+      - ../data/skins:/app/data/skins:ro
+      - ../database.py:/app/database.py:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     labels:
@@ -191,9 +227,18 @@ services:
       - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY:-}
       - NEWSAPI_KEY=${NEWSAPI_KEY:-}
     volumes:
+      # === USER DATA (persistent, per-user) ===
       - ramona_data:/app/data
       - ramona_tokens:/app/tokens
       - ramona_logs:/app/logs
+      # === SOURCE CODE (mounted, shared - no rebuild needed!) ===
+      - ../src:/app/src:ro
+      - ../static:/app/static:ro
+      - ../assets:/app/assets:ro
+      - ../collectors:/app/collectors:ro
+      - ../config:/app/config:ro
+      - ../data/skins:/app/data/skins:ro
+      - ../database.py:/app/database.py:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     labels:
