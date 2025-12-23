@@ -1431,44 +1431,6 @@
             const text = el.innerText;
             await speakText(text);
         }
-
-        // Load Jedi quotes
-        async function loadJediQuote() {
-            const el = document.getElementById('jedi-quotes');
-            if (!el || !currentSkin) return;
-            
-            const quote = getSkinQuote('random_quotes') || getSkinQuote('greetings');
-            if (quote) {
-                el.innerHTML = `<p class="italic">"${quote}"</p>`;
-            }
-        }
-
-        // Read Jedi quote aloud
-        async function readJediQuote() {
-            const el = document.getElementById('jedi-quotes');
-            if (!el) return;
-            const text = el.innerText;
-            await speakText(text);
-        }
-
-        // Load Alice quotes
-        async function loadAliceQuote() {
-            const el = document.getElementById('alice-quotes');
-            if (!el || !currentSkin) return;
-            
-            const quote = getSkinQuote('random_quotes') || getSkinQuote('greetings');
-            if (quote) {
-                el.innerHTML = `<p class="italic">"${quote}"</p>`;
-            }
-        }
-
-        // Read Alice quote aloud
-        async function readAliceQuote() {
-            const el = document.getElementById('alice-quotes');
-            if (!el) return;
-            const text = el.innerText;
-            await speakText(text);
-        }
         
         // Dark news loader for Dracula theme - fetches from real news API
         async function loadDarkNews(category = 'all') {
@@ -4142,12 +4104,29 @@
             });
         }
 
-        // Anxiety feed: force no-op to neutralize any legacy calls
-        // Unconditionally override to avoid stale definitions from cached assets
-        window.loadAnxietyFeed = function () {
-            console.debug('Anxiety feed stub: disabled — no target element.');
-        };
-
+        // Calm Radar / Anxiety Feed
+        async function loadAnxietyFeed() {
+            const list = document.getElementById('anxiety-list');
+            if (!list) return;
+            try {
+                const resp = await fetch('/api/feeds/anxiety');
+                const data = await resp.json();
+                if (data.success && data.articles && data.articles.length > 0) {
+                    list.innerHTML = data.articles.slice(0, 6).map(a => `
+                        <div class="bg-gray-900 rounded border border-emerald-700 p-3">
+                            <a href="${a.link}" target="_blank" class="text-emerald-300 hover:text-emerald-200 font-semibold text-sm line-clamp-2">${a.title}</a>
+                            <div class="text-xs text-emerald-200/70 mt-1">${a.date || 'Calm signal'}</div>
+                            <div class="flex gap-2 mt-2">
+                                <button onclick="setAnxietyPref('${a.id}','like')" class="flex-1 px-2 py-1 bg-emerald-700 hover:bg-emerald-600 rounded text-xs">👍</button>
+                                <button onclick="setAnxietyPref('${a.id}','hide')" class="flex-1 px-2 py-1 bg-emerald-800 hover:bg-emerald-700 rounded text-xs">👀</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (e) {
+                console.error('Anxiety feed error:', e);
+            }
+        }
         // Jokes
         async function loadJokes() {
             const el = document.getElementById('jokes');
@@ -4551,8 +4530,6 @@
             // Load Dracula-specific widgets
             if (isWidgetEnabled('dark_news')) loadDarkNews();
             if (isWidgetEnabled('dracula_quotes')) loadDraculaQuote();
-            if (isWidgetEnabled('jedi_quotes')) loadJediQuote();
-            if (isWidgetEnabled('alice_quotes')) loadAliceQuote();
             if (isWidgetEnabled('music_player')) {
                 // Initialize music player with Last.fm data
                 console.log('🎵 Music player widget enabled - loading station');
