@@ -82,16 +82,15 @@ services:
       - parker_tokens:/app/tokens
       - parker_logs:/app/logs
       # === SOURCE CODE (mounted, shared - no rebuild needed!) ===
-      # NOTE: Paths are relative to where docker-compose is RUN (repo root), not the yml file location
-      - ./src:/app/src:ro
-      - ./static:/app/static:ro
-      - ./assets:/app/assets:ro
-      - ./collectors:/app/collectors:ro
-      - ./config:/app/config:ro
-      - ./database.py:/app/database.py:ro
+      - ../src:/app/src:ro
+      - ../static:/app/static:ro
+      - ../assets:/app/assets:ro
+      - ../collectors:/app/collectors:ro
+      - ../config:/app/config:ro
+      - ../database.py:/app/database.py:ro
       # === SHARED DATA (skins, voice models - shared across all users) ===
-      - ./data/skins:/app/shared/skins:ro
-      - ./data/voice_models:/app/shared/voice_models:ro
+      - ../data/skins:/app/shared/skins:ro
+      - ../data/voice_models:/app/shared/voice_models:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     labels:
@@ -137,16 +136,15 @@ services:
       - sarah_tokens:/app/tokens
       - sarah_logs:/app/logs
       # === SOURCE CODE (mounted, shared - no rebuild needed!) ===
-      # NOTE: Paths are relative to where docker-compose is RUN (repo root), not the yml file location
-      - ./src:/app/src:ro
-      - ./static:/app/static:ro
-      - ./assets:/app/assets:ro
-      - ./collectors:/app/collectors:ro
-      - ./config:/app/config:ro
-      - ./database.py:/app/database.py:ro
+      - ../src:/app/src:ro
+      - ../static:/app/static:ro
+      - ../assets:/app/assets:ro
+      - ../collectors:/app/collectors:ro
+      - ../config:/app/config:ro
+      - ../database.py:/app/database.py:ro
       # === SHARED DATA (skins, voice models - shared across all users) ===
-      - ./data/skins:/app/shared/skins:ro
-      - ./data/voice_models:/app/shared/voice_models:ro
+      - ../data/skins:/app/shared/skins:ro
+      - ../data/voice_models:/app/shared/voice_models:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     labels:
@@ -192,16 +190,15 @@ services:
       - greg_tokens:/app/tokens
       - greg_logs:/app/logs
       # === SOURCE CODE (mounted, shared - no rebuild needed!) ===
-      # NOTE: Paths are relative to where docker-compose is RUN (repo root), not the yml file location
-      - ./src:/app/src:ro
-      - ./static:/app/static:ro
-      - ./assets:/app/assets:ro
-      - ./collectors:/app/collectors:ro
-      - ./config:/app/config:ro
-      - ./database.py:/app/database.py:ro
+      - ../src:/app/src:ro
+      - ../static:/app/static:ro
+      - ../assets:/app/assets:ro
+      - ../collectors:/app/collectors:ro
+      - ../config:/app/config:ro
+      - ../database.py:/app/database.py:ro
       # === SHARED DATA (skins, voice models - shared across all users) ===
-      - ./data/skins:/app/shared/skins:ro
-      - ./data/voice_models:/app/shared/voice_models:ro
+      - ../data/skins:/app/shared/skins:ro
+      - ../data/voice_models:/app/shared/voice_models:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     labels:
@@ -247,16 +244,15 @@ services:
       - ramona_tokens:/app/tokens
       - ramona_logs:/app/logs
       # === SOURCE CODE (mounted, shared - no rebuild needed!) ===
-      # NOTE: Paths are relative to where docker-compose is RUN (repo root), not the yml file location
-      - ./src:/app/src:ro
-      - ./static:/app/static:ro
-      - ./assets:/app/assets:ro
-      - ./collectors:/app/collectors:ro
-      - ./config:/app/config:ro
-      - ./database.py:/app/database.py:ro
+      - ../src:/app/src:ro
+      - ../static:/app/static:ro
+      - ../assets:/app/assets:ro
+      - ../collectors:/app/collectors:ro
+      - ../config:/app/config:ro
+      - ../database.py:/app/database.py:ro
       # === SHARED DATA (skins, voice models - shared across all users) ===
-      - ./data/skins:/app/shared/skins:ro
-      - ./data/voice_models:/app/shared/voice_models:ro
+      - ../data/skins:/app/shared/skins:ro
+      - ../data/voice_models:/app/shared/voice_models:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     labels:
