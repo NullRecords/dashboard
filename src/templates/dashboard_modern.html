@@ -467,10 +467,10 @@
         });
     </script>
 </head>
-<body class="bg-gray-900 text-gray-100 h-full" style="background-color: var(--skin-bg-primary); color: var(--skin-text-primary);">
+<body class="bg-gray-900 text-gray-100 h-full overflow-hidden" style="background-color: var(--skin-bg-primary); color: var(--skin-text-primary);">
     <div id="app-bg" class="fixed inset-0 -z-10 bg-cover bg-center opacity-25"></div>
     <!-- Main Container -->
-    <div class="flex h-full">
+    <div class="flex h-full min-h-0">
         <!-- Sidebar Navigation -->
         <aside class="w-64 border-r overflow-y-auto" style="background-color: var(--skin-bg-secondary); border-color: var(--skin-border-primary);">
             <div class="p-6 border-b space-y-3" style="border-color: var(--skin-border-primary);">
@@ -1063,13 +1063,12 @@
             </section>
 
             <!-- Settings Section -->
-            <section id="section-settings" class="section-content hidden p-8">
+            <section id="section-settings" class="section-content hidden p-8 pb-24">
                 <div class="mb-4">
                     <div class="text-3xl font-extrabold text-white drop-shadow">Settings</div>
                     <div class="text-xs text-gray-300">Personalize your dashboard</div>
                 </div>
-                <div id="settings-container" class="bg-gray-800 rounded-lg border border-gray-700 p-6">
-                    <h2 class="text-2xl font-bold mb-4">Settings</h2>
+                <div id="settings-container" class="space-y-8">
                     <div class="text-gray-400">Loading settings...</div>
                 </div>
             </section>
