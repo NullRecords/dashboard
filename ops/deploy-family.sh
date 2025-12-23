@@ -3,8 +3,15 @@
 # Deploy Family Dashboards
 # Builds and runs all family member dashboards with Traefik reverse proxy
 #
+# WORKFLOW (Source code is mounted as volumes!):
+#   - Code changes: Use 'update' to pull and restart (no rebuild needed)
+#   - Dependency changes: Use 'build' to rebuild images
+#   - First time setup: Use 'build' then 'start'
+#
 # Usage:
-#   ./deploy-family.sh           # Build and start all
+#   ./deploy-family.sh start     # Start containers (no rebuild)
+#   ./deploy-family.sh build     # Build/rebuild images
+#   ./deploy-family.sh update    # Pull code and restart containers
 #   ./deploy-family.sh stop      # Stop all containers
 #   ./deploy-family.sh restart   # Restart all containers
 #   ./deploy-family.sh logs      # View logs
@@ -20,6 +27,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m'
 
 print_header() {
@@ -59,15 +67,91 @@ start() {
     print_header
     check_env
     
-    echo -e "${GREEN}🔨 Building and starting all dashboards...${NC}"
+    echo -e "${GREEN}� Starting all dashboards...${NC}"
+    echo -e "${CYAN}   (Using existing images - run 'build' first if needed)${NC}"
     echo ""
     
-    docker-compose -f docker-compose.family.yml up -d --build
+    docker-compose -f docker-compose.family.yml up -d
     
     echo ""
     echo -e "${GREEN}✅ All dashboards started!${NC}"
     echo ""
     status
+}
+
+build() {
+    print_header
+    check_env
+    
+    echo -e "${GREEN}🔨 Building dashboard images...${NC}"
+    echo -e "${CYAN}   (Only needed when dependencies change)${NC}"
+    echo ""
+    
+    # Enable BuildKit for better caching
+    export DOCKER_BUILDKIT=1
+    export COMPOSE_DOCKER_CLI_BUILD=1
+    
+    docker-compose -f docker-compose.family.yml build
+    
+    echo ""
+    echo -e "${GREEN}✅ Images built successfully!${NC}"
+    echo -e "${CYAN}   Run './deploy-family.sh start' to start containers${NC}"
+    echo ""
+}
+
+build_start() {
+    print_header
+    check_env
+    
+    echo -e "${GREEN}🔨 Building and starting all dashboards...${NC}"
+    echo ""
+    
+    # Enable BuildKit for better caching
+    export DOCKER_BUILDKIT=1
+    export COMPOSE_DOCKER_CLI_BUILD=1
+    
+    docker-compose -f docker-compose.family.yml up -d --build
+    
+    echo ""
+    echo -e "${GREEN}✅ All dashboards built and started!${NC}"
+    echo ""
+    status
+}
+
+update() {
+    print_header
+    
+    echo -e "${GREEN}📥 Pulling latest code changes...${NC}"
+    cd "$SCRIPT_DIR/.."
+    git pull
+    cd "$SCRIPT_DIR"
+    
+    echo ""
+    echo -e "${GREEN}🔄 Restarting containers to pick up changes...${NC}"
+    docker-compose -f docker-compose.family.yml restart
+    
+    echo ""
+    echo -e "${GREEN}✅ Code updated and containers restarted!${NC}"
+    echo -e "${CYAN}   (No rebuild needed - code is mounted as volumes)${NC}"
+    echo ""
+    status
+}
+
+update_user() {
+    local user=$1
+    print_header
+    
+    echo -e "${GREEN}📥 Pulling latest code changes...${NC}"
+    cd "$SCRIPT_DIR/.."
+    git pull
+    cd "$SCRIPT_DIR"
+    
+    echo ""
+    echo -e "${GREEN}🔄 Restarting $user's container...${NC}"
+    docker-compose -f docker-compose.family.yml restart "dashboard-$user"
+    
+    echo ""
+    echo -e "${GREEN}✅ $user's dashboard updated!${NC}"
 }
 
 stop() {
@@ -99,8 +183,19 @@ logs_user() {
 rebuild_user() {
     local user=$1
     echo -e "${GREEN}🔨 Rebuilding $user's dashboard...${NC}"
+    export DOCKER_BUILDKIT=1
+    export COMPOSE_DOCKER_CLI_BUILD=1
     docker-compose -f docker-compose.family.yml up -d --build "dashboard-$user"
     echo -e "${GREEN}✅ $user's dashboard rebuilt and restarted.${NC}"
+}
+
+build_user() {
+    local user=$1
+    echo -e "${GREEN}🔨 Building $user's dashboard image...${NC}"
+    export DOCKER_BUILDKIT=1
+    export COMPOSE_DOCKER_CLI_BUILD=1
+    docker-compose -f docker-compose.family.yml build "dashboard-$user"
+    echo -e "${GREEN}✅ $user's image built. Run 'start' to use it.${NC}"
 }
 
 setup_dns() {
@@ -124,11 +219,28 @@ case "${1:-start}" in
     start|up)
         start
         ;;
+    build)
+        if [ -n "$2" ]; then
+            build_user "$2"
+        else
+            build
+        fi
+        ;;
+    build-start)
+        build_start
+        ;;
     stop|down)
         stop
         ;;
     restart)
         restart
+        ;;
+    update)
+        if [ -n "$2" ]; then
+            update_user "$2"
+        else
+            update
+        fi
         ;;
     logs)
         if [ -n "$2" ]; then
@@ -152,15 +264,24 @@ case "${1:-start}" in
         setup_dns
         ;;
     *)
-        echo "Usage: $0 {start|stop|restart|logs|status|rebuild|dns}"
+        echo "Usage: $0 {start|build|update|stop|restart|logs|status|dns}"
         echo ""
-        echo "Commands:"
-        echo "  start           Build and start all dashboards"
-        echo "  stop            Stop all dashboards"
-        echo "  restart         Restart all dashboards"
+        echo -e "${GREEN}WORKFLOW:${NC}"
+        echo "  Source code is mounted as volumes - no rebuild needed for code changes!"
+        echo "  • First time: build → start"
+        echo "  • Code changes: update (or just restart)"
+        echo "  • Dependency changes: build → restart"
+        echo ""
+        echo -e "${GREEN}Commands:${NC}"
+        echo "  start           Start containers (no rebuild)"
+        echo "  build [user]    Build images (only for dependency changes)"
+        echo "  build-start     Build and start in one step"
+        echo "  update [user]   Git pull + restart containers"
+        echo "  stop            Stop all containers"
+        echo "  restart         Restart all containers"
         echo "  logs [user]     View logs (optionally for specific user)"
         echo "  status          Show dashboard status"
-        echo "  rebuild <user>  Rebuild specific user's dashboard"
+        echo "  rebuild <user>  Force rebuild specific user's image"
         echo "  dns             Show DNS setup instructions"
         exit 1
         ;;
