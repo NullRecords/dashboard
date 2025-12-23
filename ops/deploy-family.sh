@@ -79,6 +79,37 @@ status() {
     echo ""
 }
 
+check_version() {
+    print_header
+    echo -e "${GREEN}🔍 Version Check:${NC}"
+    echo ""
+    
+    cd "$REPO_DIR"
+    
+    echo -e "${CYAN}   Local commit:${NC}"
+    git log --oneline -1
+    echo ""
+    
+    git fetch origin master 2>/dev/null
+    LOCAL=$(git rev-parse HEAD)
+    REMOTE=$(git rev-parse origin/master 2>/dev/null || echo "unknown")
+    
+    if [ "$REMOTE" = "unknown" ]; then
+        echo -e "${YELLOW}   ⚠️  Could not reach origin${NC}"
+    elif [ "$LOCAL" = "$REMOTE" ]; then
+        echo -e "${GREEN}   ✅ Up to date with origin/master${NC}"
+    else
+        BEHIND=$(git rev-list --count HEAD..origin/master 2>/dev/null || echo "?")
+        echo -e "${YELLOW}   ⚠️  $BEHIND commits behind origin/master${NC}"
+        echo ""
+        echo -e "${CYAN}   Missing commits:${NC}"
+        git log --oneline HEAD..origin/master
+        echo ""
+        echo -e "${CYAN}   Run './deploy-family.sh update' to pull changes${NC}"
+    fi
+    echo ""
+}
+
 start() {
     print_header
     check_env
@@ -142,12 +173,45 @@ update() {
     
     echo -e "${GREEN}📥 Pulling latest code changes...${NC}"
     cd "$REPO_DIR"
-    git pull origin master
+    
+    # Show current state
+    echo -e "${CYAN}   Current commit:${NC}"
+    git log --oneline -1
+    echo ""
+    
+    # Fetch and show what's new
+    git fetch origin master
+    LOCAL=$(git rev-parse HEAD)
+    REMOTE=$(git rev-parse origin/master)
+    
+    if [ "$LOCAL" = "$REMOTE" ]; then
+        echo -e "${GREEN}   ✅ Already up to date!${NC}"
+    else
+        BEHIND=$(git rev-list --count HEAD..origin/master)
+        echo -e "${YELLOW}   ⚠️  $BEHIND commits behind origin/master${NC}"
+        echo -e "${CYAN}   New commits:${NC}"
+        git log --oneline HEAD..origin/master
+        echo ""
+        
+        # Pull the changes
+        echo -e "${GREEN}   Pulling changes...${NC}"
+        git pull origin master --ff-only || {
+            echo -e "${RED}   ❌ Pull failed! Trying reset...${NC}"
+            git reset --hard origin/master
+        }
+    fi
+    
+    echo ""
+    echo -e "${CYAN}   Updated to commit:${NC}"
+    git log --oneline -1
     
     echo ""
     echo -e "${GREEN}🔄 Restarting containers to pick up changes...${NC}"
     cd "$SCRIPT_DIR"
-    $COMPOSE_CMD -f docker-compose.family.yml restart
+    
+    # Stop and start (more reliable than restart for code changes)
+    $COMPOSE_CMD -f docker-compose.family.yml down
+    $COMPOSE_CMD -f docker-compose.family.yml up -d
     
     echo ""
     echo -e "${GREEN}✅ Code updated and containers restarted!${NC}"
@@ -340,6 +404,7 @@ show_help() {
     echo "  build [user]    Build images (only for dependency changes)"
     echo "  build-start     Build and start in one step"
     echo "  update [user]   Git pull master + restart containers"
+    echo "  check           Check if local code matches remote (no changes)"
     echo "  sync            Sync all family branches with master"
     echo "  full-update     Sync branches + restart containers"
     echo "  stop            Stop all containers"
@@ -352,10 +417,11 @@ show_help() {
     echo ""
     echo -e "${GREEN}Examples:${NC}"
     echo "  $0 build-start         # First time setup"
-    echo "  $0 update               # Pull code and restart"
-    echo "  $0 sync                 # Sync all branches"
-    echo "  $0 logs parker          # View Parker's logs"
-    echo "  $0 rebuild sarah        # Rebuild Sarah's container"
+    echo "  $0 check               # See if updates are available"
+    echo "  $0 update              # Pull code and restart"
+    echo "  $0 sync                # Sync all branches"
+    echo "  $0 logs parker         # View Parker's logs"
+    echo "  $0 rebuild sarah       # Rebuild Sarah's container"
     echo ""
 }
 
@@ -386,6 +452,9 @@ case "${1:-help}" in
         else
             update
         fi
+        ;;
+    check|version)
+        check_version
         ;;
     sync)
         sync_branches
