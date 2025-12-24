@@ -38,6 +38,8 @@ voice:
   default_style: droid
   echo_gain: 0.4
   enabled: true
+  model: "en_US-ryan-high"
+  model_path: "data/voice_models/piper/en_US-ryan-high.onnx"
   highpass_freq: 200
   lowpass_freq: 2500
   model: en_US-ryan-high

@@ -1,0 +1,103 @@
+# Example configuration file
+# Copy this to config.yaml and customize as needed
+
+# Application settings
+environment: "development"
+debug: true
+log_level: "INFO"
+data_retention_days: 90
+collection_interval_hours: 6
+
+# Ollama configuration
+ollama:
+  host: "localhost"
+  port: 11434
+  model: "llama2"
+
+# Google APIs
+google:
+  credentials_file: "config/google_credentials.json"
+  scopes:
+    - "https://www.googleapis.com/auth/gmail.readonly"
+    - "https://www.googleapis.com/auth/calendar.readonly"
+
+# Apple settings
+apple:
+  reminders_export_path: "data/apple_reminders.csv"
+  # iCloud Family Calendar - Get this from iCloud.com:
+  # 1. Go to iCloud.com > Calendar
+  # 2. Click the Share icon next to your calendar
+  # 3. Enable "Public Calendar" and copy the URL
+  # 4. Change webcal:// to https://
+  icloud_calendar_url: ""  # e.g., "https://p123-caldav.icloud.com/published/2/abc123..."
+
+voice:
+  model: "en_US-ryan-high"
+  model_path: "data/voice_models/piper/en_US-ryan-high.onnx"
+# Notes settings
+notes:
+  obsidian:
+    enabled: true
+    vault_path: "/Users/yourusername/Documents/ObsidianVault"  # Update with your Obsidian vault path
+    recent_days: 7  # Only check notes modified in last N days
+  google_drive:
+    enabled: true
+    meeting_notes_folder_id: ""  # Google Drive folder ID for meeting notes
+    credentials_file: "config/google_credentials.json"
+
+# Dashboard settings
+dashboard:
+  output_dir: "output"
+  template_dir: "templates"
+  static_dir: "static"
+  weekly_goals:
+    emails_processed: 100
+    meetings_attended: 10
+    tasks_completed: 20
+    github_commits: 15
+  monthly_goals:
+    emails_processed: 400
+    meetings_attended: 40
+    tasks_completed: 80
+    github_commits: 60
+
+# Voice system settings (Rogr assistant)
+voice:
+  enabled: true
+  
+  # Voice model to use (must be installed in data/voice_models/piper/)
+  # Options:
+  #   - en_US-ryan-high (default) - Deep male voice, great for battle-droid
+  #   - en_US-libritts-high - Varied male voice
+  #   - en_US-lessac-medium - Female voice (original)
+  #   - en_US-ljspeech-high - Clear female voice
+  # Download models from: https://huggingface.co/rhasspy/piper-voices
+  model: "en_US-ryan-high"
+  model_path: "/home/glind/Projects/ramona/dashboard/data/voice_models/piper/"
+  model_path: "/home/glind/Projects/ramona/dashboard/data/voice_models/piper/"
+  
+  # Voice style/effect to apply
+  # Options: clean, droid, radio, pa_system
+  default_style: "droid"
+  
+  # Speed adjustment (0.5 = half speed, 1.0 = normal, 2.0 = double speed)
+  # Current default: 0.75 (25% slower for clarity)
+  speed: 0.75
+  
+  # Pitch adjustment (0.5 = deeper, 1.0 = normal, 2.0 = higher)
+  # Current default: 0.85 (15% deeper for robotic sound)
+  pitch: 0.85
+  
+  # When to announce
+  announce_on_startup: true
+  announce_on_collection: true
+  announce_on_error: false
+  
+  # Wake words for voice commands (optional - requires PyAudio)
+  wake_words:
+    - "rogr"
+    - "roger"
+  
+  # Signature phrase added to announcements
+  signature_phrase: "roger, roger"
+
