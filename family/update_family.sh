@@ -34,8 +34,10 @@ ensure_repo() {
     log "[ERROR] Repo for $name not found at $path" && return 1
   fi
   if [[ -n "$(git -C "$path" status --porcelain)" ]]; then
-    log "[WARN] $name has local changes; skipping to avoid overwriting"
-    return 1
+    log "[INFO] $name has local changes; committing and pushing before update"
+    git -C "$path" add -A
+    git -C "$path" commit -m "Auto-commit: archive updates before branch pull" || log "[INFO] No changes to commit for $name"
+    git -C "$path" push origin "$branch"
   fi
   git -C "$path" fetch --all --prune
   git -C "$path" checkout "$branch"
