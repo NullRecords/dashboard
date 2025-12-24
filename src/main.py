@@ -9216,6 +9216,29 @@ async def prefetch_garfield_archive(request: Request):
         return {"success": False, "error": str(e)}
 
 
+@app.get("/api/comics/{comic_id}/daily")
+async def get_comic_daily(comic_id: str):
+    """Generic endpoint to get daily comic from any configured comic."""
+    try:
+        # Route to appropriate handler based on comic ID
+        if comic_id == "garfield":
+            return await get_random_garfield()
+        elif comic_id in ["calvin", "calvinandhobbes"]:
+            return await get_calvin_daily()
+        elif comic_id == "peanuts":
+            return await get_peanuts()
+        elif comic_id in ["bloomcounty", "bloom-county"]:
+            # Try RSS feed for Bloom County
+            return await get_comic_by_rss("bloom-county")
+        else:
+            # Try RSS feed with comic ID
+            return await get_comic_by_rss(comic_id)
+            
+    except Exception as e:
+        logger.error(f"Comic daily error for {comic_id}: {e}")
+        return {"success": False, "error": str(e)}
+
+
 @app.get("/api/comics/garfield/random")
 async def get_random_garfield():
     """Return a random Garfield image from the local archive sample; builds sample if missing."""

@@ -1100,6 +1100,59 @@
         </div>
     </div>
 
+    <!-- Comic Viewer Modal -->
+    <div id="comic-viewer-modal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-900 rounded-lg border border-orange-600 p-6 max-w-5xl w-full max-h-[90vh] flex flex-col">
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h2 id="comic-viewer-title" class="text-2xl font-bold text-orange-300">Comic Viewer</h2>
+                    <p id="comic-viewer-date" class="text-sm text-gray-400 mt-1"></p>
+                </div>
+                <button onclick="closeComicViewer()" class="text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
+            </div>
+            
+            <!-- Comic Image with Navigation -->
+            <div class="flex-1 flex items-center justify-center relative mb-4">
+                <button onclick="previousComic()" class="absolute left-0 top-1/2 -translate-y-1/2 bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-lg shadow-lg z-10">
+                    <i class="fas fa-chevron-left text-xl"></i>
+                </button>
+                
+                <div id="comic-viewer-image-container" class="max-w-full max-h-[60vh] flex items-center justify-center">
+                    <img id="comic-viewer-image" src="" alt="Comic" class="max-w-full max-h-full object-contain rounded-lg">
+                </div>
+                
+                <button onclick="nextComic()" class="absolute right-0 top-1/2 -translate-y-1/2 bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-lg shadow-lg z-10">
+                    <i class="fas fa-chevron-right text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- Controls -->
+            <div class="flex items-center justify-between gap-4 pt-4 border-t border-gray-700">
+                <!-- Like/Dislike -->
+                <div class="flex gap-3">
+                    <button onclick="likeComic()" id="comic-like-btn" class="px-4 py-2 bg-green-700 hover:bg-green-600 rounded-lg flex items-center gap-2">
+                        <i class="fas fa-thumbs-up"></i>
+                        <span>Like</span>
+                    </button>
+                    <button onclick="dislikeComic()" id="comic-dislike-btn" class="px-4 py-2 bg-red-700 hover:bg-red-600 rounded-lg flex items-center gap-2">
+                        <i class="fas fa-thumbs-down"></i>
+                        <span>Dislike</span>
+                    </button>
+                </div>
+                
+                <!-- Info and Actions -->
+                <div class="flex gap-3">
+                    <span id="comic-viewer-counter" class="text-gray-400 text-sm self-center"></span>
+                    <button onclick="openComicSource()" class="px-4 py-2 bg-orange-700 hover:bg-orange-600 rounded-lg flex items-center gap-2">
+                        <i class="fas fa-external-link-alt"></i>
+                        <span>View Source</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Avatar Picker Modal -->
     <div id="avatar-picker-modal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
         <div class="bg-gray-800 rounded-lg border border-purple-500/50 p-6 max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
@@ -1330,7 +1383,18 @@
                 nameEl.textContent = skin.display_name;
             }
             
+            // Update assistant link in sidebar (both top link and nav button)
+            const assistantLink = document.getElementById('assistant-link');
+            if (assistantLink && skin.assistant) {
+                assistantLink.href = skin.assistant.url || '/assistant';
+                assistantLink.textContent = `Open ${skin.display_name}`;
+            }
+            
             // Update assistant nav link in sidebar
+            const navLink = document.getElementById('assistant-nav-link');
+            if (navLink && skin.assistant) {
+                navLink.href = skin.assistant.url || '/assistant';
+            }
             const navName = document.getElementById('assistant-nav-name');
             if (navName) {
                 navName.textContent = `${skin.display_name} Assistant`;
@@ -3674,6 +3738,72 @@
         }
 
         // Comics
+        // Load enabled comics into dropdown
+        async function loadComicDropdown() {
+            try {
+                const resp = await fetch('/api/settings/comics');
+                const data = await resp.json();
+                console.log('📚 Comics API response:', data);
+                
+                const sel = document.getElementById('comic-select');
+                if (!sel) {
+                    console.error('Comic select element not found!');
+                    return;
+                }
+                
+                if (data.success && data.comics) {
+                    // Get current selection
+                    const currentValue = sel.value;
+                    
+                    // Build options for enabled comics
+                    let options = '';
+                    Object.entries(data.comics).forEach(([key, comic]) => {
+                        console.log(`  Comic ${key}:`, comic);
+                        // Check both 'show' and 'enabled' properties
+                        if (comic.show !== false && comic.enabled !== false) {
+                            const name = comic.name || key.charAt(0).toUpperCase() + key.slice(1);
+                            options += `<option value="${key}">${name}</option>`;
+                            console.log(`    ✅ Added ${key} to dropdown`);
+                        } else {
+                            console.log(`    ❌ Skipped ${key} (show=${comic.show}, enabled=${comic.enabled})`);
+                        }
+                    });
+                    options += '<option value="favorites">Favorites</option>';
+                    
+                    console.log(`📋 Total options built: ${options.split('</option>').length - 1}`);
+                    sel.innerHTML = options;
+                    
+                    // Restore selection if still available
+                    if (currentValue && Array.from(sel.options).some(opt => opt.value === currentValue)) {
+                        sel.value = currentValue;
+                    }
+                } else {
+                    console.error('Comics API failed or returned no comics:', data);
+                    // Fallback to defaults
+                    sel.innerHTML = `
+                        <option value="garfield">Garfield</option>
+                        <option value="bloomcounty">Bloom County</option>
+                        <option value="calvin">Calvin & Hobbes</option>
+                        <option value="peanuts">Peanuts</option>
+                        <option value="favorites">Favorites</option>
+                    `;
+                }
+            } catch (e) {
+                console.error('Error loading comic dropdown:', e);
+                // Fallback to defaults on error
+                const sel = document.getElementById('comic-select');
+                if (sel) {
+                    sel.innerHTML = `
+                        <option value="garfield">Garfield</option>
+                        <option value="bloomcounty">Bloom County</option>
+                        <option value="calvin">Calvin & Hobbes</option>
+                        <option value="peanuts">Peanuts</option>
+                        <option value="favorites">Favorites</option>
+                    `;
+                }
+            }
+        }
+
         async function reloadComic() {
             const display = document.getElementById('garfield');
             const sel = document.getElementById('comic-select');
@@ -3682,15 +3812,20 @@
             display.innerHTML = '<div class="animate-pulse text-gray-400">Loading comic...</div>';
             try {
                 let url = '';
+                if (choice === 'favorites') {
+                    display.innerHTML = '<div class="text-sm text-gray-300">Use the Archive button to browse favorites.</div>';
+                    return;
+                }
+                // Dynamic URL for any comic
                 if (choice === 'garfield') {
                     url = '/api/comics/garfield/random';
                 } else if (choice === 'calvin') {
                     url = '/api/comics/calvin/daily';
                 } else if (choice === 'peanuts') {
                     url = '/api/comics/peanuts';
-                } else if (choice === 'favorites') {
-                    display.innerHTML = '<div class="text-sm text-gray-300">Use the Archive button to browse favorites.</div>';
-                    return;
+                } else {
+                    // Try generic comic endpoint for other comics
+                    url = `/api/comics/${choice}/daily`;
                 }
                 const resp = await fetch(url);
                 const data = await resp.json();
@@ -3698,10 +3833,12 @@
                 const image = comic.image_url || data.image_url;
                 const link = (comic.link || data.page_url || '#');
                 if (image) {
+                    // Make comic clickable to open viewer
                     display.innerHTML = `
-                        <a href="${link}" target="_blank" class="block">
+                        <div onclick="openComicViewer('${comic.title || choice}', '${image}', '${link}', '${comic.date || ''}')" class="cursor-pointer hover:opacity-90 transition-opacity">
                             <img src="${image}" alt="Comic" class="w-full rounded-lg border border-orange-600 max-h-64 object-contain bg-gray-900">
-                        </a>`;
+                            <p class="text-xs text-center text-gray-400 mt-2"><i class="fas fa-expand mr-1"></i>Click to view full size</p>
+                        </div>`;
                 } else {
                     display.innerHTML = '<div class="text-gray-400">No comic available.</div>';
                 }
@@ -3721,10 +3858,8 @@
                 const data = await resp.json();
                 if (data.success && data.favorites && data.favorites.length > 0) {
                     content.innerHTML = data.favorites.map(comic => `
-                        <div class="bg-gray-900 rounded-lg border border-orange-600 overflow-hidden">
-                            <a href="${comic.link || '#'}" target="_blank" class="block">
-                                <img src="${comic.image_url}" alt="Comic" class="w-full h-40 object-cover">
-                            </a>
+                        <div class="bg-gray-900 rounded-lg border border-orange-600 overflow-hidden cursor-pointer hover:opacity-90 transition-opacity" onclick="openComicViewer('${comic.title || 'Comic'}', '${comic.image_url}', '${comic.link || '#'}', '${comic.date || ''}')">
+                            <img src="${comic.image_url}" alt="Comic" class="w-full h-40 object-cover">
                             <div class="p-2 text-xs text-orange-300">${comic.date || ''}</div>
                         </div>
                     `).join('');
@@ -3738,6 +3873,150 @@
 
         function closeGarfieldArchive() {
             document.getElementById('garfield-archive-modal').classList.add('hidden');
+        }
+
+        // =====================================================
+        // COMIC VIEWER MODAL
+        // =====================================================
+        let currentComicData = {
+            title: '',
+            imageUrl: '',
+            sourceLink: '',
+            date: '',
+            index: 0,
+            totalComics: 1,
+            comicList: []
+        };
+
+        function openComicViewer(title, imageUrl, sourceLink, date) {
+            currentComicData = {
+                title: title || 'Comic',
+                imageUrl: imageUrl,
+                sourceLink: sourceLink,
+                date: date || '',
+                index: 0,
+                totalComics: 1,
+                comicList: [{ title, imageUrl, sourceLink, date }]
+            };
+            updateComicViewer();
+            document.getElementById('comic-viewer-modal').classList.remove('hidden');
+        }
+
+        function closeComicViewer() {
+            document.getElementById('comic-viewer-modal').classList.add('hidden');
+        }
+
+        function updateComicViewer() {
+            document.getElementById('comic-viewer-title').textContent = currentComicData.title;
+            document.getElementById('comic-viewer-date').textContent = currentComicData.date;
+            document.getElementById('comic-viewer-image').src = currentComicData.imageUrl;
+            document.getElementById('comic-viewer-counter').textContent = `${currentComicData.index + 1} / ${currentComicData.totalComics}`;
+            
+            // Update like/dislike button states
+            updateComicLikeButtons();
+        }
+
+        function updateComicLikeButtons() {
+            const likeBtn = document.getElementById('comic-like-btn');
+            const dislikeBtn = document.getElementById('comic-dislike-btn');
+            
+            // Get saved preferences
+            const prefs = JSON.parse(localStorage.getItem('comic_preferences') || '{}');
+            const currentPref = prefs[currentComicData.imageUrl];
+            
+            // Reset styles
+            likeBtn.className = 'px-4 py-2 rounded-lg flex items-center gap-2';
+            dislikeBtn.className = 'px-4 py-2 rounded-lg flex items-center gap-2';
+            
+            if (currentPref === 'like') {
+                likeBtn.className += ' bg-green-600 ring-2 ring-green-400';
+                dislikeBtn.className += ' bg-red-700 hover:bg-red-600';
+            } else if (currentPref === 'dislike') {
+                likeBtn.className += ' bg-green-700 hover:bg-green-600';
+                dislikeBtn.className += ' bg-red-600 ring-2 ring-red-400';
+            } else {
+                likeBtn.className += ' bg-green-700 hover:bg-green-600';
+                dislikeBtn.className += ' bg-red-700 hover:bg-red-600';
+            }
+        }
+
+        function likeComic() {
+            const prefs = JSON.parse(localStorage.getItem('comic_preferences') || '{}');
+            const current = prefs[currentComicData.imageUrl];
+            
+            // Toggle like
+            if (current === 'like') {
+                delete prefs[currentComicData.imageUrl];
+            } else {
+                prefs[currentComicData.imageUrl] = 'like';
+            }
+            
+            localStorage.setItem('comic_preferences', JSON.stringify(prefs));
+            updateComicLikeButtons();
+            
+            // Visual feedback
+            showToast('👍 Comic preference saved!');
+        }
+
+        function dislikeComic() {
+            const prefs = JSON.parse(localStorage.getItem('comic_preferences') || '{}');
+            const current = prefs[currentComicData.imageUrl];
+            
+            // Toggle dislike
+            if (current === 'dislike') {
+                delete prefs[currentComicData.imageUrl];
+            } else {
+                prefs[currentComicData.imageUrl] = 'dislike';
+            }
+            
+            localStorage.setItem('comic_preferences', JSON.stringify(prefs));
+            updateComicLikeButtons();
+            
+            // Visual feedback
+            showToast('👎 Comic preference saved!');
+        }
+
+        function nextComic() {
+            if (currentComicData.index < currentComicData.totalComics - 1) {
+                currentComicData.index++;
+                const comic = currentComicData.comicList[currentComicData.index];
+                currentComicData.imageUrl = comic.imageUrl;
+                currentComicData.title = comic.title;
+                currentComicData.sourceLink = comic.sourceLink;
+                currentComicData.date = comic.date;
+                updateComicViewer();
+            }
+        }
+
+        function previousComic() {
+            if (currentComicData.index > 0) {
+                currentComicData.index--;
+                const comic = currentComicData.comicList[currentComicData.index];
+                currentComicData.imageUrl = comic.imageUrl;
+                currentComicData.title = comic.title;
+                currentComicData.sourceLink = comic.sourceLink;
+                currentComicData.date = comic.date;
+                updateComicViewer();
+            }
+        }
+
+        function openComicSource() {
+            if (currentComicData.sourceLink && currentComicData.sourceLink !== '#') {
+                window.open(currentComicData.sourceLink, '_blank');
+            }
+        }
+
+        function showToast(message) {
+            // Simple toast notification
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-4 right-4 bg-gray-800 border border-orange-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s';
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
         }
 
         // eBay Auctions
@@ -4104,29 +4383,8 @@
             });
         }
 
-        // Calm Radar / Anxiety Feed
-        async function loadAnxietyFeed() {
-            const list = document.getElementById('anxiety-list');
-            if (!list) return;
-            try {
-                const resp = await fetch('/api/feeds/anxiety');
-                const data = await resp.json();
-                if (data.success && data.articles && data.articles.length > 0) {
-                    list.innerHTML = data.articles.slice(0, 6).map(a => `
-                        <div class="bg-gray-900 rounded border border-emerald-700 p-3">
-                            <a href="${a.link}" target="_blank" class="text-emerald-300 hover:text-emerald-200 font-semibold text-sm line-clamp-2">${a.title}</a>
-                            <div class="text-xs text-emerald-200/70 mt-1">${a.date || 'Calm signal'}</div>
-                            <div class="flex gap-2 mt-2">
-                                <button onclick="setAnxietyPref('${a.id}','like')" class="flex-1 px-2 py-1 bg-emerald-700 hover:bg-emerald-600 rounded text-xs">👍</button>
-                                <button onclick="setAnxietyPref('${a.id}','hide')" class="flex-1 px-2 py-1 bg-emerald-800 hover:bg-emerald-700 rounded text-xs">👀</button>
-                            </div>
-                        </div>
-                    `).join('');
-                }
-            } catch (e) {
-                console.error('Anxiety feed error:', e);
-            }
-        }
+        // Calm Radar / Anxiety Feed - DISABLED (no HTML element present)
+        // Function removed to prevent execution errors
         // Jokes
         async function loadJokes() {
             const el = document.getElementById('jokes');
@@ -4519,7 +4777,9 @@
             // Load data for enabled widgets only
             if (isWidgetEnabled('jokes')) loadJokes();
             if (isWidgetEnabled('quote')) loadQuote();
-            if (isWidgetEnabled('comics')) reloadComic();
+            if (isWidgetEnabled('comics')) {
+                loadComicDropdown().then(() => reloadComic());
+            }
             if (isWidgetEnabled('ebay')) loadEbayAuctions();
             if (isWidgetEnabled('roger_quotes') || isWidgetEnabled('communities') || 
                 isWidgetEnabled('starwars') || isWidgetEnabled('parts_search') || 
