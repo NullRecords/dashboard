@@ -1,1 +1,43 @@
-[]
+[
+	{
+		"id": "2025-12-21",
+		"series": "peanuts",
+		"title": "Peanuts by Charles Schulz for December 21, 2025 | GoComics",
+		"date": "2025-12-21",
+		"image_url": "https://featureassets.gocomics.com/assets/cd4f9480bcc6013eb960005056a9545d",
+		"link": "https://www.gocomics.com/peanuts/2025/12/21",
+		"attribution": "© Peanuts Worldwide / GoComics"
+	},
+	{
+		"id": "2025-12-20",
+		"series": "peanuts",
+		"title": "Peanuts for December 20, 2025",
+		"date": "2025-12-20",
+		"image_url": "/data/comics/peanuts/2025-12-20.gif",
+		"link": "https://www.gocomics.com/peanuts/2025/12/20"
+	},
+	{
+		"id": "2025-12-19",
+		"series": "peanuts",
+		"title": "Peanuts for December 19, 2025",
+		"date": "2025-12-19",
+		"image_url": "/data/comics/peanuts/2025-12-19.gif",
+		"link": "https://www.gocomics.com/peanuts/2025/12/19"
+	},
+	{
+		"id": "2025-12-18",
+		"series": "peanuts",
+		"title": "Peanuts for December 18, 2025",
+		"date": "2025-12-18",
+		"image_url": "/data/comics/peanuts/2025-12-18.gif",
+		"link": "https://www.gocomics.com/peanuts/2025/12/18"
+	},
+	{
+		"id": "garfield-2025-12-24",
+		"series": "garfield",
+		"title": "Garfield for December 24, 2025",
+		"date": "2025-12-24",
+		"image_url": "/data/comics/garfield/2025-12-24.gif",
+		"link": "https://www.gocomics.com/garfield/2025/12/24"
+	}
+]

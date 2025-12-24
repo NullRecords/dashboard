@@ -43,6 +43,7 @@ voice:
   highpass_freq: 200
   lowpass_freq: 2500
   model: en_US-ryan-high
+  model_path: "/home/glind/Projects/ramona/dashboard/data/voice_models/piper/"
   pitch: 0.7
   sarcasm_enabled: true
   signature_phrase: roger, roger
