@@ -18,7 +18,7 @@ from database import DatabaseManager
 def main():
     db = DatabaseManager()
     # Set the default voice model path if not already set
-    default_path = "data/voice_models/piper/en_US-ryan-high.onnx"
+    default_path = "/home/glind/Projects/ramona/data/voice_models/piper/en_US-ryan-high.onnx"
     current = db.get_setting('voice_model_path', None)
     if not current:
         db.save_setting('voice_model_path', default_path)
