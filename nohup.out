@@ -55087,3 +55087,407 @@ INFO:collectors.gmail_collector:Starting Google Gmail authentication
 ERROR:collectors.gmail_collector:No Google credentials file found
 ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
 INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting calendar data...
+INFO:collectors.calendar_collector:Calendar collector settings check - credentials_file: None
+INFO:collectors.calendar_collector:Starting Google Calendar authentication
+ERROR:collectors.calendar_collector:No Google credentials file found
+ERROR:collectors.calendar_collector:Authentication failed - no service available
+INFO:src.main:Successfully cached calendar data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting music data...
+ERROR:src.main:Music collection error: No module named 'collectors.music_collector'
+INFO:src.main:Successfully cached music data
+INFO:src.main:Background collecting vanity data...
+ERROR:src.main:Vanity collection error: No module named 'collectors.vanity_alerts_collector'
+INFO:src.main:Successfully cached vanity data
+INFO:src.main:Background collecting weather data...
+INFO:collectors.weather_collector:Collecting weather data...
+INFO:collectors.weather_collector:Weather data collected successfully for Oregon City, OR
+INFO:src.main:Successfully cached weather data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting calendar data...
+INFO:collectors.calendar_collector:Calendar collector settings check - credentials_file: None
+INFO:collectors.calendar_collector:Starting Google Calendar authentication
+ERROR:collectors.calendar_collector:No Google credentials file found
+ERROR:collectors.calendar_collector:Authentication failed - no service available
+INFO:src.main:Successfully cached calendar data
+INFO:src.main:Background collecting github data...
+INFO:src.main:Successfully cached github data
+INFO:src.main:Background collecting news data...
+INFO:database:Database initialized successfully
+INFO:collectors.news_collector:Collecting news data...
+INFO:database:Database initialized successfully
+INFO:collectors.news_collector:Collected 50 news articles, saved 50 to database
+INFO:src.main:Successfully cached news data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting calendar data...
+INFO:collectors.calendar_collector:Calendar collector settings check - credentials_file: None
+INFO:collectors.calendar_collector:Starting Google Calendar authentication
+ERROR:collectors.calendar_collector:No Google credentials file found
+ERROR:collectors.calendar_collector:Authentication failed - no service available
+INFO:src.main:Successfully cached calendar data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting jokes data...
+INFO:httpx:HTTP Request: GET https://icanhazdadjoke.com/ "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://icanhazdadjoke.com/ "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://icanhazdadjoke.com/ "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://icanhazdadjoke.com/ "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://icanhazdadjoke.com/ "HTTP/1.1 200 OK"
+INFO:src.main:Successfully cached jokes data
+INFO:src.main:Background collecting calendar data...
+INFO:collectors.calendar_collector:Calendar collector settings check - credentials_file: None
+INFO:collectors.calendar_collector:Starting Google Calendar authentication
+ERROR:collectors.calendar_collector:No Google credentials file found
+ERROR:collectors.calendar_collector:Authentication failed - no service available
+INFO:src.main:Successfully cached calendar data
+INFO:src.main:Background collecting github data...
+INFO:src.main:Successfully cached github data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting weather data...
+INFO:collectors.weather_collector:Collecting weather data...
+INFO:collectors.weather_collector:Weather data collected successfully for Oregon City, OR
+INFO:src.main:Successfully cached weather data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting calendar data...
+INFO:collectors.calendar_collector:Calendar collector settings check - credentials_file: None
+INFO:collectors.calendar_collector:Starting Google Calendar authentication
+ERROR:collectors.calendar_collector:No Google credentials file found
+ERROR:collectors.calendar_collector:Authentication failed - no service available
+INFO:src.main:Successfully cached calendar data
+INFO:src.main:Background collecting news data...
+INFO:database:Database initialized successfully
+INFO:collectors.news_collector:Collecting news data...
+INFO:database:Database initialized successfully
+INFO:collectors.news_collector:Collected 50 news articles, saved 50 to database
+INFO:src.main:Successfully cached news data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting calendar data...
+INFO:collectors.calendar_collector:Calendar collector settings check - credentials_file: None
+INFO:collectors.calendar_collector:Starting Google Calendar authentication
+ERROR:collectors.calendar_collector:No Google credentials file found
+ERROR:collectors.calendar_collector:Authentication failed - no service available
+INFO:src.main:Successfully cached calendar data
+INFO:src.main:Background collecting github data...
+INFO:src.main:Successfully cached github data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting calendar data...
+INFO:collectors.calendar_collector:Calendar collector settings check - credentials_file: None
+INFO:collectors.calendar_collector:Starting Google Calendar authentication
+ERROR:collectors.calendar_collector:No Google credentials file found
+ERROR:collectors.calendar_collector:Authentication failed - no service available
+INFO:src.main:Successfully cached calendar data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting music data...
+ERROR:src.main:Music collection error: No module named 'collectors.music_collector'
+INFO:src.main:Successfully cached music data
+INFO:src.main:Background collecting vanity data...
+ERROR:src.main:Vanity collection error: No module named 'collectors.vanity_alerts_collector'
+INFO:src.main:Successfully cached vanity data
+INFO:src.main:Background collecting weather data...
+INFO:collectors.weather_collector:Collecting weather data...
+INFO:collectors.weather_collector:Weather data collected successfully for Oregon City, OR
+INFO:src.main:Successfully cached weather data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting calendar data...
+INFO:collectors.calendar_collector:Calendar collector settings check - credentials_file: None
+INFO:collectors.calendar_collector:Starting Google Calendar authentication
+ERROR:collectors.calendar_collector:No Google credentials file found
+ERROR:collectors.calendar_collector:Authentication failed - no service available
+INFO:src.main:Successfully cached calendar data
+INFO:src.main:Background collecting github data...
+INFO:src.main:Successfully cached github data
+INFO:src.main:Background collecting news data...
+INFO:database:Database initialized successfully
+INFO:collectors.news_collector:Collecting news data...
+INFO:database:Database initialized successfully
+INFO:collectors.news_collector:Collected 50 news articles, saved 50 to database
+INFO:src.main:Successfully cached news data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting calendar data...
+INFO:collectors.calendar_collector:Calendar collector settings check - credentials_file: None
+INFO:collectors.calendar_collector:Starting Google Calendar authentication
+ERROR:collectors.calendar_collector:No Google credentials file found
+ERROR:collectors.calendar_collector:Authentication failed - no service available
+INFO:src.main:Successfully cached calendar data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting calendar data...
+INFO:collectors.calendar_collector:Calendar collector settings check - credentials_file: None
+INFO:collectors.calendar_collector:Starting Google Calendar authentication
+ERROR:collectors.calendar_collector:No Google credentials file found
+ERROR:collectors.calendar_collector:Authentication failed - no service available
+INFO:src.main:Successfully cached calendar data
+INFO:src.main:Background collecting github data...
+INFO:src.main:Successfully cached github data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting weather data...
+INFO:collectors.weather_collector:Collecting weather data...
+INFO:collectors.weather_collector:Weather data collected successfully for Oregon City, OR
+INFO:src.main:Successfully cached weather data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting calendar data...
+INFO:collectors.calendar_collector:Calendar collector settings check - credentials_file: None
+INFO:collectors.calendar_collector:Starting Google Calendar authentication
+ERROR:collectors.calendar_collector:No Google credentials file found
+ERROR:collectors.calendar_collector:Authentication failed - no service available
+INFO:src.main:Successfully cached calendar data
+INFO:src.main:Background collecting news data...
+INFO:database:Database initialized successfully
+INFO:collectors.news_collector:Collecting news data...
+INFO:database:Database initialized successfully
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:collectors.news_collector:Collected 50 news articles, saved 50 to database
+INFO:src.main:Successfully cached news data
+INFO:src.main:Background collecting calendar data...
+INFO:collectors.calendar_collector:Calendar collector settings check - credentials_file: None
+INFO:collectors.calendar_collector:Starting Google Calendar authentication
+ERROR:collectors.calendar_collector:No Google credentials file found
+ERROR:collectors.calendar_collector:Authentication failed - no service available
+INFO:src.main:Successfully cached calendar data
+INFO:src.main:Background collecting github data...
+INFO:src.main:Successfully cached github data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting calendar data...
+INFO:collectors.calendar_collector:Calendar collector settings check - credentials_file: None
+INFO:collectors.calendar_collector:Starting Google Calendar authentication
+ERROR:collectors.calendar_collector:No Google credentials file found
+ERROR:collectors.calendar_collector:Authentication failed - no service available
+INFO:src.main:Successfully cached calendar data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting music data...
+ERROR:src.main:Music collection error: No module named 'collectors.music_collector'
+INFO:src.main:Successfully cached music data
+INFO:src.main:Background collecting vanity data...
+ERROR:src.main:Vanity collection error: No module named 'collectors.vanity_alerts_collector'
+INFO:src.main:Successfully cached vanity data
+INFO:src.main:Background collecting weather data...
+INFO:collectors.weather_collector:Collecting weather data...
+INFO:collectors.weather_collector:Weather data collected successfully for Oregon City, OR
+INFO:src.main:Successfully cached weather data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting calendar data...
+INFO:collectors.calendar_collector:Calendar collector settings check - credentials_file: None
+INFO:collectors.calendar_collector:Starting Google Calendar authentication
+ERROR:collectors.calendar_collector:No Google credentials file found
+ERROR:collectors.calendar_collector:Authentication failed - no service available
+INFO:src.main:Successfully cached calendar data
+INFO:src.main:Background collecting github data...
+INFO:src.main:Successfully cached github data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting news data...
+INFO:database:Database initialized successfully
+INFO:collectors.news_collector:Collecting news data...
+INFO:database:Database initialized successfully
+INFO:collectors.news_collector:Collected 50 news articles, saved 50 to database
+INFO:src.main:Successfully cached news data
+INFO:src.main:Background collecting calendar data...
+INFO:collectors.calendar_collector:Calendar collector settings check - credentials_file: None
+INFO:collectors.calendar_collector:Starting Google Calendar authentication
+ERROR:collectors.calendar_collector:No Google credentials file found
+ERROR:collectors.calendar_collector:Authentication failed - no service available
+INFO:src.main:Successfully cached calendar data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting jokes data...
+INFO:httpx:HTTP Request: GET https://icanhazdadjoke.com/ "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://icanhazdadjoke.com/ "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://icanhazdadjoke.com/ "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://icanhazdadjoke.com/ "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://icanhazdadjoke.com/ "HTTP/1.1 200 OK"
+INFO:src.main:Successfully cached jokes data
+INFO:src.main:Background collecting calendar data...
+INFO:collectors.calendar_collector:Calendar collector settings check - credentials_file: None
+INFO:collectors.calendar_collector:Starting Google Calendar authentication
+ERROR:collectors.calendar_collector:No Google credentials file found
+ERROR:collectors.calendar_collector:Authentication failed - no service available
+INFO:src.main:Successfully cached calendar data
+INFO:src.main:Background collecting github data...
+INFO:src.main:Successfully cached github data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting weather data...
+INFO:collectors.weather_collector:Collecting weather data...
+INFO:collectors.weather_collector:Weather data collected successfully for Oregon City, OR
+INFO:src.main:Successfully cached weather data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting calendar data...
+INFO:collectors.calendar_collector:Calendar collector settings check - credentials_file: None
+INFO:collectors.calendar_collector:Starting Google Calendar authentication
+ERROR:collectors.calendar_collector:No Google credentials file found
+ERROR:collectors.calendar_collector:Authentication failed - no service available
+INFO:src.main:Successfully cached calendar data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting news data...
+INFO:database:Database initialized successfully
+INFO:collectors.news_collector:Collecting news data...
+INFO:database:Database initialized successfully
+INFO:collectors.news_collector:Collected 50 news articles, saved 50 to database
+INFO:src.main:Successfully cached news data
+INFO:src.main:Background collecting calendar data...
+INFO:collectors.calendar_collector:Calendar collector settings check - credentials_file: None
+INFO:collectors.calendar_collector:Starting Google Calendar authentication
+ERROR:collectors.calendar_collector:No Google credentials file found
+ERROR:collectors.calendar_collector:Authentication failed - no service available
+INFO:src.main:Successfully cached calendar data
+INFO:src.main:Background collecting github data...
+INFO:src.main:Successfully cached github data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting email data...
+INFO:collectors.gmail_collector:Collecting 100 most recent emails from Gmail
+INFO:collectors.gmail_collector:Starting Google Gmail authentication
+ERROR:collectors.gmail_collector:No Google credentials file found
+ERROR:collectors.gmail_collector:Authentication failed - no Gmail service available
+INFO:src.main:Successfully cached email data
+INFO:src.main:Background collecting calendar data...
+INFO:collectors.calendar_collector:Calendar collector settings check - credentials_file: None
+INFO:collectors.calendar_collector:Starting Google Calendar authentication
+ERROR:collectors.calendar_collector:No Google credentials file found
+ERROR:collectors.calendar_collector:Authentication failed - no service available
+INFO:src.main:Successfully cached calendar data
